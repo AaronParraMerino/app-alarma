@@ -1,20 +1,13 @@
+import 'react-native-gesture-handler'; // DEBE ser la primera importación
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { AlarmProvider } from './src/store/alarmStore';
+import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <AlarmProvider>
+      <StatusBar style="light" backgroundColor="#0D0F14" />
+      <AppNavigator />
+    </AlarmProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
