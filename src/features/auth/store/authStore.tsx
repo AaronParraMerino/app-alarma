@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { AuthState, AuthContextType, User } from '../types/auth.types';
 import { authService } from '../services/authService';
+import { initDB } from '../../../shared/db/localDB';
 
-// Estado inicial
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
@@ -11,7 +11,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Acciones
 type AuthAction =
   | { type: 'SET_LOADING' }
   | { type: 'LOGIN_SUCCESS'; payload: User }
@@ -39,10 +38,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -67,17 +64,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginAsGuest = () => {
+    // Inicializa SQLite local para el modo guest
+    initDB();
     dispatch({ type: 'LOGIN_GUEST' });
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    await authService.logout();
     dispatch({ type: 'LOGOUT' });
   };
 
-  const clearError = () => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  };
+  const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
 
   return (
     <AuthContext.Provider value={{ ...state, login, register, loginAsGuest, logout, clearError }}>
@@ -86,7 +83,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
