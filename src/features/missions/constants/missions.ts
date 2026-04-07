@@ -1,4 +1,4 @@
-import { MissionType } from '../types/alarm.types';
+import { MissionType } from '../../alarm/types/alarm.types';
 
 export const MISSION_LABELS: Record<MissionType, string> = {
   math:     'Matemáticas',
