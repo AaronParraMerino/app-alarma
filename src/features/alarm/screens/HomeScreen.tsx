@@ -12,10 +12,10 @@ import {
   Alert,
   ListRenderItemInfo,
 } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { DAY_LABELS_SHORT, MISSION_ICONS, MISSION_LABELS } from '../../constants/missions';
-import { useAlarmStore } from '../../store/alarmStore';
-import { Alarm } from '../../types/alarm.types';
+import { Colors } from '../../../shared/theme/colors';
+import { DAY_LABELS_SHORT, MISSION_ICONS, MISSION_LABELS } from '../../missions/constants/missions';
+import { useAlarmStore } from '../store/alarmStore';
+import { Alarm } from '../types/alarm.types';
 
 // ─── Utilidades ──────────────────────────────────────────────────────────────
 
