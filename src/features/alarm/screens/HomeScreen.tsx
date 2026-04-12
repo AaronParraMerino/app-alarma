@@ -1,3 +1,4 @@
+// src/features/alarm/screens/HomeScreen.tsx
 import React, { useCallback, useMemo } from 'react';
 import {
   View,
@@ -7,11 +8,11 @@ import {
   Switch,
   StyleSheet,
   StatusBar,
-  SafeAreaView,
   Animated,
   Alert,
   ListRenderItemInfo,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../../shared/theme/colors';
 import { DAY_LABELS_SHORT, MISSION_ICONS } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
@@ -92,10 +93,8 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        {/* Línea de acento izquierda cuando está activa */}
         {alarm.enabled && <View style={styles.cardAccentBar} />}
 
-        {/* Hora + toggle */}
         <View style={styles.cardTop}>
           <View>
             <Text style={[styles.alarmTime, !alarm.enabled && styles.textDisabled]}>
@@ -123,7 +122,6 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
           />
         </View>
 
-        {/* Días + misiones */}
         <View style={styles.cardBottom}>
           <View style={styles.repeatRow}>
             <Text style={styles.repeatDot}>◈</Text>
@@ -241,21 +239,15 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
 
-      {/* Header */}
+      {/* Header — sin botón de perfil */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>Buenos días</Text>
           <Text style={styles.headerTitle}>Neuro Wake</Text>
         </View>
-        <TouchableOpacity
-          style={styles.headerIconBtn}
-          onPress={() => Alert.alert('Perfil', 'Próximamente')}
-        >
-          <Text style={styles.headerIcon}>👤</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Banner */}
@@ -301,9 +293,6 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 10,
@@ -322,17 +311,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: -0.5,
   },
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerIcon: { fontSize: 18 },
 
   // Banner
   banner: {
@@ -416,7 +394,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 2,
   },
-
   cardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -458,7 +435,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '500',
   },
-
   missionRow: {
     flexDirection: 'row',
     alignItems: 'center',
