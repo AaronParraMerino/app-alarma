@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
-
+import WordCompletionMissionScreen from '../screens/WordCompletionMissionScreen';
 export type MissionsStackParamList = {
   MissionSelector: undefined;
   ColorMission: { missionId: string };
@@ -9,6 +9,7 @@ export type MissionsStackParamList = {
   MemoryMission: { missionId: string };
   PhotoMission: { missionId: string };
   WritingMission: { missionId: string };
+  WordCompletionMission: { difficulty: 'easy' | 'medium' | 'hard' };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
@@ -26,6 +27,10 @@ export default function MissionsNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MissionSelector" component={PlaceholderScreen} />
+        <Stack.Screen
+    name="WordCompletionMission"
+    component={WordCompletionMissionScreen}
+  />
     </Stack.Navigator>
   );
 }
