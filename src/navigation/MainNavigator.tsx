@@ -1,9 +1,10 @@
 // src/navigation/MainNavigator.tsx
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, NavigatorScreenParams } from '@react-navigation/native';
 import { BottomTabBar } from '../shared/components/ui/BottomTabBar';
 import AlarmNavigator from '../features/alarm/navigation/AlarmNavigator';
+import { AlarmStackParamList } from '../features/alarm/navigation/AlarmNavigator';
 import StopwatchScreen from '../features/stopwatch/screens/StopwatchScreen';
 import MissionsScreen from '../features/missions/screens/MissionsScreen';
 import ProfileNavigator from '../features/profile/navigation/ProfileNavigator';
@@ -11,7 +12,7 @@ import ProfileNavigator from '../features/profile/navigation/ProfileNavigator';
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type MainTabParamList = {
-  AlarmTab: undefined;
+  AlarmTab: NavigatorScreenParams<AlarmStackParamList> | undefined;
   StopwatchTab: undefined;
   MissionsTab: undefined;
   SettingsTab: undefined;
