@@ -15,7 +15,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { login, loginAsGuest, isLoading, error, clearError } = useAuth();
+  const { login, loginAsGuest, loginWithGoogle, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // ← nuevo
@@ -107,8 +107,9 @@ export default function LoginScreen() {
 
           <Text style={styles.socialLabel}>Inicia Sesión con tu cuenta de</Text>
           <TouchableOpacity
-            style={styles.btnGoogle}
-            onPress={() => Alert.alert('Google', 'Próximamente')}
+            style={[styles.btnGoogle, isLoading && { opacity: 0.6 }]}
+            onPress={loginWithGoogle}
+            disabled={isLoading}
             activeOpacity={0.85}
           >
             <Text style={styles.btnGoogleIcon}>G</Text>

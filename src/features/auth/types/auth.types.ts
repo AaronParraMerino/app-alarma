@@ -18,6 +18,7 @@ export type AuthContextType = AuthState & {
   register: (email: string, password: string, username: string) => Promise<void>;
   loginAsGuest: () => void;
   exitGuest: () => void; 
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
 };

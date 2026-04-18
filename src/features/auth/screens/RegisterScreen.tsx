@@ -15,7 +15,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<Nav>();
-  const { register, loginAsGuest, isLoading, error, clearError } = useAuth();
+  const { register, loginAsGuest, loginWithGoogle, isLoading, error, clearError } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -151,8 +151,9 @@ export default function RegisterScreen() {
 
           <Text style={styles.socialLabel}>Regístrate con tu cuenta de</Text>
           <TouchableOpacity
-            style={styles.btnGoogle}
-            onPress={() => Alert.alert('Google', 'Próximamente')}
+            style={[styles.btnGoogle, isLoading && { opacity: 0.6 }]}
+            onPress={loginWithGoogle}
+            disabled={isLoading}
             activeOpacity={0.85}
           >
             <Text style={styles.btnGoogleIcon}>G</Text>
