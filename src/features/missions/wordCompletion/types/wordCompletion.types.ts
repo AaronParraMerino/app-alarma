@@ -5,9 +5,9 @@ export interface WordChallenge {
   missingIndexes: number[];
 }
 
-export interface WordCompletionMission {
+export interface WordCompletionConfig {
   difficulty: Difficulty;
-  challenges: WordChallenge[];
+  quantity: number;
 }
 
 export interface WordCompletionState {

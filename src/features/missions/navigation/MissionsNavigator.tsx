@@ -1,7 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
-import WordCompletionMissionScreen from '../screens/WordCompletionMissionScreen';
+import MissionSelectorScreen from '../screens/MissionSelectorScreen';
+import WordCompletionMissionScreen from '../wordCompletion/screens/WordCompletionMissionScreen';
+import { WordCompletionConfigScreen } from '../wordCompletion/screens/WordCompletionConfigScreen';
+import { WordCompletionProvider } from '../wordCompletion/store/wordCompletionStore';
+
+
 export type MissionsStackParamList = {
   MissionSelector: undefined;
   ColorMission: { missionId: string };
@@ -9,28 +14,27 @@ export type MissionsStackParamList = {
   MemoryMission: { missionId: string };
   PhotoMission: { missionId: string };
   WritingMission: { missionId: string };
-  WordCompletionMission: { difficulty: 'easy' | 'medium' | 'hard' };
+  ConfigWordCompletionMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+  };
+  WordCompletionMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    alarmLabel?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
 
-// Pantalla temporal hasta que estén listas las reales
-function PlaceholderScreen() {
+export default function MissionsNavigator() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Missions - En construcción</Text>
-    </View>
+    <WordCompletionProvider>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MissionSelector" component={MissionSelectorScreen} />
+        <Stack.Screen name="ConfigWordCompletionMission" component={WordCompletionConfigScreen} />
+        <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
+      </Stack.Navigator>
+    </WordCompletionProvider>
   );
 }
 
-export default function MissionsNavigator() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MissionSelector" component={PlaceholderScreen} />
-        <Stack.Screen
-    name="WordCompletionMission"
-    component={WordCompletionMissionScreen}
-  />
-    </Stack.Navigator>
-  );
-}

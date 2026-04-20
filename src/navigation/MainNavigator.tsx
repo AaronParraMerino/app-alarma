@@ -7,6 +7,7 @@ import AlarmNavigator from '../features/alarm/navigation/AlarmNavigator';
 import StopwatchScreen from '../features/stopwatch/screens/StopwatchScreen';
 import MissionsScreen from '../features/missions/screens/MissionsScreen';
 import ProfileNavigator from '../features/profile/navigation/ProfileNavigator';
+import MissionsNavigator from '../features/missions/navigation/MissionsNavigator';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ export default function MainNavigator() {
       <Tab.Screen name="StopwatchTab" component={StopwatchScreen} />
 
       {/* Misiones */}
-      <Tab.Screen name="MissionsTab" component={MissionsScreen} />
+      {/*<Tab.Screen name="MissionsTab" component={MissionsScreen} />*/}
+      <Tab.Screen name="MissionsTab" component={MissionsNavigator} />
 
       {/* Ajustes + Perfil */}
       <Tab.Screen name="SettingsTab" component={ProfileNavigator} />
