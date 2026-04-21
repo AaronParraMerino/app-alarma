@@ -38,7 +38,8 @@
       "expo-sqlite",
       "expo-audio",
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-dev-client"
     ],
     "extra": {
       "eas": {

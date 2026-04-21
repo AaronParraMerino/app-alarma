@@ -4,18 +4,26 @@ import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const isExpoGo = Constants.appOwnership === 'expo';
+// Detecta el entorno automáticamente
+const getRedirectUri = (): string => {
+  const appOwnership = Constants.appOwnership;
+  const executionEnvironment = Constants.executionEnvironment;
+
+  console.log('[Google] appOwnership:', appOwnership);
+  console.log('[Google] executionEnvironment:', executionEnvironment);
+
+  // Expo Go
+  if (appOwnership === 'expo') {
+    return 'exp+appalarma://expo-development-client';
+  }
+
+  // Development Build o APK
+  return 'appalarma://auth/callback';
+};
 
 export const googleAuthService = {
   async signInWithGoogle(): Promise<void> {
-
-    // En Expo Go usamos el callback de Supabase directamente
-    // En APK usamos el scheme propio
-    const redirectTo = isExpoGo
-      ? 'https://kvcsezfzbvmtmhanxupf.supabase.co/auth/v1/callback'
-      : 'appalarma://auth/callback';
-
-    console.log('[Google] isExpoGo:', isExpoGo);
+    const redirectTo = getRedirectUri();
     console.log('[Google] redirectTo:', redirectTo);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -29,39 +37,34 @@ export const googleAuthService = {
     if (error) throw new Error(error.message);
     if (!data.url) throw new Error('No se obtuvo URL de autenticación');
 
-    if (isExpoGo) {
-      // En Expo Go abrimos el navegador y esperamos que el usuario
-      // vuelva manualmente — la sesión la detecta onAuthStateChange
-      await WebBrowser.openBrowserAsync(data.url);
+    const result = await WebBrowser.openAuthSessionAsync(
+      data.url,
+      redirectTo,
+    );
 
-      // Dar tiempo a que Supabase procese la sesión
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('[Google] result type:', result.type);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Google] sesión después de navegador:', !!session);
-    } else {
-      // En APK el scheme funciona correctamente
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'appalarma://',
-      );
+    if (result.type === 'success') {
+      console.log('[Google] return URL:', result.url);
 
-      console.log('[Google] result type:', result.type);
+      const fragment = result.url.split('#')[1];
+      const query = result.url.split('?')[1];
+      const params = new URLSearchParams(fragment ?? query ?? '');
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
 
-      if (result.type === 'success') {
-        const fragment = result.url.split('#')[1];
-        const query = result.url.split('?')[1];
-        const params = new URLSearchParams(fragment ?? query ?? '');
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken ?? '',
-          });
-        }
+      if (accessToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken ?? '',
+        });
+        if (sessionError) throw new Error(sessionError.message);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No se pudo obtener la sesión');
       }
+    } else if (result.type === 'cancel' || result.type === 'dismiss') {
+      console.log('[Google] Usuario canceló');
     }
   },
 };
