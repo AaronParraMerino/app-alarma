@@ -5,6 +5,9 @@ import MissionSelectorScreen from '../screens/MissionSelectorScreen';
 import WordCompletionMissionScreen from '../wordCompletion/screens/WordCompletionMissionScreen';
 import { WordCompletionConfigScreen } from '../wordCompletion/screens/WordCompletionConfigScreen';
 import { WordCompletionProvider } from '../wordCompletion/store/wordCompletionStore';
+import MathMissionScreen from '../Math Exercises/screens/MathMissionScreen';
+import { MathMissionConfigScreen } from '../Math Exercises/screens/MathMissionConfigScreen';
+import { MathExercisesProvider } from '../Math Exercises/store/mathExercisesStore';
 
 
 export type MissionsStackParamList = {
@@ -22,6 +25,15 @@ export type MissionsStackParamList = {
     quantity: number;
     alarmLabel?: string;
   };
+  ConfigMathMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+  };
+  MathMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    alarmLabel?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
@@ -29,11 +41,15 @@ const Stack = createNativeStackNavigator<MissionsStackParamList>();
 export default function MissionsNavigator() {
   return (
     <WordCompletionProvider>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MissionSelector" component={MissionSelectorScreen} />
-        <Stack.Screen name="ConfigWordCompletionMission" component={WordCompletionConfigScreen} />
-        <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
-      </Stack.Navigator>
+      <MathExercisesProvider>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="MissionSelector" component={MissionSelectorScreen} />
+          <Stack.Screen name="ConfigWordCompletionMission" component={WordCompletionConfigScreen} />
+          <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
+          <Stack.Screen name="ConfigMathMission" component={MathMissionConfigScreen} />
+          <Stack.Screen name="MathMissionScreen" component={MathMissionScreen} />
+        </Stack.Navigator>
+      </MathExercisesProvider>
     </WordCompletionProvider>
   );
 }
