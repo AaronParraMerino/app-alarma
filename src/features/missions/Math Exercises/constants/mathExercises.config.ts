@@ -53,35 +53,29 @@ export const OPERATION_SYMBOLS: Record<OperationType, string> = {
 // HELPERS
 // ─────────────────────────────────────────────
 
-// Entero aleatorio entre min y max inclusive
 function ri(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Decimal aleatorio con 1 decimal, múltiplo de 0.5
 function rd(min: number, max: number): number {
   const steps = (max - min) / 0.5;
   return min + Math.floor(Math.random() * (steps + 1)) * 0.5;
 }
 
-// Formatea número: si es entero no muestra decimal
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-// Redondea a 2 decimales
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
 // ─────────────────────────────────────────────
-// PLANTILLAS POR OPERACIÓN + NIVEL
-// Cada función retorna { expression, answer }
+// PLANTILLAS
 // ─────────────────────────────────────────────
 
 const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPreview>>> = {
 
-  // ──────────── SUMA ────────────
   addition: {
     easy: [
       () => {
@@ -148,7 +142,6 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
   },
 
-  // ──────────── RESTA ────────────
   subtraction: {
     easy: [
       () => {
@@ -156,17 +149,20 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         return { expression: `(${a} + ${b}) − (${c} − ${d})`, answer: fmt(round2((a + b) - (c - d))) };
       },
       () => {
-        const a = ri(5, 9), b = ri(1, 4), c = ri(1, 9), d = ri(1, 9);
+        const c = ri(1, 3), d = ri(1, 3);
+        const a = ri(c + d + 2, 9), b = ri(1, 2);
         return { expression: `(${a} − ${b}) − (${c} + ${d})`, answer: fmt(round2((a - b) - (c + d))) };
       },
       () => {
-        const a = ri(3, 9), b = ri(1, 9), c = ri(1, 9);
-        return { expression: `(${a} × ${b}) − ${c}`, answer: fmt(round2(a * b - c)) };
+        const c = ri(1, 5);
+        const a = ri(3, 9), b = ri(2, 9);
+        const product = a * b;
+        return { expression: `(${a} × ${b}) − ${c}`, answer: fmt(round2(product - c)) };
       },
     ],
     medium: [
       () => {
-        const a = rd(4, 9), b = rd(1, 3), c = rd(2, 6), d = rd(1, 3), e = ri(2, 5);
+        const a = rd(4, 9), b = rd(1, 3), c = rd(1, 3), d = rd(1, 2), e = ri(2, 3);
         return {
           expression: `(${fmt(a)} − ${fmt(b)}) − (${fmt(c)} + ${fmt(d)}) × ${e}`,
           answer: fmt(round2((a - b) - (c + d) * e)),
@@ -189,15 +185,15 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
     hard: [
       () => {
-        const a = rd(3, 7), b = rd(1, 3), c = ri(2, 5);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
+        const a = rd(4, 8), b = rd(1, 2), c = ri(2, 4);
+        const sq = [4, 9][ri(0, 1)];
         return {
           expression: `(${fmt(a)} − ${fmt(b)})² ÷ ${c} − √${sq}`,
           answer: fmt(round2(Math.pow(a - b, 2) / c - Math.sqrt(sq))),
         };
       },
       () => {
-        const a = rd(4, 9), b = rd(1, 4), c = rd(2, 6), d = rd(1, 3);
+        const a = rd(4, 9), b = rd(1, 3), c = rd(1, 3), d = rd(1, 2);
         const sq = [4, 9, 16, 25][ri(0, 3)];
         return {
           expression: `√${sq} + (${fmt(a)} − ${fmt(b)})² − (${fmt(c)} + ${fmt(d)})`,
@@ -205,7 +201,7 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(5, 10), b = rd(1, 4), c = ri(2, 4), d = rd(2, 5), e = rd(1, 3);
+        const a = rd(5, 10), b = rd(1, 3), c = ri(2, 4), d = rd(2, 5), e = rd(1, 2);
         return {
           expression: `((${fmt(a)} − ${fmt(b)}) ÷ ${c})² − (${fmt(d)} − ${fmt(e)})`,
           answer: fmt(round2(Math.pow((a - b) / c, 2) - (d - e))),
@@ -214,7 +210,6 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
   },
 
-  // ──────────── MULTIPLICACIÓN ────────────
   multiplication: {
     easy: [
       () => {
@@ -280,7 +275,6 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
   },
 
-  // ──────────── DIVISIÓN ────────────
   division: {
     easy: [
       () => {
@@ -351,7 +345,7 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
 };
 
 // ─────────────────────────────────────────────
-// EXAMPLE_PREVIEWS — usa plantilla fija por nivel
+// EXAMPLE_PREVIEWS
 // ─────────────────────────────────────────────
 export const EXAMPLE_PREVIEWS: Record<Difficulty, ComplexPreview[]> = {
   easy: [{ expression: '(4 − 2) × (3 + 5)', answer: '16' }],
@@ -360,19 +354,27 @@ export const EXAMPLE_PREVIEWS: Record<Difficulty, ComplexPreview[]> = {
 };
 
 // ─────────────────────────────────────────────
-// FUNCIÓN PRINCIPAL: genera una expresión
+// FUNCIÓN PRINCIPAL — siempre retorna positivo
 // ─────────────────────────────────────────────
 export function generateExpression(
   difficulty: Difficulty,
   operationType: OperationType
 ): GeneratedExpression {
   const group = TEMPLATES[operationType][difficulty];
-  const templateFn = group[Math.floor(Math.random() * group.length)];
-  const { expression, answer } = templateFn();
+
+  let expression: string = '';
+  let answer: string = '';
+  let attempts = 0;
+
+  do {
+    const templateFn = group[Math.floor(Math.random() * group.length)];
+    ({ expression, answer } = templateFn());
+    attempts++;
+  } while (parseFloat(answer) <= 0 && attempts < 20);
+
   return { expression, answer, operation: operationType, difficulty };
 }
 
-// Genera lista de expresiones
 export function generateExpressions(
   difficulty: Difficulty,
   operationType: OperationType,
@@ -385,7 +387,6 @@ export function generateExpressions(
   return result;
 }
 
-// Se mantiene por compatibilidad con código existente
 export function generateChallenges(difficulty: Difficulty, count: number = 1): MathChallenge[] {
   const style = DIFFICULTY_STYLES[difficulty];
   const operations = style.operationTypes;

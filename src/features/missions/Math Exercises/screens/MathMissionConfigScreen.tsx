@@ -57,7 +57,7 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 
   const handleSave = () => {
     setConfig({ difficulty, quantity, operationType });
-    navigation.goBack();
+    navigation.navigate('MathMissionLauncher');
   };
 
   return (

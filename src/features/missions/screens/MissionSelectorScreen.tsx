@@ -28,7 +28,7 @@ export default function MissionSelectorScreen() {
         </TouchableOpacity>
 
         <Text style={styles.summary}>
-          {diffStyle.label}  ·  {config.quantity} vez{config.quantity > 1 ? 'es' : ''}
+          {diffStyle.label}  ·  {config.quantity} vec{config.quantity > 1 ? 'es' : ''}
         </Text>
 
         <TouchableOpacity
@@ -57,7 +57,7 @@ export default function MissionSelectorScreen() {
         </TouchableOpacity>
 
         <Text style={styles.summary}>
-          {diffStyle.label}  ·  {config.quantity} vez{config.quantity > 1 ? 'es' : ''}
+          {diffStyle.label}  ·  {config.quantity} vec{config.quantity > 1 ? 'es' : ''}
         </Text>
 
         <TouchableOpacity

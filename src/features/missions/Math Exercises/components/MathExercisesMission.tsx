@@ -9,6 +9,7 @@ import {
   Platform,
   TouchableOpacity,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { Difficulty } from '../types/mathExercises.types';
 import { DIFFICULTY_STYLES } from '../constants/mathExercises.config';
@@ -24,6 +25,7 @@ interface Props {
 export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLabel }: Props) {
   const { width } = useWindowDimensions();
   const [missionCount, setMissionCount] = React.useState(0);
+  const [showModal, setShowModal] = React.useState(false);
 
   const style = DIFFICULTY_STYLES[difficulty];
   const { state, current, handleInputChange, handleConfirm, handleReplace } =
@@ -33,14 +35,13 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
     if (!state.isCompleted) return;
     const next = missionCount + 1;
     if (next >= quantity) {
-      onComplete();
+      setShowModal(true); // ← muestra modal en vez de salir directo
     } else {
       setMissionCount(next);
       handleReplace();
     }
   }, [state.isCompleted]);
 
-  // ✅ Muestra expression compleja si existe, si no el formato simple
   const displayExpression = current?.expression
     ? current.expression
     : current
@@ -81,7 +82,6 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
                 { backgroundColor: style.bgColor, borderColor: style.accentColor + '30' },
               ]}
             >
-              {/* ✅ Expresión compleja */}
               <Text
                 style={[
                   styles.mathExpression,
@@ -127,6 +127,54 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* ── MODAL FELICITACIONES ── */}
+      <Modal visible={showModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+
+            {/* Estrellas */}
+            <View style={styles.starsRow}>
+              <Text style={styles.starSide}>⭐</Text>
+              <Text style={styles.starCenter}>⭐</Text>
+              <Text style={styles.starSide}>⭐</Text>
+            </View>
+
+            {/* Título */}
+            <Text style={styles.modalTitle}>¡FELICIDADES!</Text>
+
+            {/* Subtítulo */}
+            <Text style={styles.modalSubtitle}>¡Has completado la misión{'\n'}con éxito!</Text>
+
+            {/* Check */}
+            <View style={styles.checkWrapper}>
+              <View style={styles.checkCircle}>
+                <Text style={styles.checkIcon}>✓</Text>
+              </View>
+            </View>
+
+            {/* Mensaje */}
+            <View style={styles.messageBox}>
+              <Text style={styles.messageText}>
+                Sigue así, estás haciendo{'\n'}un gran trabajo. ⭐
+              </Text>
+            </View>
+
+            {/* Botón Aceptar */}
+            <TouchableOpacity
+              style={styles.acceptBtn}
+              onPress={() => {
+                setShowModal(false);
+                onComplete(); // ← vuelve a la pantalla principal
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.acceptText}>ACEPTAR</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -185,4 +233,109 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
+
+  // ── MODAL ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    backgroundColor: '#141A1F',
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 28,
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#2A3A4A',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 8,
+    marginTop: -20,
+  },
+  starSide: { fontSize: 36, marginHorizontal: 2 },
+  starCenter: { fontSize: 52, marginHorizontal: 2 },
+  modalTitle: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#7EB8F7',
+    textAlign: 'center',
+    letterSpacing: 1,
+    textShadowColor: '#1A3A5C',
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 4,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#A0B8CC',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  checkWrapper: {
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#1A3A2A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#2ECC71',
+    shadowColor: '#2ECC71',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  checkIcon: { fontSize: 36, color: '#2ECC71', fontWeight: '900' },
+  messageBox: {
+    backgroundColor: '#1C2530',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2A3A4A',
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#8AABB8',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  acceptBtn: {
+    backgroundColor: '#1A3A5C',
+    borderRadius: 30,
+    height: 52,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#4A7EAA',
+    shadowColor: '#4A7EAA',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  acceptText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#7EB8F7',
+    letterSpacing: 1,
+  },
 });

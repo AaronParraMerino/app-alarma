@@ -1,6 +1,5 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
 import MissionSelectorScreen from '../screens/MissionSelectorScreen';
 import WordCompletionMissionScreen from '../wordCompletion/screens/WordCompletionMissionScreen';
 import { WordCompletionConfigScreen } from '../wordCompletion/screens/WordCompletionConfigScreen';
@@ -8,7 +7,7 @@ import { WordCompletionProvider } from '../wordCompletion/store/wordCompletionSt
 import MathMissionScreen from '../Math Exercises/screens/MathMissionScreen';
 import { MathMissionConfigScreen } from '../Math Exercises/screens/MathMissionConfigScreen';
 import { MathExercisesProvider } from '../Math Exercises/store/mathExercisesStore';
-
+import MathMissionLauncherScreen from '../Math Exercises/screens/MathMissionLauncherScreen';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -34,6 +33,7 @@ export type MissionsStackParamList = {
     quantity: number;
     alarmLabel?: string;
   };
+  MathMissionLauncher: undefined;  // ← nuevo
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
@@ -48,9 +48,9 @@ export default function MissionsNavigator() {
           <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
           <Stack.Screen name="ConfigMathMission" component={MathMissionConfigScreen} />
           <Stack.Screen name="MathMissionScreen" component={MathMissionScreen} />
+          <Stack.Screen name="MathMissionLauncher" component={MathMissionLauncherScreen} />
         </Stack.Navigator>
       </MathExercisesProvider>
     </WordCompletionProvider>
   );
 }
-
