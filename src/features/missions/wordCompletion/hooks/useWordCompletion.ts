@@ -1,7 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Difficulty, WordChallenge, WordCompletionState } from '../types/wordCompletion.types';
 import { generateChallenges } from '../constants/wordCompletion.config';
 
+const INITIAL_STATE: WordCompletionState = {
+  currentChallengeIndex: 0,
+  userInput: '',
+  hasError: false,
+  completedIndexes: [],
+  isCompleted: false,
+};
 
 /**
  * Hook principal que maneja la logica del juego de completar palabras.
@@ -16,13 +23,16 @@ export function useWordCompletion(difficulty: Difficulty) {
     generateChallenges(difficulty)
   );
 
-  const [state, setState] = useState<WordCompletionState>({
-    currentChallengeIndex: 0,
-    userInput: '',
-    hasError: false,
-    completedIndexes: [],
-    isCompleted: false,
-  });
+  const [state, setState] = useState<WordCompletionState>(INITIAL_STATE);
+
+  /**
+   * Cuando la dificultad cambia (por bajada automática),
+   * regenera las palabras del banco correcto y resetea el estado
+   */
+  useEffect(() => {
+    setChallenges(generateChallenges(difficulty));
+    setState(INITIAL_STATE);
+  }, [difficulty]);
 
   const current = challenges[state.currentChallengeIndex];
 
@@ -30,7 +40,7 @@ export function useWordCompletion(difficulty: Difficulty) {
     ? current.missingIndexes.map(i => current.word[i]).join('')
     : '';
 
-    /**
+  /**
    * Maneja cambios en el input del usuario
    * Normaliza a mayúsculas
    * Resetea estado de error
@@ -56,7 +66,7 @@ export function useWordCompletion(difficulty: Difficulty) {
 
   const handleReplace = useCallback(() => {
     setChallenges(generateChallenges(difficulty));
-    setState({ currentChallengeIndex: 0, userInput: '', hasError: false, completedIndexes: [], isCompleted: false });
+    setState(INITIAL_STATE);
   }, [difficulty]);
 
   return { challenges, state, current, expectedAnswer, handleInputChange, handleConfirm, handleReplace };

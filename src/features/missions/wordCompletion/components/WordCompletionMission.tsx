@@ -9,6 +9,9 @@ import { DIFFICULTY_STYLES } from '../constants/wordCompletion.config';
 import { useWordCompletion } from '../hooks/useWordCompletion';
 import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
+import { WordHint } from '../components/WordHint';
+import { ReplaceButton } from '../components/ReplaceButton';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 
 interface Props {
   difficulty: Difficulty;
@@ -17,19 +20,21 @@ interface Props {
   alarmLabel?: string;
 }
 
-export function WordCompletionMission({ difficulty, quantity, onComplete, alarmLabel }: Props) {
+export function WordCompletionMission({ difficulty: initialDifficulty, quantity, onComplete, alarmLabel }: Props) {
   const { width } = useWindowDimensions();
-
-  // Contador de cuántas misiones se han completado
-  const [missionCount, setMissionCount] = useState(0);
+  const [missionCount, setMissionCount]   = useState(0);
+  const [difficulty, setDifficulty]       = useState<Difficulty>(initialDifficulty);
+  const [errorCount, setErrorCount]       = useState(0);
 
   const style = DIFFICULTY_STYLES[difficulty];
   const { challenges, state, current, handleInputChange, handleConfirm, handleReplace } =
     useWordCompletion(difficulty);
 
+  const { time, day } = useCurrentTime();
+  const isHard   = difficulty === 'hard';
+  const isMedium = difficulty === 'medium';
+  const showHint = isMedium || isHard;
 
-// Determina si la dificultad es alta (cambia comportamiento del UI)
-  const isHard = difficulty === 'hard';
   const maxLength = isHard
     ? challenges[state.currentChallengeIndex]?.missingIndexes.length ?? 1
     : current?.missingIndexes.length ?? 1;
@@ -38,12 +43,35 @@ export function WordCompletionMission({ difficulty, quantity, onComplete, alarmL
     ? `${challenges.reduce((a, c) => a + c.missingIndexes.length, 0)} letras faltantes`
     : `${maxLength} letra${maxLength > 1 ? 's' : ''} faltante${maxLength > 1 ? 's · escríbelas juntas' : ''}`;
 
+  const activeWord = isHard
+    ? challenges[state.currentChallengeIndex]?.word
+    : current?.word;
 
-    /**
-   * Efecto: detecta cuando una misión se completa
-   * - Si se completan todas ejecuta onComplete()
-   * - Si quedan mas incrementa contador y reemplaza misión
-   */
+  // Wrappea handleConfirm para contar errores
+  const handleConfirmWithCount = () => {
+    const prevError = state.hasError;
+    handleConfirm();
+    // Si ya tenía error antes de confirmar, este es un nuevo fallo
+    if (!prevError && state.userInput.trim() !== '') {
+      // lo detectamos por el cambio en hasError en el siguiente render
+    }
+  };
+
+  // Detecta cuando hasError cambia a true (nuevo fallo)
+  const prevHasError = React.useRef(false);
+  React.useEffect(() => {
+    if (state.hasError && !prevHasError.current) {
+      setErrorCount(c => c + 1);
+    }
+    prevHasError.current = state.hasError;
+  }, [state.hasError]);
+
+  // Reset errorCount al cambiar de palabra
+  React.useEffect(() => {
+    setErrorCount(0);
+  }, [state.currentChallengeIndex]);
+
+  // Misión completada
   React.useEffect(() => {
     if (!state.isCompleted) return;
     const next = missionCount + 1;
@@ -52,8 +80,16 @@ export function WordCompletionMission({ difficulty, quantity, onComplete, alarmL
     } else {
       setMissionCount(next);
       handleReplace();
+      setErrorCount(0);
     }
-  }, [state.isCompleted, missionCount, quantity, onComplete, handleReplace]);
+  }, [state.isCompleted]);
+
+  // Baja de dificultad — reinicia la misión con nueva dificultad
+  const handleDifficultyDown = (next: Difficulty) => {
+    setDifficulty(next);
+    setErrorCount(0);
+    handleReplace();
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -63,15 +99,15 @@ export function WordCompletionMission({ difficulty, quantity, onComplete, alarmL
       >
         <View style={styles.screen}>
 
-          {/* Pill dificultad */}
+          {/* etiqueta dificultad */}
           <View style={[styles.pill, { backgroundColor: style.bgColor, borderColor: style.accentColor + '40' }]}>
             <Text style={[styles.pillText, { color: style.accentColor }]}>{style.label}</Text>
           </View>
 
           {/* Hora */}
           <View style={styles.timeBlock}>
-            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>05:30</Text>
-            <Text style={styles.dateLabel}>Miércoles — Hora de levantarse</Text>
+            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>{time}</Text>
+            <Text style={styles.dateLabel}>{day} — {alarmLabel ?? 'Hora de levantarse'}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -101,6 +137,11 @@ export function WordCompletionMission({ difficulty, quantity, onComplete, alarmL
                   />
                 </View>
               )
+            )}
+
+            {/* Pista visual: palabra completa, de cabeza y al revés */}
+            {showHint && activeWord && (
+              <WordHint word={activeWord} accentColor={style.accentColor} />
             )}
 
             <TextInput
@@ -136,14 +177,16 @@ export function WordCompletionMission({ difficulty, quantity, onComplete, alarmL
               </Text>
             </TouchableOpacity>
 
-            {/* Boton para cambiar misión */}
-            <TouchableOpacity onPress={handleReplace} style={styles.skipBtn}>
-              <Text style={styles.skipText}>Reemplazar misión</Text>
-            </TouchableOpacity>
+            <ReplaceButton
+              difficulty={difficulty}
+              errorCount={errorCount}
+              onReplace={() => { handleReplace(); setErrorCount(0); }}
+              onDifficultyDown={handleDifficultyDown}
+            />
+
           </View>
 
         </View>
-
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -168,7 +211,7 @@ const styles = StyleSheet.create({
   wordBox: {
     backgroundColor: '#161616', borderRadius: 12,
     paddingVertical: 14, paddingHorizontal: 10,
-    alignItems: 'center', marginBottom: 12,
+    alignItems: 'center', marginBottom: 4,
   },
   input: {
     backgroundColor: '#161616', borderWidth: 0.5, borderRadius: 10,
@@ -182,6 +225,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 'auto',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
-  skipBtn: { alignItems: 'center', marginTop: 8, paddingBottom: 4 },
-  skipText: { fontSize: 11, color: '#334455', textDecorationLine: 'underline' },
 });
