@@ -13,10 +13,14 @@ import {
   ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../../shared/theme/colors';
 import { DAY_LABELS_SHORT, MISSION_ICONS } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
 import { Alarm } from '../types/alarm.types';
+import { AlarmStackParamList } from '../navigation/AlarmNavigator';
+import { getAlarmSoundLabel } from '../services/alarmService';
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -40,6 +44,10 @@ function formatRepeat(repeatDays: number[]): string {
     .sort((a, b) => a - b)
     .map(d => DAY_LABELS_SHORT[d])
     .join(' · ');
+}
+
+function formatSound(soundUri: string | null): string {
+  return getAlarmSoundLabel(soundUri);
 }
 
 function minutesUntilNextAlarm(alarms: Alarm[]): number | null {
@@ -128,6 +136,9 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
             <Text style={[styles.repeatText, !alarm.enabled && styles.textMutedDisabled]}>
               {formatRepeat(alarm.repeatDays)}
             </Text>
+            <Text style={[styles.soundText, !alarm.enabled && styles.textMutedDisabled]}>
+              {formatSound(alarm.soundUri)}
+            </Text>
           </View>
 
           <View style={styles.missionRow}>
@@ -194,15 +205,16 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList, 'Home'>>();
   const { alarms, toggleAlarm, deleteAlarm } = useAlarmStore();
 
   const handleAdd = useCallback(() => {
-    Alert.alert('Nueva alarma', 'Pantalla de creación — próximamente');
-  }, []);
+    navigation.navigate('AlarmCreate');
+  }, [navigation]);
 
   const handlePress = useCallback((alarm: Alarm) => {
-    Alert.alert(alarm.label || 'Alarma', 'Editar — próximamente');
-  }, []);
+    navigation.navigate('AlarmEdit', { alarmId: alarm.id });
+  }, [navigation]);
 
   const handleLongPress = useCallback((alarm: Alarm) => {
     Alert.alert(
@@ -434,6 +446,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  soundText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginLeft: 6,
   },
   missionRow: {
     flexDirection: 'row',

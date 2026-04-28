@@ -1,6 +1,9 @@
 // src/features/alarm/navigation/AlarmNavigator.tsx
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
+import AlarmCreateScreen from '../screens/AlarmCreateScreen';
+import AlarmEditScreen from '../screens/AlarmEditScreen';
+import AlarmRingingScreen from '../screens/AlarmRingingScreen';
 import { Colors } from '../../../shared/theme/colors';
 
 export type AlarmStackParamList = {
@@ -23,15 +26,13 @@ export default function AlarmNavigator() {
       }}
     >
       <Stack.Screen name="Home" component={HomeScreen} />
-      {/*
-        Cuando agregues las pantallas de detalle, la tab bar
-        se ocultará automáticamente en MainNavigator porque
-        sus nombres están en SCREENS_WITHOUT_TABBAR.
-
-        <Stack.Screen name="AlarmCreate" component={AlarmCreateScreen} />
-        <Stack.Screen name="AlarmEdit" component={AlarmEditScreen} />
-        <Stack.Screen name="AlarmRinging" component={AlarmRingingScreen} />
-      */}
+      <Stack.Screen name="AlarmCreate" component={AlarmCreateScreen} />
+      <Stack.Screen name="AlarmEdit" component={AlarmEditScreen} />
+      <Stack.Screen
+        name="AlarmRinging"
+        component={AlarmRingingScreen}
+        options={{ gestureEnabled: false, animation: 'fade' }}
+      />
     </Stack.Navigator>
   );
 }
