@@ -11,6 +11,7 @@ import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
 import { WordHint } from '../components/WordHint';
 import { ReplaceButton } from '../components/ReplaceButton';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 
 interface Props {
   difficulty: Difficulty;
@@ -29,6 +30,7 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
   const { challenges, state, current, handleInputChange, handleConfirm, handleReplace } =
     useWordCompletion(difficulty);
 
+  const { time, day } = useCurrentTime();
   const isHard   = difficulty === 'hard';
   const isMedium = difficulty === 'medium';
   const showHint = isMedium || isHard;
@@ -104,8 +106,8 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
 
           {/* Hora */}
           <View style={styles.timeBlock}>
-            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>05:30</Text>
-            <Text style={styles.dateLabel}>Miércoles — {alarmLabel ?? 'Hora de levantarse'}</Text>
+            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>{time}</Text>
+            <Text style={styles.dateLabel}>{day} — {alarmLabel ?? 'Hora de levantarse'}</Text>
           </View>
 
           <View style={styles.divider} />
