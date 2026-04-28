@@ -10,7 +10,7 @@ interface Props {
   accentColor: string;
   accentBg: string;
 }
-
+// Componente que renderiza una pila/lista de palabras con estado visual
 export function WordStack({ challenges, currentIndex, completedIndexes, accentColor, accentBg }: Props) {
   return (
     <View style={styles.container}>
