@@ -1,11 +1,10 @@
-// src/features/auth/store/authStore.tsx
-// CAMBIO: se añadió la acción exitGuest() para redirigir invitados al login
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { AuthState, AuthContextType, User } from '../types/auth.types';
 import { authService } from '../services/authService';
 import { initDB } from '../../../shared/db/localDB';
 import { startSyncListener, stopSyncListener, syncAlarms } from '../../../shared/services/storage/sync.service';
 import { supabase } from '../../../shared/db/supabaseClient';
+import { googleAuthService } from '../services/googleAuthService';
 
 const initialState: AuthState = {
   user: null,
@@ -47,6 +46,20 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper para mapear usuario de Supabase a User
+function mapSupabaseUser(u: any, fallbackEmail?: string): User {
+  return {
+    id: u.id,
+    email: u.email ?? fallbackEmail ?? '',
+    username: u.user_metadata?.username
+      ?? u.user_metadata?.full_name
+      ?? u.user_metadata?.name
+      ?? u.email?.split('@')[0]
+      ?? '',
+    createdAt: u.created_at,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -58,17 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
-        const u = session.user;
-        const user: User = {
-          id: u.id,
-          email: u.email ?? '',
-          username: u.user_metadata?.username ?? u.email?.split('@')[0] ?? '',
-          createdAt: u.created_at,
-        };
+        const user = mapSupabaseUser(session.user);
         dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-        if (u.id) {
-          syncAlarms(u.id);
-          startSyncListener(u.id);
+        if (session.user.id) {
+          syncAlarms(session.user.id);
+          startSyncListener(session.user.id);
         }
       } else {
         dispatch({ type: 'SET_READY' });
@@ -77,6 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        const user = mapSupabaseUser(session.user);
+        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+        if (session.user.id) {
+          syncAlarms(session.user.id);
+          startSyncListener(session.user.id);
+        }
+      }
+
       if (event === 'SIGNED_OUT') {
         stopSyncListener();
         dispatch({ type: 'LOGOUT' });
@@ -117,14 +134,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async () => {
+    dispatch({ type: 'SET_LOADING' });
+    try {
+      // Lanzar el navegador sin await para no bloquear
+      googleAuthService.signInWithGoogle().catch((error) => {
+        console.log('[Google] error en background:', error);
+      });
+
+      // Volver a estado listo inmediatamente
+      // El onAuthStateChange maneja el LOGIN_SUCCESS cuando vuelva
+      dispatch({ type: 'SET_READY' });
+
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message ?? 'Error con Google' });
+    }
+  };
+
   const logout = async () => {
     stopSyncListener();
     await authService.logout();
     dispatch({ type: 'LOGOUT' });
   };
 
-  // ── Nuevo: para invitados que quieren ir al login ──────────────────────────
-  // No llama a Supabase porque el invitado nunca inició sesión allí
   const exitGuest = () => {
     dispatch({ type: 'LOGOUT' });
   };
@@ -137,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, loginAsGuest, logout, exitGuest, clearError }}
+      value={{ ...state, login, register, loginAsGuest, loginWithGoogle, logout, exitGuest, clearError }}
     >
       {children}
     </AuthContext.Provider>
