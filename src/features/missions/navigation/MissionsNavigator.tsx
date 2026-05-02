@@ -32,8 +32,14 @@ export type MissionsStackParamList = {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
   };
-  MathMissionLauncher: undefined;  // ← nuevo
+  MathMissionLauncher: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+    alarmLabel?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();

@@ -1,20 +1,19 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
-import { useMathExercisesStore } from '../store/mathExercisesStore';
 
 type Props = NativeStackScreenProps<MissionsStackParamList, 'MathMissionLauncher'>;
 
-export default function MathMissionLauncherScreen({ navigation }: Props) {
-  const { config } = useMathExercisesStore();
-
+export default function MathMissionLauncherScreen({ navigation, route }: Props) {
   React.useEffect(() => {
+    const { difficulty, quantity, operationType, alarmLabel } = route.params;
     navigation.replace('MathMissionScreen', {
-      difficulty: config.difficulty,
-      quantity: config.quantity,
-      alarmLabel: 'Misión Matemáticas',
+      difficulty,
+      quantity,
+      operationType,
+      alarmLabel,
     });
-  }, []);
+  }, [navigation, route.params]);
 
   return null;
 }

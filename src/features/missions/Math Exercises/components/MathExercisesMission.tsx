@@ -11,31 +11,34 @@ import {
   useWindowDimensions,
   Modal,
 } from 'react-native';
-import { Difficulty } from '../types/mathExercises.types';
+import { Difficulty, OperationType } from '../types/mathExercises.types'; // 👈 importar OperationType
 import { DIFFICULTY_STYLES } from '../constants/mathExercises.config';
 import { useMathExercises } from '../hooks/useMathExercises';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 
 interface Props {
   difficulty: Difficulty;
   quantity: number;
   onComplete: () => void;
   alarmLabel?: string;
+  operationType?: OperationType; // 👈 nuevo prop
 }
 
-export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLabel }: Props) {
+export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLabel, operationType }: Props) {
   const { width } = useWindowDimensions();
   const [missionCount, setMissionCount] = React.useState(0);
   const [showModal, setShowModal] = React.useState(false);
 
   const style = DIFFICULTY_STYLES[difficulty];
   const { state, current, handleInputChange, handleConfirm, handleReplace } =
-    useMathExercises(difficulty, 1);
+    useMathExercises(difficulty, 1, operationType); // 👈 pasar operationType al hook
+  const { time, day } = useCurrentTime();
 
   React.useEffect(() => {
     if (!state.isCompleted) return;
     const next = missionCount + 1;
     if (next >= quantity) {
-      setShowModal(true); // ← muestra modal en vez de salir directo
+      setShowModal(true);
     } else {
       setMissionCount(next);
       handleReplace();
@@ -67,8 +70,8 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
           </View>
 
           <View style={styles.timeBlock}>
-            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>05:30</Text>
-            <Text style={styles.dateLabel}>Miércoles — Hora de levantarse</Text>
+            <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>{time}</Text>
+            <Text style={styles.dateLabel}>{day} — Hora de levantarse</Text>
           </View>
 
           <View style={styles.divider} />
@@ -109,7 +112,7 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
               onChangeText={handleInputChange}
               placeholder="0"
               placeholderTextColor="#334455"
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               maxLength={8}
             />
 
@@ -128,50 +131,36 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
         </View>
       </KeyboardAvoidingView>
 
-      {/* ── MODAL FELICITACIONES ── */}
       <Modal visible={showModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-
-            {/* Estrellas */}
             <View style={styles.starsRow}>
               <Text style={styles.starSide}>⭐</Text>
               <Text style={styles.starCenter}>⭐</Text>
               <Text style={styles.starSide}>⭐</Text>
             </View>
-
-            {/* Título */}
             <Text style={styles.modalTitle}>¡FELICIDADES!</Text>
-
-            {/* Subtítulo */}
             <Text style={styles.modalSubtitle}>¡Has completado la misión{'\n'}con éxito!</Text>
-
-            {/* Check */}
             <View style={styles.checkWrapper}>
               <View style={styles.checkCircle}>
                 <Text style={styles.checkIcon}>✓</Text>
               </View>
             </View>
-
-            {/* Mensaje */}
             <View style={styles.messageBox}>
               <Text style={styles.messageText}>
                 Sigue así, estás haciendo{'\n'}un gran trabajo. ⭐
               </Text>
             </View>
-
-            {/* Botón Aceptar */}
             <TouchableOpacity
               style={styles.acceptBtn}
               onPress={() => {
                 setShowModal(false);
-                onComplete(); // ← vuelve a la pantalla principal
+                onComplete();
               }}
               activeOpacity={0.85}
             >
               <Text style={styles.acceptText}>ACEPTAR</Text>
             </TouchableOpacity>
-
           </View>
         </View>
       </Modal>
@@ -233,8 +222,6 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
-
-  // ── MODAL ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',
@@ -253,12 +240,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A4A',
   },
-  starsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 8,
-    marginTop: -20,
-  },
+  starsRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 8, marginTop: -20 },
   starSide: { fontSize: 36, marginHorizontal: 2 },
   starCenter: { fontSize: 52, marginHorizontal: 2 },
   modalTitle: {
@@ -272,18 +254,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
     marginBottom: 8,
   },
-  modalSubtitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#A0B8CC',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  checkWrapper: {
-    marginBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  modalSubtitle: { fontSize: 15, fontWeight: '600', color: '#A0B8CC', textAlign: 'center', marginBottom: 16 },
+  checkWrapper: { marginBottom: 16, alignItems: 'center', justifyContent: 'center' },
   checkCircle: {
     width: 72,
     height: 72,
@@ -311,12 +283,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A4A',
   },
-  messageText: {
-    fontSize: 14,
-    color: '#8AABB8',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
+  messageText: { fontSize: 14, color: '#8AABB8', textAlign: 'center', fontWeight: '500' },
   acceptBtn: {
     backgroundColor: '#1A3A5C',
     borderRadius: 30,
@@ -332,10 +299,5 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-  acceptText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#7EB8F7',
-    letterSpacing: 1,
-  },
+  acceptText: { fontSize: 18, fontWeight: '900', color: '#7EB8F7', letterSpacing: 1 },
 });

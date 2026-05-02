@@ -49,33 +49,23 @@ export const OPERATION_SYMBOLS: Record<OperationType, string> = {
   division: '÷',
 };
 
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
-
 function ri(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function rd(min: number, max: number): number {
-  const steps = (max - min) / 0.5;
-  return min + Math.floor(Math.random() * (steps + 1)) * 0.5;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function fmt(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+  return String(Math.round(n));
 }
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-// ─────────────────────────────────────────────
-// PLANTILLAS
-// ─────────────────────────────────────────────
-
 const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPreview>>> = {
-
   addition: {
     easy: [
       () => {
@@ -176,7 +166,11 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(6, 12), b = rd(1, 4), c = ri(2, 4), d = rd(1, 3);
+        const c = ri(2, 4);
+        const b = ri(1, 4);
+        const quotient = ri(1, 4);
+        const a = quotient * c + b;
+        const d = ri(1, 3);
         return {
           expression: `(${fmt(a)} − ${fmt(b)}) ÷ ${c} − ${fmt(d)}`,
           answer: fmt(round2((a - b) / c - d)),
@@ -185,7 +179,10 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
     hard: [
       () => {
-        const a = rd(4, 8), b = rd(1, 2), c = ri(2, 4);
+        const c = ri(2, 4);
+        const b = ri(1, 2);
+        const quotient = ri(1, 4);
+        const a = quotient * c + b;
         const sq = [4, 9][ri(0, 1)];
         return {
           expression: `(${fmt(a)} − ${fmt(b)})² ÷ ${c} − √${sq}`,
@@ -201,7 +198,12 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(5, 10), b = rd(1, 3), c = ri(2, 4), d = rd(2, 5), e = rd(1, 2);
+        const c = ri(2, 4);
+        const b = ri(1, 3);
+        const quotient = ri(1, 3);
+        const a = quotient * c + b;
+        const d = ri(2, 5);
+        const e = ri(1, 2);
         return {
           expression: `((${fmt(a)} − ${fmt(b)}) ÷ ${c})² − (${fmt(d)} − ${fmt(e)})`,
           answer: fmt(round2(Math.pow((a - b) / c, 2) - (d - e))),
@@ -241,7 +243,10 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(4, 8), b = ri(2, 4), c = rd(2, 5), d = rd(1, 3);
+        const b = ri(2, 4);
+        const a = ri(1, 4) * b;
+        const c = ri(2, 5);
+        const d = ri(1, 3);
         return {
           expression: `(${fmt(a)} ÷ ${b}) × (${fmt(c)} + ${fmt(d)})`,
           answer: fmt(round2((a / b) * (c + d))),
@@ -265,7 +270,10 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(2, 5), b = rd(1, 3), c = rd(2, 4), d = rd(1, 3);
+        const a = ri(2, 5);
+        const b = ri(1, 3);
+        const c = ri(2, 4);
+        const d = c - 1;
         const sq = [4, 9, 16, 25][ri(0, 3)];
         return {
           expression: `√${sq} × (${fmt(a)} + ${fmt(b)})² ÷ (${fmt(c)} − ${fmt(d)})`,
@@ -288,27 +296,41 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         return { expression: `(${num} − ${b}) ÷ ${divisor}`, answer: fmt(round2((num - b) / divisor)) };
       },
       () => {
-        const a = ri(2, 4), b = ri(2, 4), c = ri(2, 4);
+        const c = ri(2, 4);
+        const b = ri(2, 4);
+        const a = ri(1, 4) * c;
         return { expression: `(${a} × ${b}) ÷ ${c}`, answer: fmt(round2((a * b) / c)) };
       },
     ],
     medium: [
       () => {
-        const a = rd(4, 9), b = rd(1, 3), c = ri(2, 4), d = rd(1, 4), e = ri(2, 4);
+        const c = ri(2, 4);
+        const b = ri(1, 3);
+        const quotient = ri(1, 4);
+        const a = quotient * c + b;
+        const d = ri(1, 4);
+        const e = ri(2, 4);
         return {
           expression: `(${fmt(a)} − ${fmt(b)}) ÷ ${c} + (${fmt(d)} × ${e})`,
           answer: fmt(round2((a - b) / c + d * e)),
         };
       },
       () => {
-        const a = rd(6, 12), b = ri(2, 4), c = rd(2, 5), d = rd(1, 3);
+        const b = ri(2, 4);
+        const a = ri(1, 4) * b;
+        const c = ri(2, 5);
+        const d = ri(1, 3);
         return {
           expression: `(${fmt(a)} ÷ ${b}) + (${fmt(c)} − ${fmt(d)})`,
           answer: fmt(round2(a / b + (c - d))),
         };
       },
       () => {
-        const a = rd(4, 9), b = rd(1, 4), c = ri(2, 4), d = rd(2, 5), e = ri(2, 4);
+        const c = ri(2, 4);
+        const a = ri(1, 4) * c;
+        const b = ri(1, 4) * c;
+        const e = ri(2, 4);
+        const d = ri(1, 4) * e;
         return {
           expression: `(${fmt(a)} + ${fmt(b)}) ÷ ${c} × (${fmt(d)} ÷ ${e})`,
           answer: fmt(round2(((a + b) / c) * (d / e))),
@@ -317,7 +339,9 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
     ],
     hard: [
       () => {
-        const a = rd(4, 9), b = rd(1, 4), c = ri(2, 5);
+        const c = ri(2, 5);
+        const a = ri(1, 4) * c;
+        const b = ri(1, 4) * c;
         const sq = [4, 9, 16, 25][ri(0, 3)];
         return {
           expression: `(${fmt(a)} + ${fmt(b)}) ÷ ${c} + (${fmt(a)} + ${fmt(b)})² + √${sq}`,
@@ -325,7 +349,12 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(4, 8), b = rd(1, 4), c = ri(2, 4), d = rd(2, 6), e = rd(1, 3);
+        const c = ri(2, 4);
+        const b = ri(1, 4);
+        const quotient = ri(1, 4);
+        const a = quotient * c + b;
+        const d = ri(2, 6);
+        const e = ri(1, 3);
         const sq = [4, 9, 16, 25][ri(0, 3)];
         return {
           expression: `((${fmt(a)} − ${fmt(b)}) ÷ ${c})² + √${sq} − (${fmt(d)} + ${fmt(e)})`,
@@ -333,29 +362,31 @@ const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPre
         };
       },
       () => {
-        const a = rd(3, 7), b = rd(1, 3), c = ri(2, 4), d = rd(1, 4);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
+        const options = [
+          { sq: 4, c: 2 },
+          { sq: 9, c: 3 },
+          { sq: 16, c: 2 },
+          { sq: 16, c: 4 },
+        ];
+        const selected = options[ri(0, options.length - 1)];
+        const a = ri(3, 7);
+        const b = ri(1, 3);
+        const d = ri(1, 4);
         return {
-          expression: `√${sq} ÷ ${c} + (${fmt(a)} − ${fmt(b)})² × ${fmt(d)}`,
-          answer: fmt(round2(Math.sqrt(sq) / c + Math.pow(a - b, 2) * d)),
+          expression: `√${selected.sq} ÷ ${selected.c} + (${fmt(a)} − ${fmt(b)})² × ${fmt(d)}`,
+          answer: fmt(round2(Math.sqrt(selected.sq) / selected.c + Math.pow(a - b, 2) * d)),
         };
       },
     ],
   },
 };
 
-// ─────────────────────────────────────────────
-// EXAMPLE_PREVIEWS
-// ─────────────────────────────────────────────
 export const EXAMPLE_PREVIEWS: Record<Difficulty, ComplexPreview[]> = {
   easy: [{ expression: '(4 − 2) × (3 + 5)', answer: '16' }],
-  medium: [{ expression: '(3.50 + 2.50) + (2.5 + 5.5) × (3 + 5)', answer: '70' }],
-  hard: [{ expression: '(5.50 + 3.50) ÷ 3 + (2.5 + 5.5)² + √9', answer: '70.33' }],
+  medium: [{ expression: '(4 + 2) + (3 + 5) × (2 + 1)', answer: '26' }],
+  hard: [{ expression: '(6 + 3) ÷ 3 + (2 + 3)² + √9', answer: '32' }],
 };
 
-// ─────────────────────────────────────────────
-// FUNCIÓN PRINCIPAL — siempre retorna positivo
-// ─────────────────────────────────────────────
 export function generateExpression(
   difficulty: Difficulty,
   operationType: OperationType
@@ -387,13 +418,19 @@ export function generateExpressions(
   return result;
 }
 
-export function generateChallenges(difficulty: Difficulty, count: number = 1): MathChallenge[] {
+// ✅ FIX — ahora recibe operationType para respetar la selección del usuario
+export function generateChallenges(
+  difficulty: Difficulty,
+  count: number = 1,
+  operationType?: OperationType // 👈 nuevo parámetro
+): MathChallenge[] {
   const style = DIFFICULTY_STYLES[difficulty];
   const operations = style.operationTypes;
   const result: MathChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const op = operations[Math.floor(Math.random() * operations.length)];
+    // 👇 usa el seleccionado, si no hay usa aleatorio
+    const op = operationType ?? operations[Math.floor(Math.random() * operations.length)];
     const generated = generateExpression(difficulty, op);
     result.push({
       operation: op,

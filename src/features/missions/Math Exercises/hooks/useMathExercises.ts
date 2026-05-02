@@ -1,10 +1,14 @@
 import { useState, useCallback } from 'react';
-import { Difficulty, MathChallenge, MathExercisesState } from '../types/mathExercises.types';
+import { Difficulty, MathChallenge, MathExercisesState, OperationType } from '../types/mathExercises.types';
 import { generateChallenges, OPERATION_SYMBOLS } from '../constants/mathExercises.config';
 
-export function useMathExercises(difficulty: Difficulty, count: number = 1) {
+export function useMathExercises(
+  difficulty: Difficulty,
+  count: number = 1,
+  operationType?: OperationType // 👈 nuevo parámetro
+) {
   const [challenges, setChallenges] = useState<MathChallenge[]>(() =>
-    generateChallenges(difficulty, count)
+    generateChallenges(difficulty, count, operationType) // 👈 se pasa aquí
   );
 
   const [state, setState] = useState<MathExercisesState>({
@@ -17,23 +21,20 @@ export function useMathExercises(difficulty: Difficulty, count: number = 1) {
 
   const current = challenges[state.currentChallengeIndex];
 
-  // ✅ Usa displayAnswer si existe, si no usa answer numérico
   const expectedAnswer = current
     ? (current.displayAnswer ?? String(current.answer))
     : '';
 
   const handleInputChange = useCallback((text: string) => {
-    // ✅ Permite dígitos y punto decimal
-    const cleaned = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+    const cleaned = text.replace(/[^0-9]/g, '');
     setState(prev => ({ ...prev, userInput: cleaned, hasError: false }));
   }, []);
 
   const handleConfirm = useCallback(() => {
-    // ✅ Compara valores numéricos para evitar diferencias de formato
-    const userVal = parseFloat(state.userInput);
-    const expectedVal = parseFloat(expectedAnswer);
+    const userVal = parseInt(state.userInput, 10);
+    const expectedVal = parseInt(expectedAnswer, 10);
 
-    if (isNaN(userVal) || Math.abs(userVal - expectedVal) > 0.01) {
+    if (isNaN(userVal) || userVal !== expectedVal) {
       setState(prev => ({ ...prev, hasError: true }));
       return;
     }
@@ -60,7 +61,7 @@ export function useMathExercises(difficulty: Difficulty, count: number = 1) {
   }, [state, expectedAnswer, challenges.length]);
 
   const handleReplace = useCallback(() => {
-    setChallenges(generateChallenges(difficulty, count));
+    setChallenges(generateChallenges(difficulty, count, operationType)); // 👈 también aquí
     setState({
       currentChallengeIndex: 0,
       userInput: '',
@@ -68,7 +69,7 @@ export function useMathExercises(difficulty: Difficulty, count: number = 1) {
       completedIndexes: [],
       isCompleted: false,
     });
-  }, [difficulty, count]);
+  }, [difficulty, count, operationType]);
 
   const operationSymbol = current ? OPERATION_SYMBOLS[current.operation] : '';
 
