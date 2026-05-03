@@ -1,12 +1,23 @@
 // src/navigation/RootNavigator.tsx
 import React, { useEffect } from 'react';
-import { NavigationContainer, createNavigationContainerRef, NavigatorScreenParams } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+  NavigatorScreenParams,
+  DefaultTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import MainNavigator from './MainNavigator';
 import { MainTabParamList } from './MainNavigator';
 import AuthNavigator from '../features/auth/navigation/AuthNavigator';
 import { useAuth } from '../features/auth/hooks/useAuth';
-import { extractAlarmIdFromNotification, isExpoGoRuntime } from '../features/alarm/services/alarmScheduler';
+import {
+  extractAlarmIdFromNotification,
+  isExpoGoRuntime,
+} from '../features/alarm/services/alarmScheduler';
+
+import { Colors } from '../shared/theme/colors'; // ajusta esta ruta si tu archivo Colors está en otro lugar
 
 export type RootParamList = {
   Auth: undefined;
@@ -16,8 +27,23 @@ export type RootParamList = {
 const Root = createNativeStackNavigator<RootParamList>();
 const navigationRef = createNavigationContainerRef<RootParamList>();
 
+const navigationTheme = {
+  ...DefaultTheme,
+  dark: true,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: Colors.primary,
+    background: Colors.bg,
+    card: Colors.bgCard,
+    text: Colors.text,
+    border: Colors.border,
+    notification: Colors.primary,
+  },
+};
+
 function navigateToRingingAlarm(alarmId: string) {
   if (!navigationRef.isReady()) return;
+
   navigationRef.navigate('Main', {
     screen: 'AlarmTab',
     params: {
@@ -53,7 +79,10 @@ export default function RootNavigator() {
           if (alarmId) navigateToRingingAlarm(alarmId);
         });
       } catch (error) {
-        console.log('[RootNavigator] Notification listeners unavailable in this runtime:', error);
+        console.log(
+          '[RootNavigator] Notification listeners unavailable in this runtime:',
+          error,
+        );
       }
     };
 
@@ -66,8 +95,15 @@ export default function RootNavigator() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Root.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+      <Root.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: Colors.bg,
+          },
+        }}
+      >
         {isLoggedIn ? (
           <Root.Screen name="Main" component={MainNavigator} />
         ) : (

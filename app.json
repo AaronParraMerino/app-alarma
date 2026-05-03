@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "app-alarma",
-    "slug": "app-alarma",
+    "name": "Neuro Wake",
+    "slug": "neuro-wake",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "appalarma",
+    "scheme": "neurowake",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logoAlarma.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D0F14"
     },
     "ios": {
       "supportsTablet": true
@@ -39,7 +39,16 @@
       "expo-audio",
       "@react-native-community/datetimepicker",
       "expo-web-browser",
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0D0F14",
+          "image": "./assets/logoAlarma.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "extra": {
       "eas": {
