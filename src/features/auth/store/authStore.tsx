@@ -1,10 +1,42 @@
+// src/features/auth/store/authStore.tsx
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { AuthState, AuthContextType, User } from '../types/auth.types';
 import { authService } from '../services/authService';
 import { initDB } from '../../../shared/db/localDB';
-import { startSyncListener, stopSyncListener, syncAlarms } from '../../../shared/services/storage/sync.service';
+import {
+  startSyncListener,
+  stopSyncListener,
+  syncAlarms,
+} from '../../../shared/services/storage/sync.service';
 import { supabase } from '../../../shared/db/supabaseClient';
 import { googleAuthService } from '../services/googleAuthService';
+
+const GUEST_SESSION_KEY = '@neuro_wake/guest_session';
+
+const saveGuestSession = () => {
+  try {
+    localStorage.setItem(GUEST_SESSION_KEY, 'true');
+  } catch (error) {
+    console.log('[Auth] Error guardando modo invitado:', error);
+  }
+};
+
+const clearGuestSession = () => {
+  try {
+    localStorage.removeItem(GUEST_SESSION_KEY);
+  } catch (error) {
+    console.log('[Auth] Error limpiando modo invitado:', error);
+  }
+};
+
+const hasGuestSession = (): boolean => {
+  try {
+    return localStorage.getItem(GUEST_SESSION_KEY) === 'true';
+  } catch (error) {
+    console.log('[Auth] Error leyendo modo invitado:', error);
+    return false;
+  }
+};
 
 const initialState: AuthState = {
   user: null,
@@ -26,19 +58,57 @@ type AuthAction =
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, isLoading: true, error: null };
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+      };
+
     case 'LOGIN_SUCCESS':
-      return { ...state, isLoading: false, isAuthenticated: true, isGuest: false, user: action.payload, error: null };
+      return {
+        ...state,
+        isLoading: false,
+        isAuthenticated: true,
+        isGuest: false,
+        user: action.payload,
+        error: null,
+      };
+
     case 'LOGIN_GUEST':
-      return { ...state, isLoading: false, isAuthenticated: false, isGuest: true, user: null, error: null };
+      return {
+        ...state,
+        isLoading: false,
+        isAuthenticated: false,
+        isGuest: true,
+        user: null,
+        error: null,
+      };
+
     case 'LOGOUT':
-      return { ...initialState, isLoading: false };
+      return {
+        ...initialState,
+        isLoading: false,
+      };
+
     case 'SET_ERROR':
-      return { ...state, isLoading: false, error: action.payload };
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload,
+      };
+
     case 'CLEAR_ERROR':
-      return { ...state, error: null };
+      return {
+        ...state,
+        error: null,
+      };
+
     case 'SET_READY':
-      return { ...state, isLoading: false };
+      return {
+        ...state,
+        isLoading: false,
+      };
+
     default:
       return state;
   }
@@ -46,16 +116,16 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper para mapear usuario de Supabase a User
 function mapSupabaseUser(u: any, fallbackEmail?: string): User {
   return {
     id: u.id,
     email: u.email ?? fallbackEmail ?? '',
-    username: u.user_metadata?.username
-      ?? u.user_metadata?.full_name
-      ?? u.user_metadata?.name
-      ?? u.email?.split('@')[0]
-      ?? '',
+    username:
+      u.user_metadata?.username ??
+      u.user_metadata?.full_name ??
+      u.user_metadata?.name ??
+      u.email?.split('@')[0] ??
+      '',
     createdAt: u.created_at,
   };
 }
@@ -63,40 +133,131 @@ function mapSupabaseUser(u: any, fallbackEmail?: string): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // ── Verificar sesión activa al arrancar ────────────────────────────────────
   useEffect(() => {
     initDB();
+
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session?.user) {
-        const user = mapSupabaseUser(session.user);
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-        if (session.user.id) {
-          syncAlarms(session.user.id);
-          startSyncListener(session.user.id);
+    const loadInitialSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        /**
+         * IMPORTANTE:
+         * Si estamos en recuperación de contraseña, Supabase crea una sesión temporal.
+         * No queremos mandar al usuario a Main todavía.
+         */
+        if (authService.isPasswordRecoveryMode()) {
+          console.log('[Auth] Modo recuperación activo, no se restaura sesión inicial');
+          dispatch({ type: 'SET_READY' });
+          return;
         }
-      } else {
+
+        if (session?.user) {
+          const user = mapSupabaseUser(session.user);
+
+          clearGuestSession();
+
+          dispatch({
+            type: 'LOGIN_SUCCESS',
+            payload: user,
+          });
+
+          if (session.user.id) {
+            void syncAlarms(session.user.id);
+            startSyncListener(session.user.id);
+          }
+
+          return;
+        }
+
+        /**
+         * Si no hay sesión real de Supabase,
+         * revisamos si antes entró como invitado.
+         */
+        if (hasGuestSession()) {
+          console.log('[Auth] Restaurando sesión de invitado');
+
+          dispatch({
+            type: 'LOGIN_GUEST',
+          });
+
+          return;
+        }
+
+        dispatch({ type: 'SET_READY' });
+      } catch (error: any) {
+        console.log('[Auth] Error cargando sesión inicial:', error);
         dispatch({ type: 'SET_READY' });
       }
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    void loadInitialSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+
+      console.log('[Auth] Evento:', event);
+
+      /**
+       * IMPORTANTE:
+       * Cuando verificas el código de recuperación con verifyOtp,
+       * Supabase puede disparar SIGNED_IN porque crea una sesión temporal.
+       * Aquí evitamos que entre a Main.
+       */
+      if (authService.isPasswordRecoveryMode()) {
+        console.log('[Auth] Sesión temporal de recuperación, no entrar a Main');
+
+        if (event === 'SIGNED_OUT') {
+          stopSyncListener();
+
+          if (hasGuestSession()) {
+            dispatch({ type: 'LOGIN_GUEST' });
+          } else {
+            dispatch({ type: 'LOGOUT' });
+          }
+        } else {
+          dispatch({ type: 'SET_READY' });
+        }
+
+        return;
+      }
 
       if (event === 'SIGNED_IN' && session?.user) {
         const user = mapSupabaseUser(session.user);
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+
+        clearGuestSession();
+
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: user,
+        });
+
         if (session.user.id) {
-          syncAlarms(session.user.id);
+          void syncAlarms(session.user.id);
           startSyncListener(session.user.id);
         }
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('[Auth] PASSWORD_RECOVERY detectado');
+        dispatch({ type: 'SET_READY' });
       }
 
       if (event === 'SIGNED_OUT') {
         stopSyncListener();
-        dispatch({ type: 'LOGOUT' });
+
+        if (hasGuestSession()) {
+          dispatch({ type: 'LOGIN_GUEST' });
+        } else {
+          dispatch({ type: 'LOGOUT' });
+        }
       }
     });
 
@@ -108,68 +269,110 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     dispatch({ type: 'SET_LOADING' });
+
     try {
       const user = await authService.login(email, password);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+
+      clearGuestSession();
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: user,
+      });
+
       if (user?.id) {
         await syncAlarms(user.id);
         startSyncListener(user.id);
       }
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message ?? 'Error al iniciar sesión' });
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error.message ?? 'Error al iniciar sesión',
+      });
     }
   };
 
   const register = async (email: string, password: string, username: string) => {
     dispatch({ type: 'SET_LOADING' });
+
     try {
       const user = await authService.register(email, password, username);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+
+      clearGuestSession();
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: user,
+      });
+
       if (user?.id) {
         await syncAlarms(user.id);
         startSyncListener(user.id);
       }
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message ?? 'Error al registrarse' });
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error.message ?? 'Error al registrarse',
+      });
     }
   };
 
   const loginWithGoogle = async () => {
     dispatch({ type: 'SET_LOADING' });
+
     try {
-      // Lanzar el navegador sin await para no bloquear
+      clearGuestSession();
+
       googleAuthService.signInWithGoogle().catch((error) => {
         console.log('[Google] error en background:', error);
       });
 
-      // Volver a estado listo inmediatamente
-      // El onAuthStateChange maneja el LOGIN_SUCCESS cuando vuelva
       dispatch({ type: 'SET_READY' });
-
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message ?? 'Error con Google' });
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error.message ?? 'Error con Google',
+      });
     }
   };
 
   const logout = async () => {
     stopSyncListener();
+    clearGuestSession();
+
     await authService.logout();
+
     dispatch({ type: 'LOGOUT' });
   };
 
   const exitGuest = () => {
+    clearGuestSession();
     dispatch({ type: 'LOGOUT' });
   };
 
   const loginAsGuest = () => {
+    stopSyncListener();
+    saveGuestSession();
+
     dispatch({ type: 'LOGIN_GUEST' });
   };
 
-  const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
+  const clearError = () => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  };
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, loginAsGuest, loginWithGoogle, logout, exitGuest, clearError }}
+      value={{
+        ...state,
+        login,
+        register,
+        loginAsGuest,
+        loginWithGoogle,
+        logout,
+        exitGuest,
+        clearError,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -178,6 +381,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+
   return context;
 }
