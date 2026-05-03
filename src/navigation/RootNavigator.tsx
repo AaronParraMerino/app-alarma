@@ -1,5 +1,6 @@
 // src/navigation/RootNavigator.tsx
 import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -17,7 +18,7 @@ import {
   isExpoGoRuntime,
 } from '../features/alarm/services/alarmScheduler';
 
-import { Colors } from '../shared/theme/colors'; // ajusta esta ruta si tu archivo Colors está en otro lugar
+import { Colors } from '../shared/theme/colors';
 
 export type RootParamList = {
   Auth: undefined;
@@ -54,12 +55,16 @@ function navigateToRingingAlarm(alarmId: string) {
 }
 
 export default function RootNavigator() {
-  const { isAuthenticated, isGuest } = useAuth();
+  const { isAuthenticated, isGuest, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated || isGuest;
 
   useEffect(() => {
     let receivedSub: { remove: () => void } | null = null;
     let responseSub: { remove: () => void } | null = null;
+
+    if (isLoading || !isLoggedIn) {
+      return () => {};
+    }
 
     if (isExpoGoRuntime()) {
       return () => {};
@@ -92,7 +97,11 @@ export default function RootNavigator() {
       receivedSub?.remove();
       responseSub?.remove();
     };
-  }, []);
+  }, [isLoading, isLoggedIn]);
+
+  if (isLoading) {
+    return <View style={styles.loadingContainer} />;
+  }
 
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
@@ -113,3 +122,10 @@ export default function RootNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+  },
+});

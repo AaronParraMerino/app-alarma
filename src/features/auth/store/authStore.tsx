@@ -3,9 +3,40 @@ import React, { createContext, useContext, useReducer, ReactNode, useEffect } fr
 import { AuthState, AuthContextType, User } from '../types/auth.types';
 import { authService } from '../services/authService';
 import { initDB } from '../../../shared/db/localDB';
-import { startSyncListener, stopSyncListener, syncAlarms } from '../../../shared/services/storage/sync.service';
+import {
+  startSyncListener,
+  stopSyncListener,
+  syncAlarms,
+} from '../../../shared/services/storage/sync.service';
 import { supabase } from '../../../shared/db/supabaseClient';
 import { googleAuthService } from '../services/googleAuthService';
+
+const GUEST_SESSION_KEY = '@neuro_wake/guest_session';
+
+const saveGuestSession = () => {
+  try {
+    localStorage.setItem(GUEST_SESSION_KEY, 'true');
+  } catch (error) {
+    console.log('[Auth] Error guardando modo invitado:', error);
+  }
+};
+
+const clearGuestSession = () => {
+  try {
+    localStorage.removeItem(GUEST_SESSION_KEY);
+  } catch (error) {
+    console.log('[Auth] Error limpiando modo invitado:', error);
+  }
+};
+
+const hasGuestSession = (): boolean => {
+  try {
+    return localStorage.getItem(GUEST_SESSION_KEY) === 'true';
+  } catch (error) {
+    console.log('[Auth] Error leyendo modo invitado:', error);
+    return false;
+  }
+};
 
 const initialState: AuthState = {
   user: null,
@@ -129,25 +160,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           const user = mapSupabaseUser(session.user);
 
+          clearGuestSession();
+
           dispatch({
             type: 'LOGIN_SUCCESS',
             payload: user,
           });
 
           if (session.user.id) {
-            syncAlarms(session.user.id);
+            void syncAlarms(session.user.id);
             startSyncListener(session.user.id);
           }
-        } else {
-          dispatch({ type: 'SET_READY' });
+
+          return;
         }
+
+        /**
+         * Si no hay sesión real de Supabase,
+         * revisamos si antes entró como invitado.
+         */
+        if (hasGuestSession()) {
+          console.log('[Auth] Restaurando sesión de invitado');
+
+          dispatch({
+            type: 'LOGIN_GUEST',
+          });
+
+          return;
+        }
+
+        dispatch({ type: 'SET_READY' });
       } catch (error: any) {
         console.log('[Auth] Error cargando sesión inicial:', error);
         dispatch({ type: 'SET_READY' });
       }
     };
 
-    loadInitialSession();
+    void loadInitialSession();
 
     const {
       data: { subscription },
@@ -167,7 +216,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_OUT') {
           stopSyncListener();
-          dispatch({ type: 'LOGOUT' });
+
+          if (hasGuestSession()) {
+            dispatch({ type: 'LOGIN_GUEST' });
+          } else {
+            dispatch({ type: 'LOGOUT' });
+          }
         } else {
           dispatch({ type: 'SET_READY' });
         }
@@ -178,13 +232,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_IN' && session?.user) {
         const user = mapSupabaseUser(session.user);
 
+        clearGuestSession();
+
         dispatch({
           type: 'LOGIN_SUCCESS',
           payload: user,
         });
 
         if (session.user.id) {
-          syncAlarms(session.user.id);
+          void syncAlarms(session.user.id);
           startSyncListener(session.user.id);
         }
       }
@@ -196,7 +252,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_OUT') {
         stopSyncListener();
-        dispatch({ type: 'LOGOUT' });
+
+        if (hasGuestSession()) {
+          dispatch({ type: 'LOGIN_GUEST' });
+        } else {
+          dispatch({ type: 'LOGOUT' });
+        }
       }
     });
 
@@ -211,6 +272,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const user = await authService.login(email, password);
+
+      clearGuestSession();
 
       dispatch({
         type: 'LOGIN_SUCCESS',
@@ -235,6 +298,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const user = await authService.register(email, password, username);
 
+      clearGuestSession();
+
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: user,
@@ -256,6 +321,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING' });
 
     try {
+      clearGuestSession();
+
       googleAuthService.signInWithGoogle().catch((error) => {
         console.log('[Google] error en background:', error);
       });
@@ -271,6 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     stopSyncListener();
+    clearGuestSession();
 
     await authService.logout();
 
@@ -278,10 +346,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const exitGuest = () => {
+    clearGuestSession();
     dispatch({ type: 'LOGOUT' });
   };
 
   const loginAsGuest = () => {
+    stopSyncListener();
+    saveGuestSession();
+
     dispatch({ type: 'LOGIN_GUEST' });
   };
 
