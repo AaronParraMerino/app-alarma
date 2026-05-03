@@ -6,12 +6,14 @@ import { StatusBar } from 'expo-status-bar';
 import { AlarmProvider } from './src/features/alarm/store/alarmStore';
 import { AuthProvider } from './src/features/auth/store/authStore';
 import { MissionsProvider } from './src/features/missions/store/missionsStore';
+import { setupAlarmNotificationsAsync } from './src/features/alarm/services/alarmScheduler';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   useEffect(() => {
     initDB()
     syncAlarms()
+    void setupAlarmNotificationsAsync()
   }, [])
   
   return (

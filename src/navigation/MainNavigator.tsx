@@ -1,17 +1,19 @@
 // src/navigation/MainNavigator.tsx
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, NavigatorScreenParams } from '@react-navigation/native';
 import { BottomTabBar } from '../shared/components/ui/BottomTabBar';
 import AlarmNavigator from '../features/alarm/navigation/AlarmNavigator';
+import { AlarmStackParamList } from '../features/alarm/navigation/AlarmNavigator';
 import StopwatchScreen from '../features/stopwatch/screens/StopwatchScreen';
 import MissionsScreen from '../features/missions/screens/MissionsScreen';
 import ProfileNavigator from '../features/profile/navigation/ProfileNavigator';
+import MissionsNavigator from '../features/missions/navigation/MissionsNavigator';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type MainTabParamList = {
-  AlarmTab: undefined;
+  AlarmTab: NavigatorScreenParams<AlarmStackParamList> | undefined;
   StopwatchTab: undefined;
   MissionsTab: undefined;
   SettingsTab: undefined;
@@ -52,7 +54,8 @@ export default function MainNavigator() {
       <Tab.Screen name="StopwatchTab" component={StopwatchScreen} />
 
       {/* Misiones */}
-      <Tab.Screen name="MissionsTab" component={MissionsScreen} />
+      {/*<Tab.Screen name="MissionsTab" component={MissionsScreen} />*/}
+      <Tab.Screen name="MissionsTab" component={MissionsNavigator} />
 
       {/* Ajustes + Perfil */}
       <Tab.Screen name="SettingsTab" component={ProfileNavigator} />
