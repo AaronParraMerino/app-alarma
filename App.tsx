@@ -5,6 +5,9 @@ import { View, StyleSheet, Image } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initDB } from './src/shared/db/localDB';
+import { WordSeedService } from './src/shared/services/storage/WordSeedService';
+import { syncMissionHistory } from './src/shared/services/storage/missionHistorySync.service';
+
 import {
   syncAlarms,
   startSyncListener,
@@ -34,6 +37,7 @@ function AppContent() {
 
   useEffect(() => {
     initDB();
+    WordSeedService.seedIfNeeded();
     void setupAlarmNotificationsAsync();
 
     const timer = setTimeout(() => {
@@ -50,6 +54,7 @@ function AppContent() {
     }
 
     void syncAlarms(userId);
+    void syncMissionHistory(userId);
     startSyncListener(userId);
 
     return () => {
