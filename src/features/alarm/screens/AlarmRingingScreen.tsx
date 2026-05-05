@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   BackHandler,
@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
 import { cancelAlarmNotificationsByAlarmId } from '../services/alarmScheduler';
+import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 
@@ -27,6 +29,10 @@ function formatTime(hour: number, minute: number): string {
 export default function AlarmRingingScreen({ route, navigation }: Props) {
   const { alarms, updateAlarm } = useAlarmStore();
   const alarm = alarms.find(a => a.id === route.params.alarmId);
+  const alarmSoundAsset = getAlarmSoundAsset(alarm?.soundUri ?? null);
+  const player = useAudioPlayer(alarmSoundAsset, {
+    keepAudioSessionActive: true,
+  });
 
   const { width } = useWindowDimensions();
   const trackWidth = Math.max(220, width - 56);
@@ -36,6 +42,42 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   const dragX = useRef(new Animated.Value(0)).current;
   const currentXRef = useRef(0);
   const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!alarm || !alarmSoundAsset) return;
+
+    let mounted = true;
+
+    const startSound = async () => {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: true,
+          interruptionMode: 'doNotMix',
+        });
+
+        if (!mounted) return;
+
+        player.loop = true;
+        player.volume = 1;
+        player.play();
+      } catch (error) {
+        console.log('[AlarmRinging] No se pudo reproducir el sonido:', error);
+      }
+    };
+
+    void startSound();
+
+    return () => {
+      mounted = false;
+      try {
+        player.pause();
+        void player.seekTo(0);
+      } catch (error) {
+        console.log('[AlarmRinging] No se pudo detener el sonido:', error);
+      }
+    };
+  }, [alarm, alarmSoundAsset, player]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -51,13 +93,15 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     }
 
     await cancelAlarmNotificationsByAlarmId(alarm.id);
+    player.pause();
+    await player.seekTo(0);
 
     if (alarm.repeatDays.length === 0) {
       updateAlarm(alarm.id, { enabled: false });
     }
 
     navigation.goBack();
-  }, [alarm, navigation, updateAlarm]);
+  }, [alarm, navigation, player, updateAlarm]);
 
   const completeMission = React.useCallback(() => {
     if (completed) return;
