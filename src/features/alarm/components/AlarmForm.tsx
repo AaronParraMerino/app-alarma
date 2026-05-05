@@ -16,7 +16,7 @@ import {
   MISSION_LABELS,
 } from '../../missions/constants/missions';
 import { ALARM_SOUND_OPTIONS, DEFAULT_ALARM_SOUND_URI } from '../services/alarmService';
-import { AlarmCreate, MissionType, RepeatDay } from '../types/alarm.types';
+import { AlarmCreate, Difficulty, MissionType, RepeatDay } from '../types/alarm.types';
 
 interface AlarmFormProps {
   title: string;
@@ -37,6 +37,12 @@ const MISSION_TYPES: MissionType[] = [
   'color',
   'shapes',
   'sequence',
+];
+
+const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
+  { value: 'easy', label: 'Facil' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'hard', label: 'Dificil' },
 ];
 
 type TimeMode = 'hour' | 'minute';
@@ -68,6 +74,9 @@ export default function AlarmForm({
   );
   const [selectedMission, setSelectedMission] = useState<MissionType>(
     initialData?.missions?.[0]?.type ?? 'math',
+  );
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(
+    initialData?.missions?.[0]?.difficulty ?? 'normal',
   );
   const [soundUri, setSoundUri] = useState<string | null>(
     initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI,
@@ -123,7 +132,7 @@ export default function AlarmForm({
         : [
             {
               type: selectedMission,
-              difficulty: 'normal',
+              difficulty: selectedDifficulty,
             },
           ],
       randomMissions,
@@ -239,6 +248,30 @@ export default function AlarmForm({
                       <Text style={styles.missionIcon}>{MISSION_ICONS[type]}</Text>
                       <Text style={[styles.missionText, active && styles.missionTextActive]}>
                         {MISSION_LABELS[type]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.sectionTitle}>Dificultad</Text>
+              <View style={styles.difficultyRow}>
+                {DIFFICULTY_OPTIONS.map(option => {
+                  const active = selectedDifficulty === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[styles.difficultyBtn, active && styles.difficultyBtnActive]}
+                      onPress={() => setSelectedDifficulty(option.value)}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={[
+                          styles.difficultyText,
+                          active && styles.difficultyTextActive,
+                        ]}
+                      >
+                        {option.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -602,6 +635,31 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   missionTextActive: {
+    color: Colors.text,
+  },
+  difficultyRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  difficultyBtn: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  difficultyBtnActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '22',
+  },
+  difficultyText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  difficultyTextActive: {
     color: Colors.text,
   },
   saveBtn: {

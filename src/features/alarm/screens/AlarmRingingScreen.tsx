@@ -1,11 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Animated,
   BackHandler,
-  PanResponder,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,12 +10,26 @@ import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
+import AlarmMissionChallenge from '../components/AlarmMissionChallenge';
 import { cancelAlarmNotificationsByAlarmId } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
+import { AlarmMission, MissionType } from '../types/alarm.types';
 
 type Props = NativeStackScreenProps<AlarmStackParamList, 'AlarmRinging'>;
+
+const RANDOM_MISSION_TYPES: MissionType[] = [
+  'math',
+  'memory',
+  'physical',
+  'photo',
+  'trivia',
+  'writing',
+  'color',
+  'shapes',
+  'sequence',
+];
 
 function formatTime(hour: number, minute: number): string {
   const hh = hour % 12 === 0 ? 12 : hour % 12;
@@ -33,15 +44,23 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   const player = useAudioPlayer(alarmSoundAsset, {
     keepAudioSessionActive: true,
   });
-
-  const { width } = useWindowDimensions();
-  const trackWidth = Math.max(220, width - 56);
-  const knobSize = 56;
-  const maxTranslate = trackWidth - knobSize - 8;
-
-  const dragX = useRef(new Animated.Value(0)).current;
-  const currentXRef = useRef(0);
   const [completed, setCompleted] = useState(false);
+
+  const activeMission = useMemo<AlarmMission>(() => {
+    if (!alarm) {
+      return { type: 'math', difficulty: 'normal' };
+    }
+
+    if (alarm.randomMissions || alarm.missions.length === 0) {
+      const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
+      return {
+        type: RANDOM_MISSION_TYPES[index],
+        difficulty: 'normal',
+      };
+    }
+
+    return alarm.missions[0];
+  }, [alarm]);
 
   useEffect(() => {
     if (!alarm || !alarmSoundAsset) return;
@@ -109,43 +128,6 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     void stopAlarm();
   }, [completed, stopAlarm]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 6,
-        onPanResponderMove: (_, gesture) => {
-          const next = Math.min(Math.max(currentXRef.current + gesture.dx, 0), maxTranslate);
-          dragX.setValue(next);
-        },
-        onPanResponderRelease: (_, gesture) => {
-          const next = Math.min(Math.max(currentXRef.current + gesture.dx, 0), maxTranslate);
-          const reached = next >= maxTranslate * 0.9;
-
-          if (reached) {
-            Animated.timing(dragX, {
-              toValue: maxTranslate,
-              duration: 120,
-              useNativeDriver: true,
-            }).start(() => {
-              currentXRef.current = maxTranslate;
-              completeMission();
-            });
-            return;
-          }
-
-          Animated.spring(dragX, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 8,
-            speed: 16,
-          }).start(() => {
-            currentXRef.current = 0;
-          });
-        },
-      }),
-    [completeMission, dragX, maxTranslate],
-  );
-
   if (!alarm) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -166,25 +148,11 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       </View>
 
       <View style={styles.missionSection}>
-        <View style={styles.missionCard}>
-          <Text style={styles.missionTitle}>Misión actual</Text>
-          <Text style={styles.missionSubtitle}>Desliza para apagar la alarma</Text>
-
-          <View style={[styles.track, { width: trackWidth }]}>
-            <Text style={styles.trackHint}>Desliza</Text>
-            <Animated.View
-              style={[
-                styles.knob,
-                {
-                  transform: [{ translateX: dragX }],
-                },
-              ]}
-              {...panResponder.panHandlers}
-            >
-              <Text style={styles.knobText}>➤</Text>
-            </Animated.View>
-          </View>
-        </View>
+        <AlarmMissionChallenge
+          type={activeMission.type}
+          difficulty={activeMission.difficulty}
+          onComplete={completeMission}
+        />
       </View>
     </SafeAreaView>
   );
@@ -246,64 +214,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
-  },
-  missionCard: {
-    width: '100%',
-    maxWidth: 560,
-    backgroundColor: '#101727',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1A2741',
-    padding: 18,
-    alignItems: 'center',
-  },
-  missionTitle: {
-    color: Colors.text,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  missionSubtitle: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 24,
-  },
-  track: {
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#0A1323',
-    borderWidth: 1,
-    borderColor: '#243556',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    overflow: 'hidden',
-  },
-  trackHint: {
-    color: '#7892C0',
-    alignSelf: 'center',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  knob: {
-    position: 'absolute',
-    left: 4,
-    top: 4,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    borderWidth: 1,
-    borderColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  knobText: {
-    color: Colors.white,
-    fontSize: 20,
   },
 });
