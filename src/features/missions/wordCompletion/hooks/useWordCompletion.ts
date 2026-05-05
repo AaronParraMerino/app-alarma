@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Difficulty, WordChallenge, WordCompletionState } from '../types/wordCompletion.types';
-import { generateChallenges } from '../constants/wordCompletion.config';
+import { WordCompletionService } from '../services/WordCompletionService';
 
 const INITIAL_STATE: WordCompletionState = {
   currentChallengeIndex: 0,
@@ -20,7 +20,7 @@ const INITIAL_STATE: WordCompletionState = {
  */
 export function useWordCompletion(difficulty: Difficulty) {
   const [challenges, setChallenges] = useState<WordChallenge[]>(() =>
-    generateChallenges(difficulty)
+    WordCompletionService.generateChallenges(difficulty)
   );
 
   const [state, setState] = useState<WordCompletionState>(INITIAL_STATE);
@@ -30,7 +30,7 @@ export function useWordCompletion(difficulty: Difficulty) {
    * regenera las palabras del banco correcto y resetea el estado
    */
   useEffect(() => {
-    setChallenges(generateChallenges(difficulty));
+    setChallenges(WordCompletionService.generateChallenges(difficulty));
     setState(INITIAL_STATE);
   }, [difficulty]);
 
@@ -65,7 +65,7 @@ export function useWordCompletion(difficulty: Difficulty) {
   }, [state, expectedAnswer, challenges.length]);
 
   const handleReplace = useCallback(() => {
-    setChallenges(generateChallenges(difficulty));
+    setChallenges(WordCompletionService.generateChallenges(difficulty));
     setState(INITIAL_STATE);
   }, [difficulty]);
 

@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, KeyboardAvoidingView,
-  Platform, useWindowDimensions,
+  Platform, useWindowDimensions,Modal,
 } from 'react-native';
 import { Difficulty } from '../types/wordCompletion.types';
-import { DIFFICULTY_STYLES } from '../constants/wordCompletion.config';
+import { WordCompletionService } from '../services/WordCompletionService';
 import { useWordCompletion } from '../hooks/useWordCompletion';
 import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
-import { WordHint } from '../components/WordHint';
 import { ReplaceButton } from '../components/ReplaceButton';
 import { useCurrentTime } from '../hooks/useCurrentTime';
+import { useAuth } from '../../../auth/hooks/useAuth';
+import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
 interface Props {
   difficulty: Difficulty;
@@ -25,15 +27,15 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
   const [missionCount, setMissionCount]   = useState(0);
   const [difficulty, setDifficulty]       = useState<Difficulty>(initialDifficulty);
   const [errorCount, setErrorCount]       = useState(0);
+  const { user, isAuthenticated, isGuest } = useAuth();
+  const [showModal, setShowModal] = useState(false);
 
-  const style = DIFFICULTY_STYLES[difficulty];
+  const style = WordCompletionService.getDifficultyStyle(difficulty);
   const { challenges, state, current, handleInputChange, handleConfirm, handleReplace } =
     useWordCompletion(difficulty);
 
   const { time, day } = useCurrentTime();
   const isHard   = difficulty === 'hard';
-  const isMedium = difficulty === 'medium';
-  const showHint = isMedium || isHard;
 
   const maxLength = isHard
     ? challenges[state.currentChallengeIndex]?.missingIndexes.length ?? 1
@@ -43,10 +45,7 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
     ? `${challenges.reduce((a, c) => a + c.missingIndexes.length, 0)} letras faltantes`
     : `${maxLength} letra${maxLength > 1 ? 's' : ''} faltante${maxLength > 1 ? 's · escríbelas juntas' : ''}`;
 
-  const activeWord = isHard
-    ? challenges[state.currentChallengeIndex]?.word
-    : current?.word;
-
+/*
   // Wrappea handleConfirm para contar errores
   const handleConfirmWithCount = () => {
     const prevError = state.hasError;
@@ -55,13 +54,15 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
     if (!prevError && state.userInput.trim() !== '') {
       // lo detectamos por el cambio en hasError en el siguiente render
     }
-  };
+  };*/
 
   // Detecta cuando hasError cambia a true (nuevo fallo)
   const prevHasError = React.useRef(false);
   React.useEffect(() => {
     if (state.hasError && !prevHasError.current) {
-      setErrorCount(c => c + 1);
+      const nextErrorCount = errorCount + 1;
+      setErrorCount(nextErrorCount);
+      saveMissionHistory(false, nextErrorCount);
     }
     prevHasError.current = state.hasError;
   }, [state.hasError]);
@@ -74,9 +75,30 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
   // Misión completada
   React.useEffect(() => {
     if (!state.isCompleted) return;
+
+    if (isAuthenticated && !isGuest && user?.id && current) {
+      MissionHistoryLocalService.save({
+        userId: user.id,
+        missionType: 'word_completion',
+        difficulty,
+        content: {
+          word: current.word,
+          missingIndexes: current.missingIndexes,
+        },
+        correctAnswer: WordCompletionService.getExpectedAnswer(current),
+        userAnswer: state.userInput,
+        success: true,
+        errorCount,
+        durationSeconds: null,
+      });
+
+      void syncMissionHistory(user.id);
+    }
+
     const next = missionCount + 1;
+
     if (next >= quantity) {
-      onComplete();
+      setShowModal(true);
     } else {
       setMissionCount(next);
       handleReplace();
@@ -89,6 +111,27 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
     setDifficulty(next);
     setErrorCount(0);
     handleReplace();
+  };
+
+  const saveMissionHistory = (success: boolean, nextErrorCount: number) => {
+    if (!isAuthenticated || isGuest || !user?.id || !current) return;
+
+    MissionHistoryLocalService.save({
+      userId: user.id,
+      missionType: 'word_completion',
+      difficulty,
+      content: {
+        word: current.word,
+        missingIndexes: current.missingIndexes,
+      },
+      correctAnswer: WordCompletionService.getExpectedAnswer(current),
+      userAnswer: state.userInput,
+      success,
+      errorCount: nextErrorCount,
+      durationSeconds: null,
+    });
+
+    void syncMissionHistory(user.id);
   };
 
   return (
@@ -139,11 +182,6 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
               )
             )}
 
-            {/* Pista visual: palabra completa, de cabeza y al revés */}
-            {showHint && activeWord && (
-              <WordHint word={activeWord} accentColor={style.accentColor} />
-            )}
-
             <TextInput
               style={[
                 styles.input,
@@ -188,14 +226,54 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
 
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={showModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.starsRow}>
+              <Text style={styles.starSide}>⭐</Text>
+              <Text style={styles.starCenter}>⭐</Text>
+              <Text style={styles.starSide}>⭐</Text>
+            </View>
+            <Text style={styles.modalTitle}>¡FELICIDADES!</Text>
+            <Text style={styles.modalSubtitle}>¡Has completado la misión{'\n'}con éxito!</Text>
+            <View style={styles.checkWrapper}>
+              <View style={styles.checkCircle}>
+                <Text style={styles.checkIcon}>✓</Text>
+              </View>
+            </View>
+            <View style={styles.messageBox}>
+              <Text style={styles.messageText}>
+                Sigue así, estás haciendo{'\n'}un gran trabajo. ⭐
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.acceptBtn}
+              onPress={() => {
+                setShowModal(false);
+                onComplete();
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.acceptText}>ACEPTAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0D0D0D' },
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: '#0D0D0D' },
+  screen: {
+  flex: 1,
+  backgroundColor: '#0D0D0D',
+  paddingTop: 40,
+  },
   pill: {
     alignSelf: 'center', marginTop: 16,
     paddingVertical: 5, paddingHorizontal: 18,
@@ -225,4 +303,57 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 'auto',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
+
+    modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: '#161616', borderRadius: 20,
+    padding: 28, width: '82%', alignItems: 'center',
+    borderWidth: 0.5, borderColor: '#2A2A2A',
+  },
+  starsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  starSide: { fontSize: 22, opacity: 0.6 },
+  starCenter: { fontSize: 30, marginHorizontal: 6 },
+  modalTitle: {
+    fontSize: 22, fontWeight: '700', color: '#FFFFFF',
+    letterSpacing: 1.5, marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 14, color: '#667788',
+    textAlign: 'center', lineHeight: 20, marginBottom: 20,
+  },
+  checkWrapper: { marginBottom: 20 },
+  checkCircle: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: '#1A2A1A', borderWidth: 1.5,
+    borderColor: '#4ADE80', alignItems: 'center', justifyContent: 'center',
+  },
+  checkIcon: { fontSize: 28, color: '#4ADE80' },
+  messageBox: {
+    backgroundColor: '#0D0D0D', borderRadius: 10,
+    paddingVertical: 12, paddingHorizontal: 16,
+    marginBottom: 24, width: '100%',
+  },
+  messageText: {
+    fontSize: 13, color: '#889999',
+    textAlign: 'center', lineHeight: 19,
+  },
+    acceptBtn: {
+    backgroundColor: '#1A3A5C',
+    borderRadius: 30,
+    height: 52,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#4A7EAA',
+    shadowColor: '#4A7EAA',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  acceptText: { fontSize: 18, fontWeight: '900', color: '#7EB8F7', letterSpacing: 1 },
 });
