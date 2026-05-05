@@ -29,20 +29,20 @@ interface AlarmFormProps {
 
 const MISSION_TYPES: MissionType[] = [
   'math',
-  'memory',
-  'physical',
-  'photo',
-  'trivia',
-  'writing',
-  'color',
-  'shapes',
-  'sequence',
+  'wordCompletion',
 ];
 
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
   { value: 'easy', label: 'Facil' },
   { value: 'normal', label: 'Normal' },
   { value: 'hard', label: 'Dificil' },
+];
+
+const OPERATION_OPTIONS = [
+  { value: 'addition' as const, label: 'Suma', symbol: '+' },
+  { value: 'subtraction' as const, label: 'Resta', symbol: '-' },
+  { value: 'multiplication' as const, label: 'Multi', symbol: 'x' },
+  { value: 'division' as const, label: 'Division', symbol: '/' },
 ];
 
 type TimeMode = 'hour' | 'minute';
@@ -78,6 +78,12 @@ export default function AlarmForm({
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(
     initialData?.missions?.[0]?.difficulty ?? 'normal',
   );
+  const [missionQuantity, setMissionQuantity] = useState<number>(
+    initialData?.missions?.[0]?.quantity ?? 3,
+  );
+  const [operationType, setOperationType] = useState<
+    'addition' | 'subtraction' | 'multiplication' | 'division'
+  >(initialData?.missions?.[0]?.operationType ?? 'addition');
   const [soundUri, setSoundUri] = useState<string | null>(
     initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI,
   );
@@ -133,6 +139,8 @@ export default function AlarmForm({
             {
               type: selectedMission,
               difficulty: selectedDifficulty,
+              quantity: missionQuantity,
+              operationType: selectedMission === 'math' ? operationType : undefined,
             },
           ],
       randomMissions,
@@ -277,6 +285,59 @@ export default function AlarmForm({
                   );
                 })}
               </View>
+
+              <Text style={styles.sectionTitle}>Cantidad</Text>
+              <View style={styles.quantityControl}>
+                <TouchableOpacity
+                  style={styles.quantityBtn}
+                  onPress={() => setMissionQuantity(prev => Math.max(1, prev - 1))}
+                >
+                  <Text style={styles.quantityBtnText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityValue}>{missionQuantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityBtn}
+                  onPress={() => setMissionQuantity(prev => Math.min(9, prev + 1))}
+                >
+                  <Text style={styles.quantityBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+
+              {selectedMission === 'math' && (
+                <>
+                  <Text style={styles.sectionTitle}>Operacion</Text>
+                  <View style={styles.operationGrid}>
+                    {OPERATION_OPTIONS.map(option => {
+                      const active = operationType === option.value;
+                      return (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[styles.operationBtn, active && styles.operationBtnActive]}
+                          onPress={() => setOperationType(option.value)}
+                          activeOpacity={0.85}
+                        >
+                          <Text
+                            style={[
+                              styles.operationSymbol,
+                              active && styles.operationSymbolActive,
+                            ]}
+                          >
+                            {option.symbol}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.operationLabel,
+                              active && styles.operationLabelActive,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
             </>
           )}
         </View>
@@ -660,6 +721,69 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   difficultyTextActive: {
+    color: Colors.text,
+  },
+  quantityControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    overflow: 'hidden',
+  },
+  quantityBtn: {
+    width: 44,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '22',
+  },
+  quantityBtnText: {
+    color: Colors.primaryLight,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  quantityValue: {
+    minWidth: 54,
+    color: Colors.text,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  operationGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  operationBtn: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  operationBtnActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '22',
+  },
+  operationSymbol: {
+    color: Colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  operationSymbolActive: {
+    color: Colors.primaryLight,
+  },
+  operationLabel: {
+    color: Colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  operationLabelActive: {
     color: Colors.text,
   },
   saveBtn: {

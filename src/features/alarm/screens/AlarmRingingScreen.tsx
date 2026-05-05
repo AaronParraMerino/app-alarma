@@ -10,31 +10,30 @@ import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
-import AlarmMissionChallenge from '../components/AlarmMissionChallenge';
+import { MathExercisesMission } from '../../missions/Math Exercises/components/MathExercisesMission';
+import { OperationType } from '../../missions/Math Exercises/types/mathExercises.types';
+import { WordCompletionMission } from '../../missions/wordCompletion/components/WordCompletionMission';
 import { cancelAlarmNotificationsByAlarmId } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
-import { AlarmMission, MissionType } from '../types/alarm.types';
+import { AlarmMission, Difficulty, MissionType } from '../types/alarm.types';
 
 type Props = NativeStackScreenProps<AlarmStackParamList, 'AlarmRinging'>;
 
 const RANDOM_MISSION_TYPES: MissionType[] = [
   'math',
-  'memory',
-  'physical',
-  'photo',
-  'trivia',
-  'writing',
-  'color',
-  'shapes',
-  'sequence',
+  'wordCompletion',
 ];
 
 function formatTime(hour: number, minute: number): string {
   const hh = hour % 12 === 0 ? 12 : hour % 12;
   const ampm = hour < 12 ? 'AM' : 'PM';
   return `${hh.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${ampm}`;
+}
+
+function toMissionDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {
+  return difficulty === 'normal' ? 'medium' : difficulty;
 }
 
 export default function AlarmRingingScreen({ route, navigation }: Props) {
@@ -56,10 +55,22 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       return {
         type: RANDOM_MISSION_TYPES[index],
         difficulty: 'normal',
+        quantity: 3,
+        operationType: 'addition',
       };
     }
 
-    return alarm.missions[0];
+    const mission = alarm.missions[0];
+    if (!RANDOM_MISSION_TYPES.includes(mission.type)) {
+      return {
+        type: 'math',
+        difficulty: mission.difficulty,
+        quantity: mission.quantity,
+        operationType: mission.operationType,
+      };
+    }
+
+    return mission;
   }, [alarm]);
 
   useEffect(() => {
@@ -139,22 +150,25 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top', 'right', 'left', 'bottom']}>
-      <View style={styles.topSection}>
-        <Text style={styles.badge}>ALARMA ACTIVA</Text>
-        <Text style={styles.time}>{formatTime(alarm.hour, alarm.minute)}</Text>
-        <Text style={styles.label}>{alarm.label || 'Hora de despertar'}</Text>
-      </View>
+  if (activeMission.type === 'wordCompletion') {
+    return (
+      <WordCompletionMission
+        difficulty={toMissionDifficulty(activeMission.difficulty)}
+        quantity={activeMission.quantity ?? 3}
+        onComplete={completeMission}
+        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+      />
+    );
+  }
 
-      <View style={styles.missionSection}>
-        <AlarmMissionChallenge
-          type={activeMission.type}
-          difficulty={activeMission.difficulty}
-          onComplete={completeMission}
-        />
-      </View>
-    </SafeAreaView>
+  return (
+    <MathExercisesMission
+      difficulty={toMissionDifficulty(activeMission.difficulty)}
+      quantity={activeMission.quantity ?? 3}
+      operationType={(activeMission.operationType ?? 'addition') as OperationType}
+      onComplete={completeMission}
+      alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+    />
   );
 }
 

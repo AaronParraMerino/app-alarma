@@ -71,7 +71,7 @@ export function MathExercisesMission({ difficulty, quantity, onComplete, alarmLa
 
           <View style={styles.timeBlock}>
             <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>{time}</Text>
-            <Text style={styles.dateLabel}>{day} — Hora de levantarse</Text>
+            <Text style={styles.dateLabel}>{day} - {alarmLabel ?? 'Hora de levantarse'}</Text>
           </View>
 
           <View style={styles.divider} />

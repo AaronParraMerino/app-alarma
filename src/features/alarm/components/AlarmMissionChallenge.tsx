@@ -8,6 +8,9 @@ import {
 } from 'react-native';
 import { Colors } from '../../../shared/theme/colors';
 import { MISSION_LABELS } from '../../missions/constants/missions';
+import { generateChallenges } from '../../missions/wordCompletion/constants/wordCompletion.config';
+import { WordCompletionService } from '../../missions/wordCompletion/services/WordCompletionService';
+import { WordChallenge } from '../../missions/wordCompletion/types/wordCompletion.types';
 import { Difficulty, MissionType } from '../types/alarm.types';
 
 interface AlarmMissionChallengeProps {
@@ -35,6 +38,10 @@ const WRITING_PHRASES: Record<Difficulty, string> = {
   hard: 'neuro wake cumplio su trabajo',
 };
 
+function toWordDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {
+  return difficulty === 'normal' ? 'medium' : difficulty;
+}
+
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -60,6 +67,13 @@ function buildSequence(difficulty: Difficulty): number[] {
   return Array.from({ length: DIFFICULTY_STEPS[difficulty] }, () => randomInt(1, 9));
 }
 
+function renderMaskedWord(challenge: WordChallenge): string {
+  return challenge.word
+    .split('')
+    .map((letter, index) => challenge.missingIndexes.includes(index) ? '_' : letter)
+    .join(' ');
+}
+
 export default function AlarmMissionChallenge({
   type,
   difficulty,
@@ -71,6 +85,10 @@ export default function AlarmMissionChallenge({
 
   const mathProblem = useMemo(() => buildMathProblem(difficulty), [difficulty, type]);
   const sequence = useMemo(() => buildSequence(difficulty), [difficulty, type]);
+  const wordChallenge = useMemo(
+    () => generateChallenges(toWordDifficulty(difficulty))[0],
+    [difficulty, type],
+  );
   const colorTarget = useMemo(
     () => COLOR_OPTIONS[randomInt(0, COLOR_OPTIONS.length - 1)],
     [difficulty, type],
@@ -191,12 +209,48 @@ export default function AlarmMissionChallenge({
     </>
   );
 
+  const renderWordMission = () => (
+    <>
+      <Text style={styles.prompt}>Completa las letras faltantes</Text>
+      <Text style={styles.wordPreview}>{renderMaskedWord(wordChallenge)}</Text>
+      <Text style={styles.progressText}>
+        {wordChallenge.missingIndexes.length} letra
+        {wordChallenge.missingIndexes.length > 1 ? 's' : ''} faltante
+        {wordChallenge.missingIndexes.length > 1 ? 's' : ''}
+      </Text>
+      <TextInput
+        value={answer}
+        onChangeText={setAnswer}
+        placeholder={Array(wordChallenge.missingIndexes.length).fill('_').join('')}
+        placeholderTextColor={Colors.textMuted}
+        autoCapitalize="characters"
+        maxLength={wordChallenge.missingIndexes.length}
+        style={styles.input}
+      />
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={() => {
+          if (WordCompletionService.validateAnswer(wordChallenge, answer)) {
+            onComplete();
+            return;
+          }
+          fail();
+        }}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.primaryButtonText}>Confirmar</Text>
+      </TouchableOpacity>
+    </>
+  );
+
   const content = type === 'math'
     ? renderMathMission()
     : type === 'writing'
       ? renderWritingMission()
-      : type === 'color'
-        ? renderColorMission()
+    : type === 'color'
+      ? renderColorMission()
+      : type === 'wordCompletion'
+        ? renderWordMission()
         : renderSequenceMission();
 
   return (
@@ -291,6 +345,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  wordPreview: {
+    color: Colors.text,
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 3,
   },
   progressText: {
     color: Colors.textMuted,
