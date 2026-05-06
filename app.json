@@ -24,6 +24,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
@@ -37,6 +38,26 @@
     "plugins": [
       "expo-sqlite",
       "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "alarms-default",
+          "sounds": [
+            "./assets/sounds/blendertimer_cyber_alarms_synthesized_116358.mp3",
+            "./assets/sounds/dennish18_biohazard_alarm_143105.mp3",
+            "./assets/sounds/freesound_community_056338_25_alien_alarms_87068.mp3",
+            "./assets/sounds/freesound_community_alarm_26718.mp3",
+            "./assets/sounds/freesound_community_alarm_no3_14864.mp3",
+            "./assets/sounds/freesound_community_facility_siren_loopable_100687.mp3",
+            "./assets/sounds/freesound_community_imminent2_80967.mp3",
+            "./assets/sounds/freesound_community_meltdown_73617.mp3",
+            "./assets/sounds/freesound_community_multiple_tornado_alarms_17375.mp3",
+            "./assets/sounds/freesound_community_thunder_69076.mp3",
+            "./assets/sounds/jeremayjimenez_greece_eas_alarm_451404.mp3",
+            "./assets/sounds/jeremayjimenez_saudi_arabia_eas_alarm_1924_526917.mp3"
+          ]
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
       "expo-dev-client",

@@ -7,7 +7,8 @@ export type MissionType =
   | 'writing'
   | 'color'
   | 'shapes'
-  | 'sequence';
+  | 'sequence'
+  | 'wordCompletion';
 
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
@@ -16,6 +17,8 @@ export type RepeatDay = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Dom, 1=Lun ... 6=Sab
 export interface AlarmMission {
   type: MissionType;
   difficulty: Difficulty;
+  quantity?: number;
+  operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
 }
 
 export interface Alarm {
