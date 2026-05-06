@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Menssage } from '../../../shared/components/ui/Menssage';
 import { useAuth } from '../../auth/store/authStore';
 import { ProfileStackParamList } from '../../profile/navigation/ProfileNavigator';
 
@@ -116,19 +117,13 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         ) : (
           /* Banner invitado */
-          <View style={styles.guestCard}>
-            <Ionicons name="person-circle-outline" size={44} color={Colors.textMuted} />
-            <View style={styles.guestInfo}>
-              <Text style={styles.guestTitle}>Modo invitado</Text>
-              <Text style={styles.guestSubtitle}>
-                Inicia sesión para guardar tus alarmas y ver tu progreso
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.guestBtn} onPress={exitGuest} activeOpacity={0.85}>
-              <Text style={styles.guestBtnText}>Iniciar sesión en tu cuenta</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.white} />
-            </TouchableOpacity>
-          </View>
+          <Menssage
+            type="info"
+            title="Modo invitado"
+            message="Inicia sesion para guardar tus alarmas y ver tu progreso."
+            onPress={exitGuest}
+            style={styles.message}
+          />
         )}
 
         {/* ── PREFERENCIAS ───────────────────────────────────────────────── */}
@@ -239,46 +234,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Tarjeta invitado
-  guestCard: {
+  message: {
     marginHorizontal: 16,
     marginBottom: 24,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 18,
-    gap: 12,
-  },
-  guestInfo: { gap: 4 },
-  guestTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  guestSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 19,
-  },
-  guestBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.primaryDeep,
-    marginTop: 4,
-  },
-  guestBtnText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: 13,
   },
 
   // Secciones

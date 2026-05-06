@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
@@ -14,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Menssage } from '../../../shared/components/ui/Menssage';
+import { Modal } from '../../../shared/components/ui/Modal';
 import { useAuth } from '../../auth/store/authStore';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileStackParamList } from '../navigation/ProfileNavigator';
@@ -107,45 +108,27 @@ function ActionRow({
 
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
-  const { profile, loading } = useProfile();
+  const { profile, loading, error, refetch } = useProfile();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeModal, setActiveModal] = useState<'logout' | 'delete-account' | null>(null);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Seguro que quieres cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoggingOut(true);
-            await logout();
-            // RootNavigator redirige a Auth automáticamente
-          },
-        },
-      ],
-    );
+    setActiveModal('logout');
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    await logout();
+  };
+
+  const closeModal = () => {
+    if (!isLoggingOut) {
+      setActiveModal(null);
+    }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Eliminar cuenta',
-      'Esta acción es irreversible. Se eliminarán todos tus datos.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: llamar a un Supabase RPC o Edge Function para borrar la cuenta
-            // Ejemplo: await supabase.rpc('delete_user')
-            Alert.alert('Próximamente', 'La eliminación de cuenta estará disponible en breve.');
-          },
-        },
-      ],
-    );
+    setActiveModal('delete-account');
   };
 
   if (!user) return null;
@@ -183,6 +166,16 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
 
         {/* ── ESTADÍSTICAS ────────────────────────────────────────────────── */}
+        {error ? (
+          <Menssage
+            type="error"
+            title="No pudimos cargar tu perfil"
+            message={error}
+            onPress={refetch}
+            style={styles.message}
+          />
+        ) : null}
+
         <Text style={styles.sectionLabel}>Estadísticas</Text>
         <View style={styles.statsRow}>
           <StatCard
@@ -261,6 +254,37 @@ export default function ProfileScreen({ navigation }: Props) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Modal
+        visible={activeModal === 'logout'}
+        type="warning"
+        title="Cerrar sesion"
+        message="Tu sesion se cerrara en este dispositivo. Podras volver a entrar desde la pantalla de autenticacion."
+        onClose={closeModal}
+        closeOnBackdropPress={!isLoggingOut}
+        cancelAction={{
+          label: 'Cancelar',
+          onPress: closeModal,
+          disabled: isLoggingOut,
+        }}
+        confirmAction={{
+          label: 'Cerrar sesion',
+          onPress: confirmLogout,
+          loading: isLoggingOut,
+        }}
+      />
+
+      <Modal
+        visible={activeModal === 'delete-account'}
+        type="error"
+        title="Eliminar cuenta"
+        message="Esta opcion estara disponible cuando integremos el borrado seguro de datos."
+        onClose={() => setActiveModal(null)}
+        cancelAction={{
+          label: 'Entendido',
+          onPress: () => setActiveModal(null),
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -337,6 +361,9 @@ const styles = StyleSheet.create({
   heroEmail: {
     fontSize: 13,
     color: Colors.textSecondary,
+  },
+  message: {
+    marginHorizontal: 16,
   },
 
   // Stats

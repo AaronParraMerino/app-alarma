@@ -17,7 +17,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { authService } from '../services/authService';
-import { AuthMessage } from '../components/AuthMessage';
+import { Menssage } from '../../../shared/components/ui/Menssage';
+
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyRecoveryCode'>;
 
@@ -107,7 +108,7 @@ export default function VerifyRecoveryCodeScreen({ navigation, route }: Props) {
             Copia el código completo que recibiste en tu correo.
           </Text>
 
-          <AuthMessage type={messageType} message={message} />
+          <Menssage type={messageType} message={message} />
 
           <Text style={styles.label}>Código:</Text>
 

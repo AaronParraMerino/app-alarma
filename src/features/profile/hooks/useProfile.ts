@@ -23,18 +23,26 @@ export function useProfile(): UseProfileReturn {
     setLoading(true);
     setError(null);
 
-    const { data, error: fetchError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-    if (fetchError) {
-      setError(fetchError.message);
-    } else {
+      if (fetchError) {
+        console.log('[Profile] Error cargando perfil:', fetchError.message);
+        setError('Toca este mensaje para intentar cargar tus datos otra vez.');
+        return;
+      }
+
       setProfile(data as Profile);
+    } catch (profileError) {
+      console.log('[Profile] Error inesperado cargando perfil:', profileError);
+      setError('Toca este mensaje para intentar cargar tus datos otra vez.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
