@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Alert, ScrollView,
+  Platform, ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { Colors } from '../../../shared/theme/colors';
+import { Modal } from '../../../shared/components/ui/Modal';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -20,20 +21,33 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [validationMessage, setValidationMessage] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
   const [showPassword, setShowPassword] = useState(false);         // ← nuevo
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // ← nuevo
 
   const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Campos requeridos', 'Completa todos los campos');
+      setValidationMessage({
+        title: 'Campos requeridos',
+        message: 'Completa tu nombre, correo y contrasena para crear la cuenta.',
+      });
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      setValidationMessage({
+        title: 'Contrasenas diferentes',
+        message: 'Revisa que ambas contrasenas sean iguales antes de continuar.',
+      });
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      setValidationMessage({
+        title: 'Contrasena muy corta',
+        message: 'La contrasena debe tener al menos 6 caracteres.',
+      });
       return;
     }
     await register(email.trim(), password.trim(), username.trim());
@@ -57,12 +71,6 @@ export default function RegisterScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Regístrate</Text>
-
-          {error && (
-            <TouchableOpacity onPress={clearError} style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </TouchableOpacity>
-          )}
 
           <Text style={styles.label}>Nombre:</Text>
           <TextInput
@@ -170,6 +178,30 @@ export default function RegisterScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      <Modal
+        visible={Boolean(validationMessage)}
+        type="warning"
+        title={validationMessage?.title ?? ''}
+        message={validationMessage?.message}
+        onClose={() => setValidationMessage(null)}
+        cancelAction={{
+          label: 'Entendido',
+          onPress: () => setValidationMessage(null),
+        }}
+      />
+
+      <Modal
+        visible={Boolean(error)}
+        type="error"
+        title="No pudimos crear tu cuenta"
+        message={error ?? ''}
+        onClose={clearError}
+        cancelAction={{
+          label: 'Entendido',
+          onPress: clearError,
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -194,11 +226,6 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: '800', color: Colors.text,
     marginBottom: 20, textAlign: 'center', letterSpacing: -0.3,
   },
-  errorBox: {
-    backgroundColor: Colors.danger + '22', borderRadius: 8,
-    padding: 10, marginBottom: 14, borderWidth: 1, borderColor: Colors.danger + '44',
-  },
-  errorText: { color: Colors.danger, fontSize: 13, textAlign: 'center' },
   label: { fontSize: 13, color: Colors.textSecondary, marginBottom: 6, fontWeight: '500' },
   input: {
     backgroundColor: Colors.bgElevated, color: Colors.text,

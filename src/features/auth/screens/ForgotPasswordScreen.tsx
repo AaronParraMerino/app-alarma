@@ -17,7 +17,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
 import { authService } from '../services/authService';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
-import { AuthMessage } from '../components/AuthMessage';
+import { Menssage } from '../../../shared/components/ui/Menssage';
+
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
@@ -83,7 +84,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
             Escribe el correo de tu cuenta y te enviaremos un código para cambiar tu contraseña.
           </Text>
 
-          <AuthMessage type={messageType} message={message} />
+          <Menssage type={messageType} message={message} />
 
           <Text style={styles.label}>Correo electrónico:</Text>
 
