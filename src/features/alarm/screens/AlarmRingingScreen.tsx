@@ -3,6 +3,7 @@ import {
   BackHandler,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +27,16 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
   'wordCompletion',
 ];
 
+function resolveRandomMission(config: AlarmMission): AlarmMission {
+  const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
+  return {
+    type: RANDOM_MISSION_TYPES[index],
+    difficulty: config.difficulty,
+    quantity: config.quantity ?? 3,
+    operationType: config.operationType ?? 'addition',
+  };
+}
+
 function formatTime(hour: number, minute: number): string {
   const hh = hour % 12 === 0 ? 12 : hour % 12;
   const ampm = hour < 12 ? 'AM' : 'PM';
@@ -43,35 +54,48 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   const player = useAudioPlayer(alarmSoundAsset, {
     keepAudioSessionActive: true,
   });
-  const [completed, setCompleted] = useState(false);
+  const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
 
-  const activeMission = useMemo<AlarmMission>(() => {
+  const missionSequence = useMemo<AlarmMission[]>(() => {
     if (!alarm) {
-      return { type: 'math', difficulty: 'normal' };
+      return [];
     }
 
-    if (alarm.randomMissions || alarm.missions.length === 0) {
-      const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
-      return {
-        type: RANDOM_MISSION_TYPES[index],
-        difficulty: 'normal',
-        quantity: 3,
-        operationType: 'addition',
-      };
+    if (alarm.randomMissions) {
+      const randomConfigs = alarm.missions.length > 0
+        ? alarm.missions
+        : [{ type: 'math', difficulty: 'normal', quantity: 3 } as AlarmMission];
+
+      return randomConfigs.map(resolveRandomMission);
     }
 
-    const mission = alarm.missions[0];
-    if (!RANDOM_MISSION_TYPES.includes(mission.type)) {
-      return {
-        type: 'math',
-        difficulty: mission.difficulty,
-        quantity: mission.quantity,
-        operationType: mission.operationType,
-      };
+    if (alarm.missions.length === 0) {
+      return [];
     }
 
-    return mission;
+    return alarm.missions.map(mission => {
+      if (mission.type === 'random') {
+        return resolveRandomMission(mission);
+      }
+
+      if (!RANDOM_MISSION_TYPES.includes(mission.type)) {
+        return {
+          type: 'math',
+          difficulty: mission.difficulty,
+          quantity: mission.quantity,
+          operationType: mission.operationType,
+        };
+      }
+
+      return mission;
+    });
   }, [alarm]);
+
+  const activeMission = missionSequence[currentMissionIndex] ?? null;
+
+  useEffect(() => {
+    setCurrentMissionIndex(0);
+  }, [alarm?.id]);
 
   useEffect(() => {
     if (!alarm || !alarmSoundAsset) return;
@@ -134,10 +158,14 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   }, [alarm, navigation, player, updateAlarm]);
 
   const completeMission = React.useCallback(() => {
-    if (completed) return;
-    setCompleted(true);
+    const nextMissionIndex = currentMissionIndex + 1;
+    if (nextMissionIndex < missionSequence.length) {
+      setCurrentMissionIndex(nextMissionIndex);
+      return;
+    }
+
     void stopAlarm();
-  }, [completed, stopAlarm]);
+  }, [currentMissionIndex, missionSequence.length, stopAlarm]);
 
   if (!alarm) {
     return (
@@ -150,9 +178,33 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     );
   }
 
+  if (!activeMission) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.topSection}>
+          <Text style={styles.badge}>ALARMA</Text>
+          <Text style={styles.time}>{formatTime(alarm.hour, alarm.minute)}</Text>
+          {alarm.label ? <Text style={styles.label}>{alarm.label}</Text> : null}
+        </View>
+        <View style={styles.normalAlarmSection}>
+          <Text style={styles.title}>Alarma activa</Text>
+          <Text style={styles.subtitle}>No hay misiones configuradas.</Text>
+          <TouchableOpacity
+            style={styles.stopButton}
+            onPress={() => void stopAlarm()}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.stopButtonText}>Detener alarma</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (activeMission.type === 'wordCompletion') {
     return (
       <WordCompletionMission
+        key={`word-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
@@ -163,6 +215,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
   return (
     <MathExercisesMission
+      key={`math-${currentMissionIndex}`}
       difficulty={toMissionDifficulty(activeMission.difficulty)}
       quantity={activeMission.quantity ?? 3}
       operationType={(activeMission.operationType ?? 'addition') as OperationType}
@@ -201,6 +254,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
+  normalAlarmSection: {
+    flex: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    gap: 10,
+  },
   badge: {
     color: Colors.warning,
     fontSize: 11,
@@ -228,5 +289,22 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
+  },
+  stopButton: {
+    marginTop: 18,
+    minWidth: 210,
+    minHeight: 52,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.primaryDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  stopButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

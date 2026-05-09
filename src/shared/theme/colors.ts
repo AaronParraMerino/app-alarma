@@ -40,6 +40,7 @@ export const Colors = {
 
   // ── Misiones ────────────────────────────────────────────
   missionColors: {
+    random:   '#b8ddf0',   // aleatorio
     math:     '#fbbf24',   // amarillo dorado
     memory:   '#c4b5fd',   // lavanda
     physical: '#34d399',   // verde menta
@@ -49,6 +50,7 @@ export const Colors = {
     color:    '#e85555',   // rojo
     shapes:   '#22d3ee',   // cyan
     sequence: '#a78bfa',   // violeta
+    wordCompletion: '#38bdf8', // celeste
   } as Record<string, string>,
 
   // ── Utilidad ────────────────────────────────────────────

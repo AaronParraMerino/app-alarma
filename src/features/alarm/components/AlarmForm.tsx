@@ -1,22 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Modal,
+  Modal as NativeModal,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
-import {
-  DAY_LABELS_SHORT,
-  MISSION_ICONS,
-  MISSION_LABELS,
-} from '../../missions/constants/missions';
+import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
+import { RandomMissionConfig } from '../../missions/random/components/RandomMissionConfig';
+import { registerAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 import { ALARM_SOUND_OPTIONS, DEFAULT_ALARM_SOUND_URI } from '../services/alarmService';
-import { AlarmCreate, Difficulty, MissionType, RepeatDay } from '../types/alarm.types';
+import AlarmChooseMission from './AlarmChooseMission';
+import AlarmSelectMission, { AlarmMissionSelection } from './AlarmSelectMission';
+import { AlarmStackParamList } from '../navigation/AlarmNavigator';
+import { AlarmCreate, AlarmMission, Difficulty, RepeatDay } from '../types/alarm.types';
 
 interface AlarmFormProps {
   title: string;
@@ -27,34 +29,58 @@ interface AlarmFormProps {
   onDelete?: () => void;
 }
 
-const MISSION_TYPES: MissionType[] = [
-  'math',
-  'wordCompletion',
-];
-
-const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
-  { value: 'easy', label: 'Facil' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'hard', label: 'Dificil' },
-];
-
-const OPERATION_OPTIONS = [
-  { value: 'addition' as const, label: 'Suma', symbol: '+' },
-  { value: 'subtraction' as const, label: 'Resta', symbol: '-' },
-  { value: 'multiplication' as const, label: 'Multi', symbol: 'x' },
-  { value: 'division' as const, label: 'Division', symbol: '/' },
-];
-
 type TimeMode = 'hour' | 'minute';
+type MissionStep = 'form' | 'select' | 'config';
+type RuntimeDifficulty = 'easy' | 'medium' | 'hard';
+
+const DEFAULT_MATH_MISSION: AlarmMission = {
+  type: 'math',
+  difficulty: 'normal',
+  quantity: 3,
+  operationType: 'addition',
+};
+
+const DEFAULT_WORD_MISSION: AlarmMission = {
+  type: 'wordCompletion',
+  difficulty: 'normal',
+  quantity: 3,
+};
+
+const DEFAULT_RANDOM_CONFIG: AlarmMission = {
+  type: 'random',
+  difficulty: 'normal',
+  quantity: 3,
+};
 
 const CLOCK_SIZE = 260;
 const CLOCK_CENTER = CLOCK_SIZE / 2;
 const CLOCK_RADIUS = 102;
 const HOUR_VALUES = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTE_VALUES = Array.from({ length: 12 }, (_, index) => index * 5);
+const MAX_MISSIONS = 5;
 
 function padTime(value: number): string {
   return value.toString().padStart(2, '0');
+}
+
+function toRuntimeDifficulty(difficulty: Difficulty): RuntimeDifficulty {
+  return difficulty === 'normal' ? 'medium' : difficulty;
+}
+
+function toAlarmDifficulty(difficulty: RuntimeDifficulty): Difficulty {
+  return difficulty === 'medium' ? 'normal' : difficulty;
+}
+
+function buildRandomMissionGroup(
+  difficulty: RuntimeDifficulty,
+  quantity: number,
+  missionCount: number,
+): AlarmMission[] {
+  return Array.from({ length: Math.min(missionCount, MAX_MISSIONS) }, () => ({
+    type: 'random',
+    difficulty: toAlarmDifficulty(difficulty),
+    quantity,
+  }));
 }
 
 export default function AlarmForm({
@@ -65,25 +91,32 @@ export default function AlarmForm({
   onSubmit,
   onDelete,
 }: AlarmFormProps) {
+  const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList>>();
+  const initialMissionEnabled = Boolean(
+    initialData?.randomMissions || (initialData?.missions?.length ?? 0) > 0,
+  );
+  const initialMissionList = initialData?.missions?.length
+    ? initialData.missions.slice(0, MAX_MISSIONS)
+    : [DEFAULT_RANDOM_CONFIG];
+  const initialMissions = initialMissionEnabled
+    ? initialMissionList.map(mission =>
+        initialData?.randomMissions ? { ...mission, type: 'random' as const } : mission,
+      )
+    : [];
+
   const [hour, setHour] = useState<number>(initialData?.hour ?? 7);
   const [minute, setMinute] = useState<number>(initialData?.minute ?? 0);
   const [label, setLabel] = useState<string>(initialData?.label ?? '');
   const [repeatDays, setRepeatDays] = useState<RepeatDay[]>(initialData?.repeatDays ?? []);
-  const [randomMissions, setRandomMissions] = useState<boolean>(
-    initialData?.randomMissions ?? false,
+  const [missionEnabled, setMissionEnabled] = useState(initialMissionEnabled);
+  const [randomMissions, setRandomMissions] = useState<boolean>(false);
+  const [configuredMissions, setConfiguredMissions] = useState<AlarmMission[]>(
+    initialMissions,
   );
-  const [selectedMission, setSelectedMission] = useState<MissionType>(
-    initialData?.missions?.[0]?.type ?? 'math',
-  );
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(
-    initialData?.missions?.[0]?.difficulty ?? 'normal',
-  );
-  const [missionQuantity, setMissionQuantity] = useState<number>(
-    initialData?.missions?.[0]?.quantity ?? 3,
-  );
-  const [operationType, setOperationType] = useState<
-    'addition' | 'subtraction' | 'multiplication' | 'division'
-  >(initialData?.missions?.[0]?.operationType ?? 'addition');
+  const [draftMission, setDraftMission] = useState<AlarmMission | null>(null);
+  const [configSelection, setConfigSelection] = useState<AlarmMissionSelection | null>(null);
+  const [editingMissionIndex, setEditingMissionIndex] = useState<number | null>(null);
+  const [missionStep, setMissionStep] = useState<MissionStep>('form');
   const [soundUri, setSoundUri] = useState<string | null>(
     initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI,
   );
@@ -122,37 +155,246 @@ export default function AlarmForm({
       if (prev.includes(day)) {
         return prev.filter(d => d !== day);
       }
+
       return [...prev, day].sort((a, b) => a - b);
     });
   };
 
+  const openMissionSelector = () => {
+    setMissionEnabled(true);
+    setEditingMissionIndex(null);
+    setMissionStep('select');
+  };
+
+  const clearMission = (index?: number) => {
+    if (typeof index === 'number') {
+      setConfiguredMissions(prev => prev.filter((_, itemIndex) => itemIndex !== index));
+      setRandomMissions(false);
+      return;
+    }
+
+    setConfiguredMissions([]);
+    setDraftMission(null);
+    setConfigSelection(null);
+    setEditingMissionIndex(null);
+    setRandomMissions(false);
+  };
+
+  const toggleMissionEnabled = (enabled: boolean) => {
+    setMissionEnabled(enabled);
+    if (!enabled) {
+      clearMission();
+    }
+  };
+
+  const setConfiguredMissionAtIndex = (mission: AlarmMission, index: number | null) => {
+    setConfiguredMissions(prev => {
+      if (index === null || index < 0 || index >= prev.length) {
+        if (prev.length >= MAX_MISSIONS) return prev;
+        return [...prev, mission];
+      }
+
+      return prev.map((item, itemIndex) => (itemIndex === index ? mission : item));
+    });
+  };
+
+  const editMission = (index: number) => {
+    const mission = configuredMissions[index];
+    if (!mission) return;
+
+    const selection = mission.type === 'random' || randomMissions
+      ? 'random'
+      : mission.type === 'math'
+        ? 'math'
+        : 'wordCompletion';
+
+    setEditingMissionIndex(index);
+    setConfigSelection(selection);
+
+    if (selection === 'random') {
+      setDraftMission(mission);
+      setMissionStep('config');
+      return;
+    }
+
+    openConcreteMissionConfig(selection, mission, index);
+  };
+
+  const selectMission = (selection: AlarmMissionSelection) => {
+    setMissionEnabled(true);
+    setConfigSelection(selection);
+
+    if (selection === 'random') {
+      const currentMission = editingMissionIndex !== null
+        ? configuredMissions[editingMissionIndex]
+        : null;
+      setDraftMission(currentMission?.type === 'random' ? currentMission : DEFAULT_RANDOM_CONFIG);
+      setMissionStep('config');
+      return;
+    }
+
+    const defaultMission = selection === 'math' ? DEFAULT_MATH_MISSION : DEFAULT_WORD_MISSION;
+    const existingMission = editingMissionIndex !== null
+      ? configuredMissions[editingMissionIndex] ?? defaultMission
+      : defaultMission;
+
+    openConcreteMissionConfig(selection, existingMission, editingMissionIndex);
+  };
+
+  const closeMissionConfig = () => {
+    setDraftMission(null);
+    setConfigSelection(null);
+    setEditingMissionIndex(null);
+    setMissionStep('select');
+  };
+
+  const openConcreteMissionConfig = (
+    selection: Exclude<AlarmMissionSelection, 'random'>,
+    mission: AlarmMission,
+    index: number | null,
+  ) => {
+    const sessionId = registerAlarmMissionConfigSession(nextMission => {
+      setConfiguredMissionAtIndex(nextMission, index);
+      setMissionEnabled(true);
+      setRandomMissions(false);
+      setDraftMission(null);
+      setConfigSelection(null);
+      setEditingMissionIndex(null);
+      setMissionStep('form');
+    });
+
+    if (selection === 'math') {
+      navigation.navigate('AlarmConfigMathMission', {
+        difficulty: toRuntimeDifficulty(mission.difficulty),
+        quantity: mission.quantity ?? 3,
+        operationType: mission.operationType ?? 'addition',
+        alarmConfigSessionId: sessionId,
+      });
+      return;
+    }
+
+    navigation.navigate('AlarmConfigWordCompletionMission', {
+      difficulty: toRuntimeDifficulty(mission.difficulty),
+      quantity: mission.quantity ?? 3,
+      alarmConfigSessionId: sessionId,
+    });
+  };
+
+  const getRandomMissionConfigLimit = () => {
+    const randomCount = configuredMissions.filter(mission => mission.type === 'random').length;
+    const editingMission = editingMissionIndex !== null
+      ? configuredMissions[editingMissionIndex]
+      : null;
+
+    if (editingMission?.type === 'random') {
+      return Math.max(1, MAX_MISSIONS - (configuredMissions.length - randomCount));
+    }
+
+    if (editingMissionIndex !== null) {
+      return Math.max(1, MAX_MISSIONS - configuredMissions.length + 1);
+    }
+
+    return Math.max(1, MAX_MISSIONS - configuredMissions.length);
+  };
+
+  const getInitialRandomMissionCount = () => {
+    const editingMission = editingMissionIndex !== null
+      ? configuredMissions[editingMissionIndex]
+      : null;
+
+    if (editingMission?.type === 'random') {
+      return Math.max(1, configuredMissions.filter(mission => mission.type === 'random').length);
+    }
+
+    return 1;
+  };
+
+  const saveRandomMissionConfig = (config: {
+    difficulty: RuntimeDifficulty;
+    quantity: number;
+    missionCount: number;
+  }) => {
+    const randomMissionGroup = buildRandomMissionGroup(
+      config.difficulty,
+      config.quantity,
+      config.missionCount,
+    );
+
+    setConfiguredMissions(prev => {
+      const editingMission = editingMissionIndex !== null ? prev[editingMissionIndex] : null;
+
+      if (editingMission?.type === 'random') {
+        let inserted = false;
+        const next = prev.flatMap(mission => {
+          if (mission.type !== 'random') return [mission];
+          if (inserted) return [];
+
+          inserted = true;
+          return randomMissionGroup;
+        });
+
+        return next.slice(0, MAX_MISSIONS);
+      }
+
+      if (editingMissionIndex !== null && editingMissionIndex >= 0 && editingMissionIndex < prev.length) {
+        return prev
+          .flatMap((mission, index) => (index === editingMissionIndex ? randomMissionGroup : [mission]))
+          .slice(0, MAX_MISSIONS);
+      }
+
+      return [...prev, ...randomMissionGroup].slice(0, MAX_MISSIONS);
+    });
+
+    setRandomMissions(false);
+    setDraftMission(null);
+    setConfigSelection(null);
+    setEditingMissionIndex(null);
+    setMissionStep('form');
+  };
+
   const saveAlarm = () => {
+    const hasConfiguredMissions = missionEnabled && configuredMissions.length > 0;
+
     onSubmit({
       hour,
       minute,
       label: label.trim(),
       enabled: initialData?.enabled ?? true,
       repeatDays,
-      missions: randomMissions
-        ? []
-        : [
-            {
-              type: selectedMission,
-              difficulty: selectedDifficulty,
-              quantity: missionQuantity,
-              operationType: selectedMission === 'math' ? operationType : undefined,
-            },
-          ],
-      randomMissions,
+      missions: hasConfiguredMissions ? configuredMissions : [],
+      randomMissions: false,
       soundUri,
     });
   };
 
+  if (missionStep === 'select') {
+    return (
+      <AlarmSelectMission
+        onBack={() => setMissionStep('form')}
+        onSelectMission={selectMission}
+      />
+    );
+  }
+
+  if (missionStep === 'config' && configSelection === 'random' && draftMission) {
+    return (
+      <RandomMissionConfig
+        initialDifficulty={toRuntimeDifficulty(draftMission.difficulty)}
+        initialQuantity={draftMission.quantity ?? 3}
+        initialMissionCount={getInitialRandomMissionCount()}
+        maxMissionCount={getRandomMissionConfigLimit()}
+        onBack={closeMissionConfig}
+        saveLabel="Guardar mision"
+        onSave={saveRandomMissionConfig}
+      />
+    );
+  }
+
   return (
     <>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.85}>
+          <Text style={styles.backBtnText}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
         <View style={styles.headerSpacer} />
@@ -180,7 +422,7 @@ export default function AlarmForm({
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Nombre (opcional)</Text>
           <TextInput
-            placeholder="Ej. Clase de programación"
+            placeholder="Ej. Clase de programacion"
             placeholderTextColor={Colors.textMuted}
             style={styles.input}
             value={label}
@@ -190,7 +432,7 @@ export default function AlarmForm({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Repetición</Text>
+          <Text style={styles.sectionTitle}>Repeticion</Text>
           <View style={styles.daysRow}>
             {DAY_LABELS_SHORT.map((day, index) => {
               const dayValue = index as RepeatDay;
@@ -200,8 +442,11 @@ export default function AlarmForm({
                   key={day + index}
                   style={[styles.dayBtn, active && styles.dayBtnActive]}
                   onPress={() => toggleDay(dayValue)}
+                  activeOpacity={0.85}
                 >
-                  <Text style={[styles.dayText, active && styles.dayTextActive]}>{day}</Text>
+                  <Text style={[styles.dayText, active && styles.dayTextActive]}>
+                    {day}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -218,142 +463,40 @@ export default function AlarmForm({
                   key={sound.id}
                   style={[styles.soundBtn, active && styles.soundBtnActive]}
                   onPress={() => setSoundUri(sound.uri)}
+                  activeOpacity={0.85}
                 >
                   <Text style={styles.soundEmoji}>{sound.emoji}</Text>
-                  <Text style={[styles.soundText, active && styles.soundTextActive]}>{sound.label}</Text>
+                  <Text style={[styles.soundText, active && styles.soundTextActive]}>
+                    {sound.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.rowBetween}>
-            <View>
-              <Text style={styles.sectionTitle}>Misiones aleatorias</Text>
-              <Text style={styles.helper}>Si activas esto, se asignan al azar</Text>
-            </View>
-            <Switch
-              value={randomMissions}
-              onValueChange={setRandomMissions}
-              trackColor={{ false: Colors.borderFocus + '33', true: Colors.primary }}
-              thumbColor={randomMissions ? Colors.primaryLight : Colors.textMuted}
-            />
-          </View>
-
-          {!randomMissions && (
-            <>
-              <Text style={styles.sectionTitle}>Misión principal</Text>
-              <View style={styles.missionsWrap}>
-                {MISSION_TYPES.map(type => {
-                  const active = selectedMission === type;
-                  return (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.missionBtn, active && styles.missionBtnActive]}
-                      onPress={() => setSelectedMission(type)}
-                    >
-                      <Text style={styles.missionIcon}>{MISSION_ICONS[type]}</Text>
-                      <Text style={[styles.missionText, active && styles.missionTextActive]}>
-                        {MISSION_LABELS[type]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.sectionTitle}>Dificultad</Text>
-              <View style={styles.difficultyRow}>
-                {DIFFICULTY_OPTIONS.map(option => {
-                  const active = selectedDifficulty === option.value;
-                  return (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[styles.difficultyBtn, active && styles.difficultyBtnActive]}
-                      onPress={() => setSelectedDifficulty(option.value)}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.difficultyText,
-                          active && styles.difficultyTextActive,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.sectionTitle}>Cantidad</Text>
-              <View style={styles.quantityControl}>
-                <TouchableOpacity
-                  style={styles.quantityBtn}
-                  onPress={() => setMissionQuantity(prev => Math.max(1, prev - 1))}
-                >
-                  <Text style={styles.quantityBtnText}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantityValue}>{missionQuantity}</Text>
-                <TouchableOpacity
-                  style={styles.quantityBtn}
-                  onPress={() => setMissionQuantity(prev => Math.min(9, prev + 1))}
-                >
-                  <Text style={styles.quantityBtnText}>+</Text>
-                </TouchableOpacity>
-              </View>
-
-              {selectedMission === 'math' && (
-                <>
-                  <Text style={styles.sectionTitle}>Operacion</Text>
-                  <View style={styles.operationGrid}>
-                    {OPERATION_OPTIONS.map(option => {
-                      const active = operationType === option.value;
-                      return (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={[styles.operationBtn, active && styles.operationBtnActive]}
-                          onPress={() => setOperationType(option.value)}
-                          activeOpacity={0.85}
-                        >
-                          <Text
-                            style={[
-                              styles.operationSymbol,
-                              active && styles.operationSymbolActive,
-                            ]}
-                          >
-                            {option.symbol}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.operationLabel,
-                              active && styles.operationLabelActive,
-                            ]}
-                          >
-                            {option.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
-            </>
-          )}
-        </View>
+        <AlarmChooseMission
+          missions={configuredMissions}
+          missionEnabled={missionEnabled}
+          randomMissions={randomMissions}
+          onToggleMissionEnabled={toggleMissionEnabled}
+          onOpenSelect={openMissionSelector}
+          onEditMission={editMission}
+          onClearMission={clearMission}
+        />
 
         <TouchableOpacity style={styles.saveBtn} onPress={saveAlarm} activeOpacity={0.9}>
           <Text style={styles.saveBtnText}>{submitLabel}</Text>
         </TouchableOpacity>
 
-        {onDelete && (
+        {onDelete ? (
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.9}>
             <Text style={styles.deleteBtnText}>Eliminar alarma</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
       </ScrollView>
 
-      <Modal
+      <NativeModal
         visible={timePickerOpen}
         transparent
         animationType="fade"
@@ -455,7 +598,7 @@ export default function AlarmForm({
             </View>
           </View>
         </View>
-      </Modal>
+      </NativeModal>
     </>
   );
 }
@@ -483,6 +626,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     lineHeight: 22,
+    fontWeight: '900',
   },
   headerSpacer: {
     width: 36,
@@ -491,7 +635,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.4,
   },
   content: {
     paddingHorizontal: 16,
@@ -515,7 +658,6 @@ const styles = StyleSheet.create({
     color: Colors.primaryLight,
     fontSize: 30,
     fontWeight: '800',
-    letterSpacing: -1,
   },
   timeSelectButton: {
     minHeight: 92,
@@ -545,50 +687,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: Colors.primary + '22',
     overflow: 'hidden',
-  },
-  timeControls: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  timeCol: {
-    flex: 1,
-    backgroundColor: Colors.bgElevated,
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  timeLabel: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stepBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.primary + '22',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary + '55',
-  },
-  stepBtnText: {
-    color: Colors.primaryLight,
-    fontSize: 22,
-    marginTop: -1,
-  },
-  stepValue: {
-    color: Colors.text,
-    fontSize: 28,
-    fontWeight: '700',
-    minWidth: 46,
-    textAlign: 'center',
   },
   input: {
     borderRadius: 12,
@@ -657,46 +755,21 @@ const styles = StyleSheet.create({
   soundTextActive: {
     color: Colors.text,
   },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
-  },
   helper: {
     color: Colors.textMuted,
     fontSize: 12,
+    lineHeight: 17,
   },
-  missionsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  missionBtn: {
-    paddingHorizontal: 10,
+  configBadge: {
+    alignSelf: 'flex-start',
+    color: Colors.primaryLight,
+    fontSize: 13,
+    fontWeight: '900',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  missionBtnActive: {
-    borderColor: Colors.primary,
     backgroundColor: Colors.primary + '22',
-  },
-  missionIcon: {
-    fontSize: 13,
-  },
-  missionText: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  missionTextActive: {
-    color: Colors.text,
+    overflow: 'hidden',
   },
   difficultyRow: {
     flexDirection: 'row',

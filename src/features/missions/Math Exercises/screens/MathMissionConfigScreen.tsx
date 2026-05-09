@@ -14,6 +14,7 @@ import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { useMathExercisesStore } from '../store/mathExercisesStore';
 import { DIFFICULTY_STYLES, OPERATION_SYMBOLS, generateExpression } from '../constants/mathExercises.config';
 import { Difficulty, OperationType, GeneratedExpression } from '../types/mathExercises.types';
+import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 
 type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigMathMission'>;
 
@@ -27,6 +28,10 @@ const OPERATION_LABELS: Record<OperationType, string> = {
   division: 'División',
 };
 
+function toAlarmDifficulty(difficulty: Difficulty) {
+  return difficulty === 'medium' ? 'normal' : difficulty;
+}
+
 export function MathMissionConfigScreen({ navigation, route }: Props) {
   const { width } = useWindowDimensions();
   const { config, setConfig } = useMathExercisesStore();
@@ -34,7 +39,7 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty>(
     route.params?.difficulty ?? config.difficulty
   );
-  const [quantity, setQuantity] = useState(config.quantity);
+  const [quantity, setQuantity] = useState(route.params?.quantity ?? config.quantity);
   const [operationType, setOperationType] = useState<OperationType>(
     route.params?.operationType ?? config.operationType
   );
@@ -57,6 +62,22 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 
   const handleSave = () => {
     setConfig({ difficulty, quantity, operationType });
+
+    const returnedToAlarm = completeAlarmMissionConfigSession(
+      route.params?.alarmConfigSessionId,
+      {
+        type: 'math',
+        difficulty: toAlarmDifficulty(difficulty),
+        quantity,
+        operationType,
+      },
+    );
+
+    if (returnedToAlarm || route.params?.alarmConfigSessionId) {
+      navigation.goBack();
+      return;
+    }
+
     navigation.navigate('MathMissionLauncher', {
       difficulty,
       quantity,

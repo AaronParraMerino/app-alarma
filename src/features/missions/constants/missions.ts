@@ -1,6 +1,7 @@
 import { MissionType } from '../../alarm/types/alarm.types';
 
 export const MISSION_LABELS: Record<MissionType, string> = {
+  random: 'Aleatorio',
   math: 'Matematicas',
   memory: 'Memoria',
   physical: 'Fisico',
@@ -14,6 +15,7 @@ export const MISSION_LABELS: Record<MissionType, string> = {
 };
 
 export const MISSION_ICONS: Record<MissionType, string> = {
+  random: 'RND',
   math: '+',
   memory: 'MEM',
   physical: 'RUN',

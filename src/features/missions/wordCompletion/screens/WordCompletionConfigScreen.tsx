@@ -12,10 +12,15 @@ import {
 import { WordDisplay } from '../components/WordDisplay';
 import { useWordCompletionStore } from '../store/wordCompletionStore';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
+import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 
 type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigWordCompletionMission'>;
 
 const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
+
+function toAlarmDifficulty(difficulty: Difficulty) {
+  return difficulty === 'medium' ? 'normal' : difficulty;
+}
 
 export function WordCompletionConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
@@ -23,7 +28,7 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty>(
     route.params?.difficulty ?? config.difficulty
   );
-  const [quantity, setQuantity] = useState(config.quantity);
+  const [quantity, setQuantity] = useState(route.params?.quantity ?? config.quantity);
 
   const style = DIFFICULTY_STYLES[difficulty];
   const sliderIdx = LEVELS.indexOf(difficulty);
@@ -43,6 +48,13 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
    */
   const handleSave = () => {
     setConfig({ difficulty, quantity });
+
+    completeAlarmMissionConfigSession(route.params?.alarmConfigSessionId, {
+      type: 'wordCompletion',
+      difficulty: toAlarmDifficulty(difficulty),
+      quantity,
+    });
+
     navigation.goBack();
   };
 

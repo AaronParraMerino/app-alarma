@@ -1,4 +1,5 @@
 export type MissionType =
+  | 'random'
   | 'math'
   | 'memory'
   | 'physical'
