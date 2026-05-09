@@ -18,6 +18,8 @@ export type MissionsStackParamList = {
   WritingMission: { missionId: string };
   ConfigWordCompletionMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId?: string;
   };
   WordCompletionMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
@@ -26,7 +28,9 @@ export type MissionsStackParamList = {
   };
   ConfigMathMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
     operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+    alarmConfigSessionId?: string;
   };
   MathMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
