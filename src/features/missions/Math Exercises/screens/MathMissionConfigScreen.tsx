@@ -44,7 +44,6 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
     route.params?.operationType ?? config.operationType
   );
 
-  // ✅ Preview dinámico según nivel + operación
   const [preview, setPreview] = useState<GeneratedExpression>(
     generateExpression(
       route.params?.difficulty ?? config.difficulty,
@@ -52,7 +51,6 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
     )
   );
 
-  // ✅ Se regenera cuando cambia nivel o botón de operación
   useEffect(() => {
     setPreview(generateExpression(difficulty, operationType));
   }, [difficulty, operationType]);
@@ -63,7 +61,7 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
   const handleSave = () => {
     setConfig({ difficulty, quantity, operationType });
 
-    const returnedToAlarm = completeAlarmMissionConfigSession(
+    completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
       {
         type: 'math',
@@ -73,17 +71,8 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
       },
     );
 
-    if (returnedToAlarm || route.params?.alarmConfigSessionId) {
-      navigation.goBack();
-      return;
-    }
-
-    navigation.navigate('MathMissionLauncher', {
-      difficulty,
-      quantity,
-      operationType,
-      alarmLabel: 'Misión Matemáticas',
-    });
+    // ✅ Solo guarda y vuelve, el botón "Ejecutar" está en el selector
+    navigation.goBack();
   };
 
   return (
@@ -97,7 +86,6 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
         <Text style={styles.sectionLabel}>Seleccione la dificultad</Text>
         <Text style={styles.subLabel}>Ejemplo</Text>
 
-        {/* ✅ Preview dinámico */}
         <View style={styles.previewBox}>
           <Text
             style={[
@@ -218,12 +206,15 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 
         <View style={styles.spacer} />
 
+        {/* ✅ Color refleja dificultad, texto dice Guardar */}
         <TouchableOpacity
           style={[styles.confirmBtn, { backgroundColor: style.accentColor }]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
-          <Text style={[styles.confirmText, { color: style.textColor }]}>Confirmar</Text>
+          <Text style={[styles.confirmText, { color: style.textColor }]}>
+            Guardar
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -323,6 +314,12 @@ const styles = StyleSheet.create({
   arrowText: { fontSize: 11, color: '#AAAAAA' },
   vecesText: { fontSize: 15, color: '#AAAAAA' },
   spacer: { flex: 1 },
-  confirmBtn: { borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  confirmBtn: {
+    borderRadius: 14,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   confirmText: { fontSize: 16, fontWeight: '500' },
 });

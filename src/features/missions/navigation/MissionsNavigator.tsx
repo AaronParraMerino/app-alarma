@@ -7,7 +7,6 @@ import { WordCompletionProvider } from '../wordCompletion/store/wordCompletionSt
 import MathMissionScreen from '../Math Exercises/screens/MathMissionScreen';
 import { MathMissionConfigScreen } from '../Math Exercises/screens/MathMissionConfigScreen';
 import { MathExercisesProvider } from '../Math Exercises/store/mathExercisesStore';
-import MathMissionLauncherScreen from '../Math Exercises/screens/MathMissionLauncherScreen';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -58,7 +57,6 @@ export default function MissionsNavigator() {
           <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
           <Stack.Screen name="ConfigMathMission" component={MathMissionConfigScreen} />
           <Stack.Screen name="MathMissionScreen" component={MathMissionScreen} />
-          <Stack.Screen name="MathMissionLauncher" component={MathMissionLauncherScreen} />
         </Stack.Navigator>
       </MathExercisesProvider>
     </WordCompletionProvider>

@@ -7,7 +7,8 @@ import { MathExercisesMission } from '../components/MathExercisesMission';
 type Props = NativeStackScreenProps<MissionsStackParamList, 'MathMissionScreen'>;
 
 export default function MathMissionScreen({ navigation, route }: Props) {
-  const { difficulty, quantity, alarmLabel } = route.params;
+  // ✅ operationType ahora viene directo desde ConfigScreen
+  const { difficulty, quantity, alarmLabel, operationType } = route.params;
 
   return (
     <MathExercisesMission
@@ -15,6 +16,7 @@ export default function MathMissionScreen({ navigation, route }: Props) {
       quantity={quantity}
       onComplete={() => navigation.goBack()}
       alarmLabel={alarmLabel}
+      operationType={operationType}
     />
   );
 }
@@ -22,5 +24,5 @@ export default function MathMissionScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0D0D0D' },
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: '#0D0D0D' },
+  screen: { flex: 1, backgroundColor: '#0D0D0D', paddingTop: 40 },
 });

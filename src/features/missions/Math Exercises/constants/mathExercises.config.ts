@@ -29,7 +29,7 @@ export const DIFFICULTY_STYLES: Record<Difficulty, DifficultyStyle> = {
     accentColor: '#FBBF24',
     bgColor: '#3D2E0A',
     textColor: '#1A0E00',
-    maxNumber: 50,
+    maxNumber: 20,
     operationTypes: ['addition', 'subtraction', 'multiplication'],
   },
   hard: {
@@ -37,7 +37,7 @@ export const DIFFICULTY_STYLES: Record<Difficulty, DifficultyStyle> = {
     accentColor: '#F87171',
     bgColor: '#3D1010',
     textColor: '#1A0000',
-    maxNumber: 100,
+    maxNumber: 30,
     operationTypes: ['addition', 'subtraction', 'multiplication', 'division'],
   },
 };
@@ -53,345 +53,110 @@ function ri(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function rd(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function fmt(n: number): string {
   return String(Math.round(n));
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
+// ─────────────────────────────────────────────
+// FÁCIL — una sola operación, números del 1 al 10
+// Ejemplos: 2 + 3   |   8 − 5   |   3 × 4   |   8 ÷ 2
+// ─────────────────────────────────────────────
+const TEMPLATES_EASY: Record<OperationType, Array<() => ComplexPreview>> = {
+  addition: [
+    () => { const a = ri(1, 9), b = ri(1, 9); return { expression: `${a} + ${b}`, answer: fmt(a + b) }; },
+    () => { const a = ri(1, 5), b = ri(1, 5), c = ri(1, 5); return { expression: `${a} + ${b} + ${c}`, answer: fmt(a + b + c) }; },
+  ],
+  subtraction: [
+    () => { const b = ri(1, 8), a = ri(b + 1, 10); return { expression: `${a} − ${b}`, answer: fmt(a - b) }; },
+    () => { const c = ri(1, 4), b = ri(c + 1, 7), a = ri(b + 1, 10); return { expression: `${a} − ${b} − ${c}`, answer: fmt(a - b - c) }; },
+  ],
+  multiplication: [
+    () => { const a = ri(2, 5), b = ri(2, 5); return { expression: `${a} × ${b}`, answer: fmt(a * b) }; },
+    () => { const a = ri(1, 4), b = ri(2, 4), c = ri(1, 3); return { expression: `${a} × ${b} + ${c}`, answer: fmt(a * b + c) }; },
+  ],
+  division: [
+    () => { const b = ri(2, 5), a = b * ri(1, 4); return { expression: `${a} ÷ ${b}`, answer: fmt(a / b) }; },
+    () => { const b = ri(2, 4), q = ri(2, 4), a = b * q; return { expression: `${a} ÷ ${b} + ${ri(1,4)}`, answer: '' }; },
+  ],
+};
 
-const TEMPLATES: Record<OperationType, Record<Difficulty, Array<() => ComplexPreview>>> = {
-  addition: {
-    easy: [
-      () => {
-        const a = ri(1, 9), b = ri(1, 9), c = ri(1, 9), d = ri(1, 9);
-        return { expression: `(${a} − ${b}) + (${c} + ${d})`, answer: fmt(round2((a - b) + (c + d))) };
-      },
-      () => {
-        const a = ri(2, 9), b = ri(1, a - 1), c = ri(1, 9), d = ri(1, 9);
-        return { expression: `(${a} + ${b}) + (${c} − ${d})`, answer: fmt(round2((a + b) + (c - d))) };
-      },
-      () => {
-        const a = ri(1, 9), b = ri(1, 9), c = ri(1, 9);
-        return { expression: `(${a} + ${b}) + ${c}`, answer: fmt(round2(a + b + c)) };
-      },
-    ],
-    medium: [
-      () => {
-        const a = rd(1, 5), b = rd(1, 5), c = rd(1, 5), d = rd(1, 5), e = ri(2, 6), f = ri(2, 6);
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) + (${fmt(c)} + ${fmt(d)}) × (${e} + ${f})`,
-          answer: fmt(round2((a + b) + (c + d) * (e + f))),
-        };
-      },
-      () => {
-        const a = rd(2, 8), b = rd(1, 4), c = ri(2, 5), d = ri(1, 4);
-        return {
-          expression: `(${fmt(a)} ÷ ${fmt(b)}) + (${c} × ${d})`,
-          answer: fmt(round2((a / b) + (c * d))),
-        };
-      },
-      () => {
-        const a = rd(1, 5), b = rd(1, 5), c = rd(1, 5), d = ri(2, 5);
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) + (${fmt(c)} × ${d})`,
-          answer: fmt(round2((a + b) + (c * d))),
-        };
-      },
-    ],
-    hard: [
-      () => {
-        const a = rd(2, 6), b = rd(1, 4), c = rd(2, 6), d = rd(1, 4);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)})² + (${fmt(c)} + ${fmt(d)}) + √${sq}`,
-          answer: fmt(round2(Math.pow(a + b, 2) + (c + d) + Math.sqrt(sq))),
-        };
-      },
-      () => {
-        const a = rd(2, 6), b = rd(1, 4), c = ri(2, 5), d = rd(1, 5), e = rd(1, 5);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) ÷ ${c} + (${fmt(d)} + ${fmt(e)}) + √${sq}`,
-          answer: fmt(round2((a + b) / c + (d + e) + Math.sqrt(sq))),
-        };
-      },
-      () => {
-        const a = rd(1, 5), b = rd(1, 5), c = rd(1, 5), d = rd(1, 5);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)})² + √${sq} + (${fmt(c)} + ${fmt(d)})`,
-          answer: fmt(round2(Math.pow(a + b, 2) + Math.sqrt(sq) + (c + d))),
-        };
-      },
-    ],
-  },
+// Arreglo del caso especial de division easy con variable suelta
+TEMPLATES_EASY.division[1] = () => {
+  const b = ri(2, 4), q = ri(2, 4), a = b * q, c = ri(1, 4);
+  return { expression: `${a} ÷ ${b} + ${c}`, answer: fmt(a / b + c) };
+};
 
-  subtraction: {
-    easy: [
-      () => {
-        const a = ri(4, 9), b = ri(1, 3), c = ri(4, 9), d = ri(1, 3);
-        return { expression: `(${a} + ${b}) − (${c} − ${d})`, answer: fmt(round2((a + b) - (c - d))) };
-      },
-      () => {
-        const c = ri(1, 3), d = ri(1, 3);
-        const a = ri(c + d + 2, 9), b = ri(1, 2);
-        return { expression: `(${a} − ${b}) − (${c} + ${d})`, answer: fmt(round2((a - b) - (c + d))) };
-      },
-      () => {
-        const c = ri(1, 5);
-        const a = ri(3, 9), b = ri(2, 9);
-        const product = a * b;
-        return { expression: `(${a} × ${b}) − ${c}`, answer: fmt(round2(product - c)) };
-      },
-    ],
-    medium: [
-      () => {
-        const a = rd(4, 9), b = rd(1, 3), c = rd(1, 3), d = rd(1, 2), e = ri(2, 3);
-        return {
-          expression: `(${fmt(a)} − ${fmt(b)}) − (${fmt(c)} + ${fmt(d)}) × ${e}`,
-          answer: fmt(round2((a - b) - (c + d) * e)),
-        };
-      },
-      () => {
-        const a = rd(4, 9), b = rd(1, 4), c = rd(1, 5), d = rd(1, 5);
-        return {
-          expression: `(${fmt(a)} × ${fmt(b)}) − (${fmt(c)} + ${fmt(d)})`,
-          answer: fmt(round2((a * b) - (c + d))),
-        };
-      },
-      () => {
-        const c = ri(2, 4);
-        const b = ri(1, 4);
-        const quotient = ri(1, 4);
-        const a = quotient * c + b;
-        const d = ri(1, 3);
-        return {
-          expression: `(${fmt(a)} − ${fmt(b)}) ÷ ${c} − ${fmt(d)}`,
-          answer: fmt(round2((a - b) / c - d)),
-        };
-      },
-    ],
-    hard: [
-      () => {
-        const c = ri(2, 4);
-        const b = ri(1, 2);
-        const quotient = ri(1, 4);
-        const a = quotient * c + b;
-        const sq = [4, 9][ri(0, 1)];
-        return {
-          expression: `(${fmt(a)} − ${fmt(b)})² ÷ ${c} − √${sq}`,
-          answer: fmt(round2(Math.pow(a - b, 2) / c - Math.sqrt(sq))),
-        };
-      },
-      () => {
-        const a = rd(4, 9), b = rd(1, 3), c = rd(1, 3), d = rd(1, 2);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `√${sq} + (${fmt(a)} − ${fmt(b)})² − (${fmt(c)} + ${fmt(d)})`,
-          answer: fmt(round2(Math.sqrt(sq) + Math.pow(a - b, 2) - (c + d))),
-        };
-      },
-      () => {
-        const c = ri(2, 4);
-        const b = ri(1, 3);
-        const quotient = ri(1, 3);
-        const a = quotient * c + b;
-        const d = ri(2, 5);
-        const e = ri(1, 2);
-        return {
-          expression: `((${fmt(a)} − ${fmt(b)}) ÷ ${c})² − (${fmt(d)} − ${fmt(e)})`,
-          answer: fmt(round2(Math.pow((a - b) / c, 2) - (d - e))),
-        };
-      },
-    ],
-  },
+// ─────────────────────────────────────────────
+// MEDIO — dos grupos simples, números del 1 al 20
+// Ejemplos: (6 + 8) − (5 + 3)   |   (4 × 3) + (7 − 2)
+// ─────────────────────────────────────────────
+const TEMPLATES_MEDIUM: Record<OperationType, Array<() => ComplexPreview>> = {
+  addition: [
+    () => { const a = ri(1,15), b = ri(1,10), c = ri(1,10), d = ri(1,10); return { expression: `(${a} + ${b}) − (${c} + ${d})`, answer: fmt((a+b)-(c+d)) }; },
+    () => { const a = ri(1,10), b = ri(1,10), c = ri(1,10), d = ri(1,10); return { expression: `(${a} + ${b}) + (${c} + ${d})`, answer: fmt(a+b+c+d) }; },
+    () => { const a = ri(2,15), b = ri(1,10), c = ri(1,10); return { expression: `(${a} + ${b}) − ${c}`, answer: fmt(a+b-c) }; },
+  ],
+  subtraction: [
+    () => { const c = ri(1,8), d = ri(1,8), a = ri(c+d+1,20), b = ri(1,5); return { expression: `(${a} − ${b}) − (${c} + ${d})`, answer: fmt((a-b)-(c+d)) }; },
+    () => { const a = ri(5,15), b = ri(1,5), c = ri(1,8), d = ri(1,4); return { expression: `(${a} + ${b}) − (${c} − ${d})`, answer: fmt((a+b)-(c-d)) }; },
+    () => { const a = ri(3,10), b = ri(1,5), c = ri(1,5); return { expression: `${a} − (${b} + ${c})`, answer: fmt(a-b-c) }; },
+  ],
+  multiplication: [
+    () => { const a = ri(2,6), b = ri(2,6), c = ri(1,8); return { expression: `(${a} × ${b}) + ${c}`, answer: fmt(a*b+c) }; },
+    () => { const a = ri(2,5), b = ri(1,6), c = ri(2,5); return { expression: `(${a} + ${b}) × ${c}`, answer: fmt((a+b)*c) }; },
+    () => { const a = ri(2,5), b = ri(2,5), c = ri(1,5); return { expression: `(${a} × ${b}) − ${c}`, answer: fmt(a*b-c) }; },
+  ],
+  division: [
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(1,8); return { expression: `(${a} ÷ ${b}) + ${c}`, answer: fmt(a/b+c) }; },
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(1,5); return { expression: `(${a} + ${b}) ÷ ${c}`, answer: fmt((a+b)/c) }; },
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(1,6); return { expression: `${a} ÷ ${b} − ${c}`, answer: fmt(a/b-c) }; },
+  ],
+};
 
-  multiplication: {
-    easy: [
-      () => {
-        const a = ri(2, 5), b = ri(2, 5), c = ri(2, 5), d = ri(2, 5);
-        return { expression: `(${a} − ${b < a ? b : 1}) × (${c} + ${d})`, answer: fmt(round2((a - (b < a ? b : 1)) * (c + d))) };
-      },
-      () => {
-        const a = ri(2, 9), b = ri(2, 9), c = ri(1, 5);
-        return { expression: `(${a} + ${b}) × ${c}`, answer: fmt(round2((a + b) * c)) };
-      },
-      () => {
-        const a = ri(2, 6), b = ri(2, 6), c = ri(2, 6), d = ri(2, 6);
-        return { expression: `(${a} × ${b}) × (${c} − ${d < c ? d : 1})`, answer: fmt(round2(a * b * (c - (d < c ? d : 1)))) };
-      },
-    ],
-    medium: [
-      () => {
-        const a = rd(2, 5), b = rd(1, 3), c = ri(2, 5), d = ri(2, 5);
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) × (${c} + ${d})`,
-          answer: fmt(round2((a + b) * (c + d))),
-        };
-      },
-      () => {
-        const a = rd(2, 6), b = rd(1, 3), c = rd(2, 5), d = ri(2, 4);
-        return {
-          expression: `(${fmt(a)} × ${fmt(b)}) × (${fmt(c)} + ${d})`,
-          answer: fmt(round2((a * b) * (c + d))),
-        };
-      },
-      () => {
-        const b = ri(2, 4);
-        const a = ri(1, 4) * b;
-        const c = ri(2, 5);
-        const d = ri(1, 3);
-        return {
-          expression: `(${fmt(a)} ÷ ${b}) × (${fmt(c)} + ${fmt(d)})`,
-          answer: fmt(round2((a / b) * (c + d))),
-        };
-      },
-    ],
-    hard: [
-      () => {
-        const a = rd(2, 5), b = rd(1, 3), c = rd(1, 4), d = rd(1, 3);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `(${fmt(a)} − ${fmt(b)})² × √${sq} + (${fmt(c)} × ${fmt(d)})`,
-          answer: fmt(round2(Math.pow(a - b, 2) * Math.sqrt(sq) + c * d)),
-        };
-      },
-      () => {
-        const a = rd(2, 4), b = rd(1, 3), c = ri(2, 4), d = rd(1, 4), e = rd(1, 3);
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)})² × ${c} − (${fmt(d)} + ${fmt(e)})`,
-          answer: fmt(round2(Math.pow(a + b, 2) * c - (d + e))),
-        };
-      },
-      () => {
-        const a = ri(2, 5);
-        const b = ri(1, 3);
-        const c = ri(2, 4);
-        const d = c - 1;
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `√${sq} × (${fmt(a)} + ${fmt(b)})² ÷ (${fmt(c)} − ${fmt(d)})`,
-          answer: fmt(round2(Math.sqrt(sq) * Math.pow(a + b, 2) / (c - d))),
-        };
-      },
-    ],
-  },
+// ─────────────────────────────────────────────
+// DIFÍCIL — dos grupos + una operación extra, números del 1 al 30
+// Ejemplos: (6 + 7) + (2 − 1) × 4   |   (8 − 3) × 2 + (4 + 1)
+// ─────────────────────────────────────────────
+const TEMPLATES_HARD: Record<OperationType, Array<() => ComplexPreview>> = {
+  addition: [
+    () => { const a = ri(1,15), b = ri(1,10), c = ri(1,8), d = ri(1,5), e = ri(2,5); return { expression: `(${a} + ${b}) + (${c} − ${d}) × ${e}`, answer: fmt((a+b)+(c-d)*e) }; },
+    () => { const a = ri(2,10), b = ri(1,8), c = ri(2,6), d = ri(1,5), e = ri(2,4); return { expression: `(${a} + ${b}) × ${e} + (${c} − ${d})`, answer: fmt((a+b)*e+(c-d)) }; },
+    () => { const a = ri(1,10), b = ri(1,10), c = ri(2,5), d = ri(1,8); return { expression: `(${a} + ${b}) × ${c} − ${d}`, answer: fmt((a+b)*c-d) }; },
+  ],
+  subtraction: [
+    () => { const a = ri(5,20), b = ri(1,8), c = ri(1,6), d = ri(1,4), e = ri(2,4); return { expression: `(${a} − ${b}) − (${c} + ${d}) × ${e}`, answer: fmt((a-b)-(c+d)*e) }; },
+    () => { const a = ri(3,12), b = ri(1,5), c = ri(2,5), d = ri(2,4); return { expression: `(${a} − ${b}) × ${c} − ${d}`, answer: fmt((a-b)*c-d) }; },
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(1,8), d = ri(1,5); return { expression: `(${a} − ${b}) ÷ ${Math.min(b,q)} + (${c} − ${d})`, answer: fmt((a-b)/Math.min(b,q)+(c-d)) }; },
+  ],
+  multiplication: [
+    () => { const a = ri(2,8), b = ri(1,6), c = ri(2,5), d = ri(1,4), e = ri(2,4); return { expression: `(${a} + ${b}) × ${e} − (${c} + ${d})`, answer: fmt((a+b)*e-(c+d)) }; },
+    () => { const a = ri(2,6), b = ri(2,5), c = ri(1,5), d = ri(2,4); return { expression: `${a} × ${b} + (${c} × ${d})`, answer: fmt(a*b+c*d) }; },
+    () => { const a = ri(2,6), b = ri(1,5), c = ri(2,4), d = ri(1,6); return { expression: `(${a} − ${b}) × ${c} + ${d}`, answer: fmt((a-b)*c+d) }; },
+  ],
+  division: [
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(1,6), d = ri(2,4); return { expression: `(${a} ÷ ${b}) + (${c} × ${d})`, answer: fmt(a/b+c*d) }; },
+    () => { const b = ri(2,4), q = ri(2,6), a = b*q, c = ri(1,6), d = ri(1,5); return { expression: `(${a} + ${c}) ÷ ${b} + ${d}`, answer: fmt((a+c)/b+d) }; },
+    () => { const b = ri(2,4), q = ri(2,5), a = b*q, c = ri(2,5), d = ri(1,5); return { expression: `${a} ÷ ${b} + (${c} − ${d}) × 2`, answer: fmt(a/b+(c-d)*2) }; },
+  ],
+};
 
-  division: {
-    easy: [
-      () => {
-        const c = ri(2, 5), d = ri(2, 5), divisor = ri(2, 4);
-        const num = c * divisor;
-        return { expression: `(${num} + ${d}) ÷ ${divisor}`, answer: fmt(round2((num + d) / divisor)) };
-      },
-      () => {
-        const a = ri(2, 5), b = ri(2, 4), divisor = ri(2, 4);
-        const num = a * divisor;
-        return { expression: `(${num} − ${b}) ÷ ${divisor}`, answer: fmt(round2((num - b) / divisor)) };
-      },
-      () => {
-        const c = ri(2, 4);
-        const b = ri(2, 4);
-        const a = ri(1, 4) * c;
-        return { expression: `(${a} × ${b}) ÷ ${c}`, answer: fmt(round2((a * b) / c)) };
-      },
-    ],
-    medium: [
-      () => {
-        const c = ri(2, 4);
-        const b = ri(1, 3);
-        const quotient = ri(1, 4);
-        const a = quotient * c + b;
-        const d = ri(1, 4);
-        const e = ri(2, 4);
-        return {
-          expression: `(${fmt(a)} − ${fmt(b)}) ÷ ${c} + (${fmt(d)} × ${e})`,
-          answer: fmt(round2((a - b) / c + d * e)),
-        };
-      },
-      () => {
-        const b = ri(2, 4);
-        const a = ri(1, 4) * b;
-        const c = ri(2, 5);
-        const d = ri(1, 3);
-        return {
-          expression: `(${fmt(a)} ÷ ${b}) + (${fmt(c)} − ${fmt(d)})`,
-          answer: fmt(round2(a / b + (c - d))),
-        };
-      },
-      () => {
-        const c = ri(2, 4);
-        const a = ri(1, 4) * c;
-        const b = ri(1, 4) * c;
-        const e = ri(2, 4);
-        const d = ri(1, 4) * e;
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) ÷ ${c} × (${fmt(d)} ÷ ${e})`,
-          answer: fmt(round2(((a + b) / c) * (d / e))),
-        };
-      },
-    ],
-    hard: [
-      () => {
-        const c = ri(2, 5);
-        const a = ri(1, 4) * c;
-        const b = ri(1, 4) * c;
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `(${fmt(a)} + ${fmt(b)}) ÷ ${c} + (${fmt(a)} + ${fmt(b)})² + √${sq}`,
-          answer: fmt(round2((a + b) / c + Math.pow(a + b, 2) + Math.sqrt(sq))),
-        };
-      },
-      () => {
-        const c = ri(2, 4);
-        const b = ri(1, 4);
-        const quotient = ri(1, 4);
-        const a = quotient * c + b;
-        const d = ri(2, 6);
-        const e = ri(1, 3);
-        const sq = [4, 9, 16, 25][ri(0, 3)];
-        return {
-          expression: `((${fmt(a)} − ${fmt(b)}) ÷ ${c})² + √${sq} − (${fmt(d)} + ${fmt(e)})`,
-          answer: fmt(round2(Math.pow((a - b) / c, 2) + Math.sqrt(sq) - (d + e))),
-        };
-      },
-      () => {
-        const options = [
-          { sq: 4, c: 2 },
-          { sq: 9, c: 3 },
-          { sq: 16, c: 2 },
-          { sq: 16, c: 4 },
-        ];
-        const selected = options[ri(0, options.length - 1)];
-        const a = ri(3, 7);
-        const b = ri(1, 3);
-        const d = ri(1, 4);
-        return {
-          expression: `√${selected.sq} ÷ ${selected.c} + (${fmt(a)} − ${fmt(b)})² × ${fmt(d)}`,
-          answer: fmt(round2(Math.sqrt(selected.sq) / selected.c + Math.pow(a - b, 2) * d)),
-        };
-      },
-    ],
-  },
+const TEMPLATES = {
+  easy:   TEMPLATES_EASY,
+  medium: TEMPLATES_MEDIUM,
+  hard:   TEMPLATES_HARD,
 };
 
 export const EXAMPLE_PREVIEWS: Record<Difficulty, ComplexPreview[]> = {
-  easy: [{ expression: '(4 − 2) × (3 + 5)', answer: '16' }],
-  medium: [{ expression: '(4 + 2) + (3 + 5) × (2 + 1)', answer: '26' }],
-  hard: [{ expression: '(6 + 3) ÷ 3 + (2 + 3)² + √9', answer: '32' }],
+  easy:   [{ expression: '2 + 3', answer: '5' }],
+  medium: [{ expression: '(6 + 8) − (5 + 3)', answer: '6' }],
+  hard:   [{ expression: '(6 + 7) + (2 − 1) × 4', answer: '17' }],
 };
 
 export function generateExpression(
   difficulty: Difficulty,
   operationType: OperationType
 ): GeneratedExpression {
-  const group = TEMPLATES[operationType][difficulty];
+  const group = TEMPLATES[difficulty][operationType];
 
   let expression: string = '';
   let answer: string = '';
@@ -418,18 +183,16 @@ export function generateExpressions(
   return result;
 }
 
-// ✅ FIX — ahora recibe operationType para respetar la selección del usuario
 export function generateChallenges(
   difficulty: Difficulty,
   count: number = 1,
-  operationType?: OperationType // 👈 nuevo parámetro
+  operationType?: OperationType
 ): MathChallenge[] {
   const style = DIFFICULTY_STYLES[difficulty];
   const operations = style.operationTypes;
   const result: MathChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    // 👇 usa el seleccionado, si no hay usa aleatorio
     const op = operationType ?? operations[Math.floor(Math.random() * operations.length)];
     const generated = generateExpression(difficulty, op);
     result.push({
