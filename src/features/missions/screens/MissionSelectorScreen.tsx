@@ -105,7 +105,7 @@ export default function MissionSelectorScreen() {
         </TouchableOpacity>
 
         <Text style={styles.summary}>
-          {colorStyle.label}  ·  {colorConfig.quantity} vec{colorConfig.quantity > 1 ? 'es' : ''}
+          {colorStyle.label}  ·  {colorConfig.quantity} veces{colorConfig.quantity > 1 ? 'es' : ''}
         </Text>
 
         <TouchableOpacity
