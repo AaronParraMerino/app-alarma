@@ -12,6 +12,10 @@ import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/c
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
 import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
 
+// Figuras y colores
+import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
+import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
+
 type NavigationProp = NativeStackNavigationProp<MissionsStackParamList, 'MissionSelector'>;
 
 export default function MissionSelectorScreen() {
@@ -21,9 +25,13 @@ export default function MissionSelectorScreen() {
   const { config: wordConfig } = useWordCompletionStore();
   const wordStyle = WORD_DIFFICULTY_STYLES[wordConfig.difficulty];
 
-  // Config de matemáticas ✅
+  // Config de matemáticas
   const { config: mathConfig } = useMathExercisesStore();
   const mathStyle = MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
+
+  // Config de figuras y colores
+  const { config: colorConfig } = useColoredFiguresStore();
+  const colorStyle = COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -57,7 +65,6 @@ export default function MissionSelectorScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* ── Separador ── */}
         <View style={styles.divider} />
 
         {/* ── Misión de matemáticas ── */}
@@ -68,12 +75,10 @@ export default function MissionSelectorScreen() {
           <Text style={styles.btnText}>Configurar misión de matemáticas</Text>
         </TouchableOpacity>
 
-        {/* ✅ Usa mathStyle para label y cantidad */}
         <Text style={styles.summary}>
           {mathStyle.label}  ·  {mathConfig.quantity} vec{mathConfig.quantity > 1 ? 'es' : ''}
         </Text>
 
-        {/* ✅ Botón pintado con el color de la dificultad de matemáticas */}
         <TouchableOpacity
           style={[styles.executeBtn, { backgroundColor: mathStyle.bgColor, borderColor: mathStyle.accentColor + '50' }]}
           onPress={() =>
@@ -86,6 +91,34 @@ export default function MissionSelectorScreen() {
         >
           <Text style={[styles.executeBtnText, { color: mathStyle.accentColor }]}>
             Ejecutar misión de matemáticas
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        {/* ── Misión de figuras y colores ── */}
+        <TouchableOpacity
+          style={styles.btn}
+          onPress={() => navigation.navigate('ConfigColoredFiguresMission', {})}
+        >
+          <Text style={styles.btnText}>Configurar misión de colores</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.summary}>
+          {colorStyle.label}  ·  {colorConfig.quantity} vec{colorConfig.quantity > 1 ? 'es' : ''}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.executeBtn, { backgroundColor: colorStyle.bgColor, borderColor: colorStyle.accentColor + '50' }]}
+          onPress={() =>
+            navigation.navigate('ColoredFigureMissionScreen', {
+              difficulty: colorConfig.difficulty,
+              quantity:   colorConfig.quantity,
+            })
+          }
+        >
+          <Text style={[styles.executeBtnText, { color: colorStyle.accentColor }]}>
+            Ejecutar misión de colores
           </Text>
         </TouchableOpacity>
 
