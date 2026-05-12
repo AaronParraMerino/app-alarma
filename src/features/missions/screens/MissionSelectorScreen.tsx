@@ -12,6 +12,13 @@ import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/c
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
 import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
 
+// Movimiento
+import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
+import {
+  DIFFICULTY_LABELS as MOVEMENT_DIFFICULTY_LABELS,
+  DIFFICULTY_COLORS as MOVEMENT_DIFFICULTY_COLORS,
+} from '../MovementMission/constants/movementConstants';
+
 type NavigationProp = NativeStackNavigationProp<MissionsStackParamList, 'MissionSelector'>;
 
 export default function MissionSelectorScreen() {
@@ -24,6 +31,12 @@ export default function MissionSelectorScreen() {
   // Config de matemáticas ✅
   const { config: mathConfig } = useMathExercisesStore();
   const mathStyle = MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
+
+    // Config de movimiento
+  const { userConfig: movementConfig } = useMovementMissionStore();
+
+  const movementLabel = MOVEMENT_DIFFICULTY_LABELS[movementConfig.difficulty];
+  const movementColor = MOVEMENT_DIFFICULTY_COLORS[movementConfig.difficulty];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -87,12 +100,48 @@ export default function MissionSelectorScreen() {
           <Text style={[styles.executeBtnText, { color: mathStyle.accentColor }]}>
             Ejecutar misión de matemáticas
           </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          {/* ── Separador ── */}
+          <View style={styles.divider} />
 
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+          {/* ── Misión de movimiento ── */}
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('ConfigMovementMission', {})}
+          >
+            <Text style={styles.btnText}>Configurar misión de movimiento</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.summary}>
+            {movementLabel} · {movementConfig.quantity} vec
+            {movementConfig.quantity > 1 ? 'es' : ''}
+          </Text>
+
+                  <TouchableOpacity
+          style={[
+            styles.executeBtn,
+            {
+              backgroundColor: movementColor + '22',
+              borderColor: movementColor + '50',
+            },
+          ]}
+          onPress={() =>
+            navigation.navigate('MovementMissionScreen', {
+              difficulty: movementConfig.difficulty,
+              quantity: movementConfig.quantity,
+              alarmLabel: 'Alarma',
+            })
+          }
+        >
+          <Text style={[styles.executeBtnText, { color: movementColor }]}>
+            Ejecutar misión de movimiento
+          </Text>
+        </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
 
 const styles = StyleSheet.create({
   safe: {
