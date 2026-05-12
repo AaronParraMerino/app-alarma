@@ -8,6 +8,12 @@ import MathMissionScreen from '../Math Exercises/screens/MathMissionScreen';
 import { MathMissionConfigScreen } from '../Math Exercises/screens/MathMissionConfigScreen';
 import { MathExercisesProvider } from '../Math Exercises/store/mathExercisesStore';
 
+import { MovementMissionConfigScreen } from '../MovementMission/screens/MovementMissionConfigScreen';
+import { MovementMissionScreen } from '../MovementMission/screens/MovementMissionScreen';
+import { MovementMissionProvider } from '../MovementMission/store/movementMissionStore';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
+
 export type MissionsStackParamList = {
   MissionSelector: undefined;
   ColorMission: { missionId: string };
@@ -43,21 +49,83 @@ export type MissionsStackParamList = {
     operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
     alarmLabel?: string;
   };
+
+    // Movement
+  ConfigMovementMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId?: string;
+  };
+
+  MovementMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    alarmLabel?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
+type ConfigMovementMissionProps = NativeStackScreenProps<
+  MissionsStackParamList,
+  'ConfigMovementMission'
+>;
 
+type MovementMissionProps = NativeStackScreenProps<
+  MissionsStackParamList,
+  'MovementMissionScreen'
+>;
+
+function ConfigMovementMissionRoute({ navigation }: ConfigMovementMissionProps) {
+  const { setUserConfig } = useMovementMissionStore();
+
+  return (
+    <MovementMissionConfigScreen
+      onConfirm={(config) => {
+        setUserConfig(config);
+
+        // Solo vuelve al selector. NO ejecuta la misión.
+        navigation.navigate('MissionSelector');
+      }}
+    />
+  );
+}
+
+function MovementMissionRoute({ navigation, route }: MovementMissionProps) {
+  return (
+    <MovementMissionScreen
+      userConfig={{
+        difficulty: route.params.difficulty,
+        quantity: route.params.quantity,
+      }}
+      alarmLabel={route.params.alarmLabel}
+      onSuccess={() => {
+        navigation.navigate('MissionSelector');
+      }}
+    />
+  );
+}
 export default function MissionsNavigator() {
   return (
     <WordCompletionProvider>
       <MathExercisesProvider>
+        <MovementMissionProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MissionSelector" component={MissionSelectorScreen} />
           <Stack.Screen name="ConfigWordCompletionMission" component={WordCompletionConfigScreen} />
           <Stack.Screen name="WordCompletionMissionScreen" component={WordCompletionMissionScreen} />
           <Stack.Screen name="ConfigMathMission" component={MathMissionConfigScreen} />
           <Stack.Screen name="MathMissionScreen" component={MathMissionScreen} />
-        </Stack.Navigator>
+                    <Stack.Screen
+            name="ConfigMovementMission"
+            component={ConfigMovementMissionRoute}
+          />
+
+          <Stack.Screen
+            name="MovementMissionScreen"
+            component={MovementMissionRoute}
+          />
+                  </Stack.Navigator>
+        </MovementMissionProvider>
       </MathExercisesProvider>
     </WordCompletionProvider>
   );
