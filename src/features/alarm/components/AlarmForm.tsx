@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Modal as NativeModal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,7 +30,6 @@ interface AlarmFormProps {
   onDelete?: () => void;
 }
 
-type TimeMode = 'hour' | 'minute';
 type MissionStep = 'form' | 'select' | 'config';
 type RuntimeDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -52,12 +52,13 @@ const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   quantity: 3,
 };
 
-const CLOCK_SIZE = 260;
-const CLOCK_CENTER = CLOCK_SIZE / 2;
-const CLOCK_RADIUS = 102;
-const HOUR_VALUES = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-const MINUTE_VALUES = Array.from({ length: 12 }, (_, index) => index * 5);
+const HOUR_VALUES = Array.from({ length: 24 }, (_, index) => index);
+const MINUTE_VALUES = Array.from({ length: 60 }, (_, index) => index);
 const MAX_MISSIONS = 5;
+const WHEEL_ITEM_HEIGHT = 68;
+const WHEEL_VISIBLE_ITEMS = 3;
+const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ITEMS;
+const WHEEL_PADDING = WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ITEMS / 2);
 
 function padTime(value: number): string {
   return value.toString().padStart(2, '0');
@@ -120,30 +121,51 @@ export default function AlarmForm({
   const [soundUri, setSoundUri] = useState<string | null>(
     initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI,
   );
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
-  const [timeMode, setTimeMode] = useState<TimeMode>('hour');
+  const hourWheelRef = useRef<ScrollView>(null);
+  const minuteWheelRef = useRef<ScrollView>(null);
 
-  const timePreview = useMemo(() => {
-    const hh = hour % 12 === 0 ? 12 : hour % 12;
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    return `${padTime(hh)}:${padTime(minute)} ${ampm}`;
-  }, [hour, minute]);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      hourWheelRef.current?.scrollTo({
+        y: hour * WHEEL_ITEM_HEIGHT,
+        animated: false,
+      });
+      minuteWheelRef.current?.scrollTo({
+        y: minute * WHEEL_ITEM_HEIGHT,
+        animated: false,
+      });
+    }, 0);
 
-  const selectedPeriod = hour < 12 ? 'AM' : 'PM';
-  const selectedDisplayHour = hour % 12 === 0 ? 12 : hour % 12;
+    return () => clearTimeout(timeout);
+  }, []);
 
-  const setPeriod = (period: 'AM' | 'PM') => {
-    setHour(prev => {
-      const displayHour = prev % 12;
-      return period === 'AM' ? displayHour : displayHour + 12;
+  const selectWheelValue = (
+    ref: React.RefObject<ScrollView | null>,
+    value: number,
+    type: 'hour' | 'minute',
+  ) => {
+    if (type === 'hour') {
+      setHour(value);
+    } else {
+      setMinute(value);
+    }
+
+    ref.current?.scrollTo({
+      y: value * WHEEL_ITEM_HEIGHT,
+      animated: true,
     });
   };
 
-  const selectClockValue = (value: number) => {
-    if (timeMode === 'hour') {
-      const nextHour = value % 12;
-      setHour(selectedPeriod === 'AM' ? nextHour : nextHour + 12);
-      setTimeMode('minute');
+  const handleWheelEnd = (
+    type: 'hour' | 'minute',
+    values: number[],
+  ) => (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const rawIndex = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
+    const index = Math.max(0, Math.min(values.length - 1, rawIndex));
+    const value = values[index];
+
+    if (type === 'hour') {
+      setHour(value);
       return;
     }
 
@@ -403,20 +425,69 @@ export default function AlarmForm({
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Hora</Text>
-          <TouchableOpacity
-            style={styles.timeSelectButton}
-            onPress={() => {
-              setTimeMode('hour');
-              setTimePickerOpen(true);
-            }}
-            activeOpacity={0.85}
-          >
-            <View>
-              <Text style={styles.timeSelectLabel}>Seleccionar hora</Text>
-              <Text style={styles.timePreview}>{timePreview}</Text>
+          <View style={styles.inlineWheelFrame}>
+            <View style={styles.wheelPicker}>
+              <ScrollView
+                ref={hourWheelRef}
+                style={styles.wheelColumn}
+                contentContainerStyle={styles.wheelContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+                snapToInterval={WHEEL_ITEM_HEIGHT}
+                decelerationRate="fast"
+                onMomentumScrollEnd={handleWheelEnd('hour', HOUR_VALUES)}
+                onScrollEndDrag={handleWheelEnd('hour', HOUR_VALUES)}
+              >
+                {HOUR_VALUES.map(value => {
+                  const active = value === hour;
+
+                  return (
+                    <TouchableOpacity
+                      key={`hour-${value}`}
+                      style={styles.wheelItem}
+                      onPress={() => selectWheelValue(hourWheelRef, value, 'hour')}
+                      activeOpacity={0.78}
+                    >
+                      <Text style={[styles.wheelItemText, active && styles.wheelItemTextActive]}>
+                        {padTime(value)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <Text style={styles.wheelSeparator}>:</Text>
+
+              <ScrollView
+                ref={minuteWheelRef}
+                style={styles.wheelColumn}
+                contentContainerStyle={styles.wheelContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+                snapToInterval={WHEEL_ITEM_HEIGHT}
+                decelerationRate="fast"
+                onMomentumScrollEnd={handleWheelEnd('minute', MINUTE_VALUES)}
+                onScrollEndDrag={handleWheelEnd('minute', MINUTE_VALUES)}
+              >
+                {MINUTE_VALUES.map(value => {
+                  const active = value === minute;
+
+                  return (
+                    <TouchableOpacity
+                      key={`minute-${value}`}
+                      style={styles.wheelItem}
+                      onPress={() => selectWheelValue(minuteWheelRef, value, 'minute')}
+                      activeOpacity={0.78}
+                    >
+                      <Text style={[styles.wheelItemText, active && styles.wheelItemTextActive]}>
+                        {padTime(value)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-            <Text style={styles.timeSelectIcon}>Editar</Text>
-          </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -496,109 +567,6 @@ export default function AlarmForm({
         ) : null}
       </ScrollView>
 
-      <NativeModal
-        visible={timePickerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTimePickerOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.timeModal}>
-            <Text style={styles.modalTitle}>Seleccionar hora</Text>
-
-            <View style={styles.timeDisplayRow}>
-              <TouchableOpacity
-                style={[styles.timeBox, timeMode === 'hour' && styles.timeBoxActive]}
-                onPress={() => setTimeMode('hour')}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.timeBoxText, timeMode === 'hour' && styles.timeBoxTextActive]}>
-                  {padTime(selectedDisplayHour)}
-                </Text>
-              </TouchableOpacity>
-
-              <Text style={styles.timeSeparator}>:</Text>
-
-              <TouchableOpacity
-                style={[styles.timeBox, timeMode === 'minute' && styles.timeBoxActive]}
-                onPress={() => setTimeMode('minute')}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.timeBoxText, timeMode === 'minute' && styles.timeBoxTextActive]}>
-                  {padTime(minute)}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.periodGroup}>
-                {(['AM', 'PM'] as const).map(period => (
-                  <TouchableOpacity
-                    key={period}
-                    style={[
-                      styles.periodButton,
-                      selectedPeriod === period && styles.periodButtonActive,
-                    ]}
-                    onPress={() => setPeriod(period)}
-                    activeOpacity={0.85}
-                  >
-                    <Text
-                      style={[
-                        styles.periodText,
-                        selectedPeriod === period && styles.periodTextActive,
-                      ]}
-                    >
-                      {period}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.clockFace}>
-              {(timeMode === 'hour' ? HOUR_VALUES : MINUTE_VALUES).map((value, index) => {
-                const angle = (index / 12) * Math.PI * 2 - Math.PI / 2;
-                const x = CLOCK_CENTER + Math.cos(angle) * CLOCK_RADIUS - 22;
-                const y = CLOCK_CENTER + Math.sin(angle) * CLOCK_RADIUS - 22;
-                const active =
-                  timeMode === 'hour'
-                    ? value === selectedDisplayHour
-                    : value === minute;
-
-                return (
-                  <TouchableOpacity
-                    key={`${timeMode}-${value}`}
-                    style={[
-                      styles.clockNumber,
-                      { left: x, top: y },
-                      active && styles.clockNumberActive,
-                    ]}
-                    onPress={() => selectClockValue(value)}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.clockNumberText, active && styles.clockNumberTextActive]}>
-                      {timeMode === 'hour' ? value : padTime(value)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-              <View style={styles.clockCenterDot} />
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setTimeMode(timeMode === 'hour' ? 'minute' : 'hour')}>
-                <Text style={styles.modalActionText}>{timeMode === 'hour' ? 'Minutos' : 'Horas'}</Text>
-              </TouchableOpacity>
-              <View style={styles.modalActionRight}>
-                <TouchableOpacity onPress={() => setTimePickerOpen(false)}>
-                  <Text style={styles.modalActionText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setTimePickerOpen(false)}>
-                  <Text style={styles.modalActionText}>OK</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </NativeModal>
     </>
   );
 }
@@ -654,38 +622,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  timePreview: {
-    color: Colors.primaryLight,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  timeSelectButton: {
-    minHeight: 92,
+  inlineWheelFrame: {
+    height: WHEEL_HEIGHT,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.primary + '55',
-    backgroundColor: Colors.bgElevated,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  timeSelectLabel: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  timeSelectIcon: {
-    color: Colors.primaryLight,
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: Colors.primary + '22',
+    backgroundColor: '#000000',
     overflow: 'hidden',
   },
   input: {
@@ -886,143 +826,42 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.64)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-  },
-  timeModal: {
-    width: '100%',
-    maxWidth: 390,
-    borderRadius: 28,
-    backgroundColor: Colors.bgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 14,
-  },
-  modalTitle: {
-    color: Colors.text,
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 16,
-  },
-  timeDisplayRow: {
+  wheelPicker: {
+    height: WHEEL_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 22,
+    position: 'relative',
   },
-  timeBox: {
-    width: 94,
-    height: 86,
-    borderRadius: 14,
+  wheelColumn: {
+    width: 112,
+    height: WHEEL_HEIGHT,
+  },
+  wheelContent: {
+    paddingVertical: WHEEL_PADDING,
+  },
+  wheelItem: {
+    height: WHEEL_ITEM_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
-  timeBoxActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primaryLight,
+  wheelItemText: {
+    color: '#2C2D33',
+    fontSize: 40,
+    lineHeight: 50,
+    fontWeight: '500',
   },
-  timeBoxText: {
-    color: Colors.text,
-    fontSize: 54,
-    fontWeight: '800',
-    lineHeight: 60,
-  },
-  timeBoxTextActive: {
-    color: Colors.bg,
-  },
-  timeSeparator: {
-    color: Colors.text,
+  wheelItemTextActive: {
+    color: '#FFFFFF',
     fontSize: 48,
-    fontWeight: '900',
-    marginTop: -6,
-  },
-  periodGroup: {
-    width: 66,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
-  },
-  periodButton: {
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  periodButtonActive: {
-    backgroundColor: Colors.primaryLight,
-  },
-  periodText: {
-    color: Colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  periodTextActive: {
-    color: Colors.bg,
-  },
-  clockFace: {
-    width: CLOCK_SIZE,
-    height: CLOCK_SIZE,
-    borderRadius: CLOCK_SIZE / 2,
-    alignSelf: 'center',
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.borderMuted,
-    marginBottom: 18,
-  },
-  clockNumber: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clockNumberActive: {
-    backgroundColor: Colors.primary,
-  },
-  clockNumberText: {
-    color: Colors.text,
-    fontSize: 17,
+    lineHeight: 56,
     fontWeight: '700',
   },
-  clockNumberTextActive: {
-    color: Colors.white,
-  },
-  clockCenterDot: {
-    position: 'absolute',
-    left: CLOCK_CENTER - 5,
-    top: CLOCK_CENTER - 5,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 42,
-  },
-  modalActionRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-  },
-  modalActionText: {
-    color: Colors.primaryLight,
-    fontSize: 15,
+  wheelSeparator: {
+    color: '#FFFFFF',
+    fontSize: 46,
+    lineHeight: 54,
     fontWeight: '800',
-    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
 });
