@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, KeyboardAvoidingView,
-  Platform, useWindowDimensions,Modal,
+  Platform, useWindowDimensions,
 } from 'react-native';
 import { Difficulty } from '../types/wordCompletion.types';
 import { WordCompletionService } from '../services/WordCompletionService';
@@ -28,7 +28,6 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
   const [difficulty, setDifficulty]       = useState<Difficulty>(initialDifficulty);
   const [errorCount, setErrorCount]       = useState(0);
   const { user, isAuthenticated, isGuest } = useAuth();
-  const [showModal, setShowModal] = useState(false);
 
   const style = WordCompletionService.getDifficultyStyle(difficulty);
   const { challenges, state, current, handleInputChange, handleConfirm, handleReplace } =
@@ -98,7 +97,7 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
     const next = missionCount + 1;
 
     if (next >= quantity) {
-      setShowModal(true);
+      onComplete();
     } else {
       setMissionCount(next);
       handleReplace();
@@ -226,41 +225,6 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
 
         </View>
       </KeyboardAvoidingView>
-
-      <Modal visible={showModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.starsRow}>
-              <Text style={styles.starSide}>⭐</Text>
-              <Text style={styles.starCenter}>⭐</Text>
-              <Text style={styles.starSide}>⭐</Text>
-            </View>
-            <Text style={styles.modalTitle}>¡FELICIDADES!</Text>
-            <Text style={styles.modalSubtitle}>¡Has completado la misión{'\n'}con éxito!</Text>
-            <View style={styles.checkWrapper}>
-              <View style={styles.checkCircle}>
-                <Text style={styles.checkIcon}>✓</Text>
-              </View>
-            </View>
-            <View style={styles.messageBox}>
-              <Text style={styles.messageText}>
-                Sigue así, estás haciendo{'\n'}un gran trabajo. ⭐
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.acceptBtn}
-              onPress={() => {
-                setShowModal(false);
-                onComplete();
-              }}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.acceptText}>ACEPTAR</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
     </SafeAreaView>
   );
 }
@@ -303,57 +267,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 'auto',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
-
-    modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  modalCard: {
-    backgroundColor: '#161616', borderRadius: 20,
-    padding: 28, width: '82%', alignItems: 'center',
-    borderWidth: 0.5, borderColor: '#2A2A2A',
-  },
-  starsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  starSide: { fontSize: 22, opacity: 0.6 },
-  starCenter: { fontSize: 30, marginHorizontal: 6 },
-  modalTitle: {
-    fontSize: 22, fontWeight: '700', color: '#FFFFFF',
-    letterSpacing: 1.5, marginBottom: 6,
-  },
-  modalSubtitle: {
-    fontSize: 14, color: '#667788',
-    textAlign: 'center', lineHeight: 20, marginBottom: 20,
-  },
-  checkWrapper: { marginBottom: 20 },
-  checkCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#1A2A1A', borderWidth: 1.5,
-    borderColor: '#4ADE80', alignItems: 'center', justifyContent: 'center',
-  },
-  checkIcon: { fontSize: 28, color: '#4ADE80' },
-  messageBox: {
-    backgroundColor: '#0D0D0D', borderRadius: 10,
-    paddingVertical: 12, paddingHorizontal: 16,
-    marginBottom: 24, width: '100%',
-  },
-  messageText: {
-    fontSize: 13, color: '#889999',
-    textAlign: 'center', lineHeight: 19,
-  },
-    acceptBtn: {
-    backgroundColor: '#1A3A5C',
-    borderRadius: 30,
-    height: 52,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#4A7EAA',
-    shadowColor: '#4A7EAA',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  acceptText: { fontSize: 18, fontWeight: '900', color: '#7EB8F7', letterSpacing: 1 },
 });
