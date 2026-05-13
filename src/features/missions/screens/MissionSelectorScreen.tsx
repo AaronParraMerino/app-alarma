@@ -12,10 +12,6 @@ import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/c
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
 import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
 
-// Figuras y colores
-import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
-import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
-
 type NavigationProp = NativeStackNavigationProp<MissionsStackParamList, 'MissionSelector'>;
 
 export default function MissionSelectorScreen() {
@@ -28,10 +24,6 @@ export default function MissionSelectorScreen() {
   // Config de matemáticas
   const { config: mathConfig } = useMathExercisesStore();
   const mathStyle = MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
-
-  // Config de figuras y colores
-  const { config: colorConfig } = useColoredFiguresStore();
-  const colorStyle = COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -94,38 +86,11 @@ export default function MissionSelectorScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
-        {/* ── Misión de figuras y colores ── */}
-        <TouchableOpacity
-          style={styles.btn}
-          onPress={() => navigation.navigate('ConfigColoredFiguresMission', {})}
-        >
-          <Text style={styles.btnText}>Configurar misión de colores</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.summary}>
-          {colorStyle.label}  ·  {colorConfig.quantity} veces{colorConfig.quantity > 1 ? 'es' : ''}
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.executeBtn, { backgroundColor: colorStyle.bgColor, borderColor: colorStyle.accentColor + '50' }]}
-          onPress={() =>
-            navigation.navigate('ColoredFigureMissionScreen', {
-              difficulty: colorConfig.difficulty,
-              quantity:   colorConfig.quantity,
-            })
-          }
-        >
-          <Text style={[styles.executeBtnText, { color: colorStyle.accentColor }]}>
-            Ejecutar misión de colores
-          </Text>
-        </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safe: {
