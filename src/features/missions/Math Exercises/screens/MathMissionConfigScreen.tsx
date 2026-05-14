@@ -201,7 +201,7 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.vecesText}>veces</Text>
+          <Text style={styles.vecesText}> {quantity === 1 ? 'vez' : 'veces'}</Text>
         </View>
 
         <View style={styles.spacer} />

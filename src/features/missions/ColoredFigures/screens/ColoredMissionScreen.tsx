@@ -5,7 +5,7 @@ import { ColoredFiguresMission } from '../components/ColoredFigureMission';
 
 type Props = NativeStackScreenProps<
   MissionsStackParamList,
-  'ColoredFigureMissionScreen'
+  'ColoredFiguresMissionScreen'
 >;
 
 export default function ColoredMissionScreen({ navigation, route }: Props) {
