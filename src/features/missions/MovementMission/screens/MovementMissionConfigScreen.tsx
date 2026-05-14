@@ -306,8 +306,8 @@ export function MovementMissionConfigScreen({
                 ? 'vez'
                 : 'veces'
               : quantity === 1
-                ? 'secuencia'
-                : 'secuencias'}
+                ? 'vez'
+                : 'veces'}
           </Text>
         </View>
 
