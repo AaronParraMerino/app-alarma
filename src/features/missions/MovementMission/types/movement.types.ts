@@ -4,18 +4,18 @@ export type MovementType =
   | 'shake'
   | 'walk'
   | 'rotate'
-  | 'tilt_left'
-  | 'tilt_right'
-  | 'tilt_up'
-  | 'tilt_down';
+  | 'tilt';
 
 export interface MovementStep {
   id: string;
   type: MovementType;
   label: string;
+  instruction: string;
+  detail: string;
   icon: string;
-  durationSeconds: number; // how long this step must be sustained
-  threshold: number;       // sensor threshold to consider "detected"
+  durationSeconds: number;
+  threshold: number;
+  requiredRatio: number;
   completed: boolean;
 }
 
@@ -23,13 +23,13 @@ export interface MovementMissionConfig {
   difficulty: MovementDifficulty;
   steps: MovementStep[];
   totalDurationSeconds: number;
-  requiresContinuity: boolean; // medium/hard: user must not stop
-  requiresOrder: boolean;      // hard: must follow the sequence
+  requiresContinuity: boolean;
+  requiresOrder: boolean;
 }
 
 export interface MovementMissionUserConfig {
   difficulty: MovementDifficulty;
-  quantity: number; // how many steps/repetitions (1–5)
+  quantity: number;
 }
 
 export interface MovementMissionResult {

@@ -2,28 +2,26 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 interface StepRingProps {
-  progress: number; // 0–1
+  progress: number;
   color: string;
   icon: string;
   size?: number;
 }
 
-/**
- * Circular progress ring without react-native-svg.
- * Safe for testing without rebuilding native Android.
- */
+// Muestra el avance del paso actual con icono y porcentaje.
 export function StepRing({ progress, color, icon, size = 140 }: StepRingProps) {
   const animProgress = useRef(new Animated.Value(0)).current;
+  const clamped = Math.max(0, Math.min(progress, 1));
+  const percent = Math.round(clamped * 100);
 
   useEffect(() => {
+    // Suaviza los cambios de progreso del sensor.
     Animated.timing(animProgress, {
-      toValue: Math.max(0, Math.min(progress, 1)),
+      toValue: clamped,
       duration: 200,
       useNativeDriver: false,
     }).start();
-  }, [progress, animProgress]);
-
-  const percent = Math.round(Math.max(0, Math.min(progress, 1)) * 100);
+  }, [animProgress, clamped]);
 
   const progressWidth = animProgress.interpolate({
     inputRange: [0, 1],
@@ -31,14 +29,7 @@ export function StepRing({ progress, color, icon, size = 140 }: StepRingProps) {
   });
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          width: size,
-        },
-      ]}
-    >
+    <View style={[styles.container, { width: size }]}>
       <View
         style={[
           styles.circle,
@@ -50,40 +41,42 @@ export function StepRing({ progress, color, icon, size = 140 }: StepRingProps) {
           },
         ]}
       >
-        <Text style={styles.icon}>{icon}</Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.55}
+          style={[styles.icon, { color }]}
+        >
+          {icon}
+        </Text>
         <Text style={[styles.percent, { color }]}>{percent}%</Text>
       </View>
 
       <View style={styles.track}>
-        <Animated.View
-          style={[
-            styles.fill,
-            {
-              width: progressWidth,
-              backgroundColor: color,
-            },
-          ]}
-        />
+        <Animated.View style={[styles.fill, { width: progressWidth, backgroundColor: color }]} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-  },
+  container: { alignItems: 'center' },
   circle: {
-    borderWidth: 8,
+    borderWidth: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#161616',
+    paddingHorizontal: 16,
   },
   icon: {
-    fontSize: 44,
+    width: '100%',
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   percent: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -92,7 +85,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#1E1E1E',
     overflow: 'hidden',
   },
   fill: {

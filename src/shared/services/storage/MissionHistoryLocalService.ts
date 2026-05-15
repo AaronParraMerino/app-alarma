@@ -1,6 +1,6 @@
 import db from '../../db/localDB';
 
-export type MissionType = 'word_completion';
+export type MissionType = 'word_completion' | 'movement';
 
 export interface SaveMissionHistoryDTO {
   userId: string;
