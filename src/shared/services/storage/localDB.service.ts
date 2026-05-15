@@ -1,6 +1,10 @@
 import db from '../../db/localDB';
 import { Alarm, AlarmMission, RepeatDay } from '../../../features/alarm/types/alarm.types';
 
+interface InsertAlarmLocalOptions {
+  synced?: boolean;
+}
+
 const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -70,7 +74,10 @@ export const getAlarmsLocal = (): Alarm[] => {
   return rows.map(mapRowToAlarm);
 };
 
-export const insertAlarmLocal = (input: Alarm): void => {
+export const insertAlarmLocal = (
+  input: Alarm,
+  options: InsertAlarmLocalOptions = {},
+): void => {
   const alarm = normalizeAlarmInput(input);
   const time = `${alarm.hour.toString().padStart(2, '0')}:${alarm.minute
     .toString()
@@ -90,7 +97,7 @@ export const insertAlarmLocal = (input: Alarm): void => {
       JSON.stringify(alarm.missions),
       alarm.randomMissions ? 1 : 0,
       alarm.soundUri,
-      0,
+      options.synced ? 1 : 0,
       alarm.createdAt,
       alarm.updatedAt,
     ],
@@ -99,6 +106,41 @@ export const insertAlarmLocal = (input: Alarm): void => {
 
 export const deleteAlarmLocal = (id: string): void => {
   db.runSync(`DELETE FROM alarms WHERE id = ?`, [id]);
+};
+
+export const enqueueAlarmDeleteLocal = (alarmId: string, userId: string): void => {
+  db.runSync(
+    `
+    INSERT OR IGNORE INTO pending_alarm_deletes (alarm_id, user_id, created_at)
+    VALUES (?, ?, ?)
+    `,
+    [alarmId, userId, Date.now()],
+  );
+};
+
+export const getPendingAlarmDeletes = (userId: string): string[] => {
+  const rows = db.getAllSync<{ alarm_id: string }>(
+    `
+    SELECT alarm_id
+    FROM pending_alarm_deletes
+    WHERE user_id = ?
+    ORDER BY created_at ASC
+    `,
+    [userId],
+  );
+
+  return rows.map(row => row.alarm_id);
+};
+
+export const clearPendingAlarmDeleteLocal = (alarmId: string, userId: string): void => {
+  db.runSync(
+    `
+    DELETE FROM pending_alarm_deletes
+    WHERE alarm_id = ?
+      AND user_id = ?
+    `,
+    [alarmId, userId],
+  );
 };
 
 export const getUnsyncedAlarms = (): Alarm[] => {

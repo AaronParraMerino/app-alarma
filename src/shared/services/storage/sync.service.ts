@@ -1,7 +1,13 @@
 import NetInfo from '@react-native-community/netinfo';
 import { Alarm } from '../../../features/alarm/types/alarm.types';
-import { getUnsyncedAlarms, markAsSynced, insertAlarmLocal } from './localDB.service';
-import { insertAlarmCloud, getAlarmsCloud } from './cloudDB.service';
+import {
+  clearPendingAlarmDeleteLocal,
+  getPendingAlarmDeletes,
+  getUnsyncedAlarms,
+  markAsSynced,
+  insertAlarmLocal,
+} from './localDB.service';
+import { insertAlarmCloud, getAlarmsCloud, deleteAlarmCloud } from './cloudDB.service';
 
 let unsubscribeNetInfo: (() => void) | null = null;
 let isSyncing = false;
@@ -27,6 +33,15 @@ export const syncAlarms = async (userId: string): Promise<void> => {
       return;
     }
 
+    const pendingDeletes = getPendingAlarmDeletes(userId);
+    if (pendingDeletes.length > 0) {
+      console.log(`[Sync] Borrando ${pendingDeletes.length} alarmas pendientes...`);
+      for (const alarmId of pendingDeletes) {
+        await deleteAlarmCloud(alarmId, userId);
+        clearPendingAlarmDeleteLocal(alarmId, userId);
+      }
+    }
+
     const unsynced = getUnsyncedAlarms() as Alarm[];
     if (unsynced.length > 0) {
       console.log(`[Sync] Subiendo ${unsynced.length} alarmas pendientes...`);
@@ -40,7 +55,7 @@ export const syncAlarms = async (userId: string): Promise<void> => {
     if (cloudData.length > 0) {
       console.log(`[Sync] Descargando ${cloudData.length} alarmas de la nube...`);
       for (const alarm of cloudData) {
-        insertAlarmLocal({ ...alarm, enabled: !!alarm.enabled });
+        insertAlarmLocal({ ...alarm, enabled: !!alarm.enabled }, { synced: true });
       }
     }
 
