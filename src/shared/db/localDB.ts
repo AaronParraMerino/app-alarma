@@ -18,6 +18,13 @@ export const initDB = () => {
       updated_at      INTEGER DEFAULT (strftime('%s','now'))
     );
 
+    CREATE TABLE IF NOT EXISTS pending_alarm_deletes (
+      alarm_id   TEXT NOT NULL,
+      user_id    TEXT NOT NULL,
+      created_at INTEGER DEFAULT (strftime('%s','now')),
+      PRIMARY KEY (alarm_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS word_completion_words (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       word       TEXT NOT NULL,

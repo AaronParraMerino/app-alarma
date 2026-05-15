@@ -16,6 +16,8 @@ const mapSupabaseUser = (u: any): User => ({
 
 export const authService = {
   async login(email: string, password: string): Promise<User> {
+    passwordRecoveryMode = false;
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
@@ -31,6 +33,8 @@ export const authService = {
   },
 
   async register(email: string, password: string, username: string): Promise<User> {
+    passwordRecoveryMode = false;
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
@@ -70,6 +74,7 @@ export const authService = {
   },
 
   async enterAsGuest(): Promise<void> {
+    passwordRecoveryMode = false;
     await AsyncStorage.setItem(GUEST_MODE_KEY, 'true');
   },
 
@@ -144,6 +149,10 @@ export const authService = {
   async cancelPasswordRecovery(): Promise<void> {
     passwordRecoveryMode = false;
     await supabase.auth.signOut();
+  },
+
+  clearPasswordRecoveryMode(): void {
+    passwordRecoveryMode = false;
   },
 
   isPasswordRecoveryMode(): boolean {

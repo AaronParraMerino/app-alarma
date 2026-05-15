@@ -1,5 +1,4 @@
 // src/features/auth/services/passwordRecoveryService.ts
-import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { supabase } from '../../../shared/db/supabaseClient';
 
@@ -14,13 +13,13 @@ function getParamsFromUrl(url: string): URLSearchParams {
 
 export const passwordRecoveryService = {
   getRedirectUri(): string {
-    // Expo Go: genera algo como exp://IP:PUERTO/--/auth/reset-password
-    if (Constants.appOwnership === 'expo') {
-      return Linking.createURL(PASSWORD_RESET_PATH);
+    const googleRedirect = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT?.trim();
+    if (googleRedirect) {
+      const base = new URL(googleRedirect);
+      return `${base.protocol}//${base.host}/${PASSWORD_RESET_PATH.split('/').at(-1)}`;
     }
 
-    // Development Build / APK producción
-    return 'appalarma://auth/reset-password';
+    return Linking.createURL(PASSWORD_RESET_PATH);
   },
 
   isPasswordRecoveryUrl(url: string): boolean {
@@ -52,7 +51,6 @@ export const passwordRecoveryService = {
     const urlError = params.get('error_description') ?? params.get('error');
     if (urlError) throw new Error(urlError);
 
-    // Flujo PKCE, por si Supabase devuelve code
     const code = params.get('code');
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -60,7 +58,6 @@ export const passwordRecoveryService = {
       return true;
     }
 
-    // Flujo con tokens en fragment: #access_token=...&refresh_token=...
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
 

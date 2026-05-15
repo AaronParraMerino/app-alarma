@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "neurowake",
+    "scheme": [
+      "neurowake",
+      "appalarma"
+    ],
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/logoAlarma.png",
@@ -22,6 +25,38 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "neurowake",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "neurowake",
+              "host": "auth",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "auth",
+              "pathPrefix": "/reset-password"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",

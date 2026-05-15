@@ -28,11 +28,15 @@ export const getAlarmsCloud = async (userId: string): Promise<any[]> => {
   return data ?? [];
 };
 
-export const deleteAlarmCloud = async (alarmId: string): Promise<void> => {
+export const deleteAlarmCloud = async (
+  alarmId: string,
+  userId: string,
+): Promise<void> => {
   const { error } = await supabase
     .from('alarms')
     .delete()
-    .eq('id', alarmId);
+    .eq('id', alarmId)
+    .eq('user_id', userId);
 
   if (error) throw error;
 };

@@ -188,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[Auth] Sesión temporal de recuperación, no entrar a Main');
 
         if (event === 'SIGNED_OUT') {
+          authService.clearPasswordRecoveryMode();
           stopSyncListener();
 
           if (await authService.isGuestSessionSaved()) {
@@ -294,14 +295,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING' });
 
     try {
+      if (authService.isPasswordRecoveryMode()) {
+        await authService.cancelPasswordRecovery();
+      } else {
+        authService.clearPasswordRecoveryMode();
+      }
+
       await authService.clearGuestSession();
 
-      googleAuthService.signInWithGoogle().catch((error) => {
-        console.log('[Google] error en background:', error);
-      });
+      await googleAuthService.signInWithGoogle();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        const user = mapSupabaseUser(session.user);
+
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: user,
+        });
+
+        if (session.user.id) {
+          await syncAlarms(session.user.id);
+          startSyncListener(session.user.id);
+        }
+
+        return;
+      }
 
       dispatch({ type: 'SET_READY' });
     } catch (error: any) {
+      console.log('[Google] error:', error);
       dispatch({
         type: 'SET_ERROR',
         payload: error.message ?? 'Error con Google',
