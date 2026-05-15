@@ -67,7 +67,7 @@ export function ReplaceButton({
       )}
 
       <TouchableOpacity onPress={handleReplace} style={styles.btn}>
-        <Text style={styles.btnText}>Reemplazar figura</Text>
+        <Text style={styles.btnText}></Text>
 
         {canGoDown && (
           <Text style={styles.counter}>

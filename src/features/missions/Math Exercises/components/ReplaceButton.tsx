@@ -62,7 +62,7 @@ export function ReplaceButton({ difficulty, errorCount, onReplace, onDifficultyD
       )}
 
       <TouchableOpacity onPress={handleReplace} style={styles.btn}>
-        <Text style={styles.btnText}>Reemplazar misión</Text>
+        <Text style={styles.btnText}></Text>
         {canGoDown && (
           <Text style={styles.counter}>
             {replaceCount}/{MAX_ATTEMPTS}
