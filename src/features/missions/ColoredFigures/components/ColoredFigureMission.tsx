@@ -9,10 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+
 import { Difficulty, FigureType } from '../types/ColoredFigures.types';
 import { DIFFICULTY_STYLES } from '../constants/ColoredFigure.config';
 import { useColoredFigures } from '../hooks/useColoredFigures';
 import { useCurrentTime } from '../hooks/useCurrentTime';
+
+import { useAuth } from '../../../auth/hooks/useAuth';
+import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
 interface Props {
   difficulty: Difficulty;
@@ -44,13 +49,16 @@ export function ColoredFiguresMission({
   onComplete,
   alarmLabel,
 }: Props) {
+  const { user, isAuthenticated, isGuest } = useAuth();
+
   const [currentDifficulty, setCurrentDifficulty] =
     useState<Difficulty>(difficulty);
 
   const [completedCount, setCompletedCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackType, setFeedbackType] = useState<'error' | 'warning' | 'success'>('error');
+  const [feedbackType, setFeedbackType] =
+    useState<'error' | 'warning' | 'success'>('error');
 
   const {
     current,
@@ -64,6 +72,46 @@ export function ColoredFiguresMission({
   const style = DIFFICULTY_STYLES[currentDifficulty];
   const totalQuantity = Math.max(1, quantity);
 
+  React.useEffect(() => {
+    setErrorCount(0);
+    reset();
+  }, [currentDifficulty]);
+
+  const saveMissionHistory = React.useCallback(
+    (success: boolean, nextErrorCount: number) => {
+      if (!isAuthenticated || isGuest || !user?.id || !current) {
+        return;
+      }
+
+      MissionHistoryLocalService.save({
+        userId: user.id,
+        missionType: 'colored_figures',
+        difficulty: currentDifficulty,
+        content: {
+          figure: current.figure,
+          hex: current.hex,
+          colorName: current.colorName,
+          colorDisplayName: current.colorDisplayName,
+        },
+        correctAnswer: current.colorName,
+        userAnswer: state.userInput,
+        success,
+        errorCount: nextErrorCount,
+        durationSeconds: null,
+      });
+
+      void syncMissionHistory(user.id);
+    },
+    [
+      isAuthenticated,
+      isGuest,
+      user?.id,
+      current,
+      currentDifficulty,
+      state.userInput,
+    ],
+  );
+
   const handleSubmit = () => {
     const result = handleConfirm();
 
@@ -75,17 +123,17 @@ export function ColoredFiguresMission({
       const nextErrorCount = errorCount + 1;
       const previousDifficulty = getPreviousDifficulty(currentDifficulty);
 
+      saveMissionHistory(false, nextErrorCount);
+
       if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
         setCurrentDifficulty(previousDifficulty);
         setErrorCount(0);
         setFeedbackType('warning');
         setFeedbackMessage(
-          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty)}.`,
+          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
+            previousDifficulty,
+          )}.`,
         );
-
-        setTimeout(() => {
-          reset();
-        }, 300);
 
         return;
       }
@@ -126,6 +174,8 @@ export function ColoredFiguresMission({
     }
 
     const nextCompleted = completedCount + 1;
+
+    saveMissionHistory(true, errorCount);
 
     setCompletedCount(nextCompleted);
     setErrorCount(0);
@@ -244,7 +294,7 @@ export function ColoredFiguresMission({
             onChangeText={(value) => {
               handleInputChange(value);
 
-              if (feedbackMessage && feedbackType !== 'warning') {
+              if (feedbackMessage) {
                 setFeedbackMessage('');
               }
             }}
