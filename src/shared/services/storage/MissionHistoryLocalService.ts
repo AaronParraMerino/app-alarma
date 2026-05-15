@@ -1,6 +1,10 @@
 import db from '../../db/localDB';
 
-export type MissionType = 'word_completion';
+export type MissionType =
+  | 'word_completion'
+  | 'movement'
+  | 'math_exercises'
+  | 'colored_figures';
 
 export interface SaveMissionHistoryDTO {
   userId: string;
@@ -64,7 +68,7 @@ export class MissionHistoryLocalService {
         dto.success ? 1 : 0,
         dto.errorCount ?? 0,
         dto.durationSeconds ?? null,
-      ]
+      ],
     );
 
     return syncId;
@@ -79,7 +83,7 @@ export class MissionHistoryLocalService {
         AND synced = 0
       ORDER BY created_at ASC
       `,
-      [userId]
+      [userId],
     );
   }
 
@@ -91,7 +95,7 @@ export class MissionHistoryLocalService {
         SET synced = 1
         WHERE sync_id = ?
         `,
-        [syncId]
+        [syncId],
       );
     }
   }

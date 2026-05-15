@@ -10,10 +10,15 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
+
 import { Difficulty, OperationType } from '../types/mathExercises.types';
 import { DIFFICULTY_STYLES } from '../constants/mathExercises.config';
 import { useMathExercises } from '../hooks/useMathExercises';
 import { useCurrentTime } from '../hooks/useCurrentTime';
+
+import { useAuth } from '../../../auth/hooks/useAuth';
+import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
 interface Props {
   difficulty: Difficulty;
@@ -48,6 +53,7 @@ export function MathExercisesMission({
   operationType,
 }: Props) {
   const { width } = useWindowDimensions();
+  const { user, isAuthenticated, isGuest } = useAuth();
 
   const [missionCount, setMissionCount] = React.useState(0);
   const [difficulty, setDifficulty] =
@@ -58,6 +64,7 @@ export function MathExercisesMission({
     React.useState<'error' | 'warning' | 'success'>('error');
 
   const style = DIFFICULTY_STYLES[difficulty];
+  const totalQuantity = Math.max(1, quantity);
 
   const {
     state,
@@ -69,13 +76,121 @@ export function MathExercisesMission({
 
   const { time, day } = useCurrentTime();
 
-  // Detecta nuevo error acumulado y baja de dificultad al tercer fallo
+  const getExpression = React.useCallback(() => {
+    const exercise = current as any;
+
+    if (!exercise) {
+      return '';
+    }
+
+    if (exercise.expression) {
+      return String(exercise.expression);
+    }
+
+    return `${exercise.num1 ?? ''} ${exercise.operation ?? ''} ${
+      exercise.num2 ?? ''
+    }`.trim();
+  }, [current]);
+
+  const getCorrectAnswer = React.useCallback(() => {
+    const exercise = current as any;
+
+    if (!exercise) {
+      return '';
+    }
+
+    const storedAnswer =
+      exercise.answer ??
+      exercise.result ??
+      exercise.correctAnswer ??
+      exercise.correct_answer;
+
+    if (storedAnswer !== undefined && storedAnswer !== null) {
+      return String(storedAnswer);
+    }
+
+    const num1 = Number(exercise.num1);
+    const num2 = Number(exercise.num2);
+    const operation = String(exercise.operation ?? '');
+    const type = String(operationType ?? exercise.operationType ?? '');
+
+    if (Number.isNaN(num1) || Number.isNaN(num2)) {
+      return '';
+    }
+
+    if (type === 'addition' || operation === '+') {
+      return String(num1 + num2);
+    }
+
+    if (type === 'subtraction' || operation === '-') {
+      return String(num1 - num2);
+    }
+
+    if (
+      type === 'multiplication' ||
+      operation === 'x' ||
+      operation === '×' ||
+      operation === '*'
+    ) {
+      return String(num1 * num2);
+    }
+
+    if (type === 'division' || operation === '/' || operation === '÷') {
+      return String(num2 === 0 ? '' : num1 / num2);
+    }
+
+    return '';
+  }, [current, operationType]);
+
+  const saveMissionHistory = React.useCallback(
+    (success: boolean, nextErrorCount: number) => {
+      if (!isAuthenticated || isGuest || !user?.id || !current) {
+        return;
+      }
+
+      const exercise = current as any;
+
+      MissionHistoryLocalService.save({
+        userId: user.id,
+        missionType: 'math_exercises',
+        difficulty,
+        content: {
+          expression: getExpression(),
+          num1: exercise.num1,
+          num2: exercise.num2,
+          operation: exercise.operation,
+          operationType,
+        },
+        correctAnswer: getCorrectAnswer(),
+        userAnswer: state.userInput,
+        success,
+        errorCount: nextErrorCount,
+        durationSeconds: null,
+      });
+
+      void syncMissionHistory(user.id);
+    },
+    [
+      isAuthenticated,
+      isGuest,
+      user?.id,
+      current,
+      difficulty,
+      operationType,
+      state.userInput,
+      getExpression,
+      getCorrectAnswer,
+    ],
+  );
+
   const prevHasError = React.useRef(false);
 
   React.useEffect(() => {
     if (state.hasError && !prevHasError.current) {
       const nextErrorCount = errorCount + 1;
       const previousDifficulty = getPreviousDifficulty(difficulty);
+
+      saveMissionHistory(false, nextErrorCount);
 
       if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
         setDifficulty(previousDifficulty);
@@ -124,39 +239,53 @@ export function MathExercisesMission({
     }
 
     prevHasError.current = state.hasError;
-  }, [state.hasError, errorCount, difficulty, handleReplace]);
+  }, [
+    state.hasError,
+    errorCount,
+    difficulty,
+    handleReplace,
+    saveMissionHistory,
+  ]);
 
-  // Reset errorCount al cambiar de ejercicio
   React.useEffect(() => {
     setErrorCount(0);
   }, [current?.expression]);
 
-  // Misión completada — sale directo sin modal
+  const prevCompleted = React.useRef(false);
+
   React.useEffect(() => {
-    if (!state.isCompleted) return;
+    if (state.isCompleted && !prevCompleted.current) {
+      const next = missionCount + 1;
 
-    const next = missionCount + 1;
+      saveMissionHistory(true, errorCount);
 
-    setFeedbackType('success');
-    setFeedbackMessage('Correcto.');
+      setFeedbackType('success');
+      setFeedbackMessage('Correcto.');
 
-    if (next >= quantity) {
-      onComplete();
-    } else {
-      setMissionCount(next);
+      if (next >= totalQuantity) {
+        onComplete();
+      } else {
+        setMissionCount(next);
 
-      setTimeout(() => {
-        setFeedbackMessage('');
-        handleReplace();
-      }, 500);
+        setTimeout(() => {
+          setFeedbackMessage('');
+          handleReplace();
+        }, 500);
+      }
     }
-  }, [state.isCompleted]);
 
-  const displayExpression = current?.expression
-    ? current.expression
-    : current
-    ? `${current.num1} ${current.operation} ${current.num2}`
-    : '...';
+    prevCompleted.current = state.isCompleted;
+  }, [
+    state.isCompleted,
+    missionCount,
+    totalQuantity,
+    errorCount,
+    saveMissionHistory,
+    onComplete,
+    handleReplace,
+  ]);
+
+  const displayExpression = getExpression() || '...';
 
   const feedbackColor =
     feedbackType === 'success'
