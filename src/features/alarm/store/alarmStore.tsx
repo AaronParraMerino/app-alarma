@@ -8,15 +8,19 @@ import React, {
 } from 'react';
 import { Alarm, AlarmCreate } from '../types/alarm.types';
 import {
+  clearPendingAlarmDeleteLocal,
   deleteAlarmLocal,
+  enqueueAlarmDeleteLocal,
   getAlarmsLocal,
   insertAlarmLocal,
 } from '../../../shared/services/storage/localDB.service';
+import { deleteAlarmCloud } from '../../../shared/services/storage/cloudDB.service';
 import { initDB } from '../../../shared/db/localDB';
 import {
   cancelAlarmNotificationsByAlarmId,
   scheduleAlarmNotifications,
 } from '../services/alarmScheduler';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 interface AlarmContextType {
@@ -31,6 +35,8 @@ const AlarmContext = createContext<AlarmContextType | null>(null);
 
 export function AlarmProvider({ children }: { children: ReactNode }) {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const { isAuthenticated, isGuest, user } = useAuth();
+  const userId = isAuthenticated && !isGuest ? user?.id : undefined;
 
   useEffect(() => {
     initDB();
@@ -71,9 +77,17 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
 
   const deleteAlarm = useCallback((id: string) => {
     setAlarms(prev => prev.filter(a => a.id !== id));
+    if (userId) {
+      enqueueAlarmDeleteLocal(id, userId);
+      void deleteAlarmCloud(id, userId)
+        .then(() => clearPendingAlarmDeleteLocal(id, userId))
+        .catch(error => {
+          console.log('[AlarmStore] Delete cloud pending sync:', error);
+        });
+    }
     deleteAlarmLocal(id);
     void cancelAlarmNotificationsByAlarmId(id);
-  }, []);
+  }, [userId]);
 
   const toggleAlarm = useCallback((id: string) => {
     setAlarms(prev => {

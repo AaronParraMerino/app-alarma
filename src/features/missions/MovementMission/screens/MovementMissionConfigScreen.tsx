@@ -162,7 +162,13 @@ export function MovementMissionConfigScreen({ onConfirm }: MovementMissionConfig
             </View>
           </View>
           <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>
-            veces
+            {difficulty === 'easy'
+              ? quantity === 1
+                ? 'vez'
+                : 'veces'
+              : quantity === 1
+                ? 'vez'
+                : 'veces'}
           </Text>
         </View>
 
