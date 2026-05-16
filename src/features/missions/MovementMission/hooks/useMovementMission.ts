@@ -101,6 +101,25 @@ export function useMovementMission(
     }
   }, []);
 
+  useEffect(() => {
+    cleanup();
+    setState(s => ({
+      phase: 'idle',
+      currentStepIndex: 0,
+      stepProgress: 0,
+      countdown: 3,
+      elapsedMs: 0,
+      capabilities: s.capabilities,
+      incompatible: s.incompatible,
+      permissionDenied: s.permissionDenied,
+      result: null,
+      currentMagnitude: 0,
+      detectionRatio: 0,
+      showStepError: false,
+      lastStepResult: null,
+    }));
+  }, [cleanup, config]);
+
   // Limpia el aviso corto de fallo del paso
   const clearStepErrorTimer = useCallback(() => {
     if (stepErrorTimer.current) {

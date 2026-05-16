@@ -7,7 +7,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { MovementMissionConfig, MovementMissionUserConfig } from '../types/movement.types';
+import {
+  MovementDifficulty,
+  MovementMissionConfig,
+  MovementMissionUserConfig,
+} from '../types/movement.types';
 import { buildMovementMissionConfig } from '../services/movementMissionBuilder';
 import {
   MovementStepResultEvent,
@@ -24,24 +28,39 @@ import { syncMissionHistory } from '../../../../shared/services/storage/missionH
 interface MovementMissionScreenProps {
   userConfig: MovementMissionUserConfig;
   onSuccess: (result: { durationMs: number }) => void;
-  onReplace?: () => void;
-  replacesLeft?: number;
   alarmLabel?: string;
+}
+
+const DIFFICULTY_ORDER: MovementDifficulty[] = ['easy', 'medium', 'hard'];
+const MAX_ERRORS = 3;
+
+function getPreviousDifficulty(difficulty: MovementDifficulty): MovementDifficulty | null {
+  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
+  return currentIndex > 0 ? DIFFICULTY_ORDER[currentIndex - 1] : null;
+}
+
+function getDifficultyLabel(difficulty: MovementDifficulty) {
+  return DIFFICULTY_STYLES[difficulty].label.toLowerCase();
 }
 
 export function MovementMissionScreen({
   userConfig,
   onSuccess,
-  onReplace,
-  replacesLeft = 0,
   alarmLabel = 'Hora de levantarse',
 }: MovementMissionScreenProps) {
   const { width, height } = useWindowDimensions();
   const { time, day } = useCurrentTime();
   const { user, isAuthenticated, isGuest } = useAuth();
   const savedStepResultIds = React.useRef<Set<string>>(new Set());
-  const [config] = React.useState<MovementMissionConfig>(() =>
-    buildMovementMissionConfig(userConfig),
+  const [difficulty, setDifficulty] = React.useState<MovementDifficulty>(
+    userConfig.difficulty,
+  );
+  const [errorCount, setErrorCount] = React.useState(0);
+  const [feedbackMessage, setFeedbackMessage] = React.useState('');
+  const [feedbackType, setFeedbackType] =
+    React.useState<'error' | 'warning' | 'success'>('error');
+  const [config, setConfig] = React.useState<MovementMissionConfig>(() =>
+    buildMovementMissionConfig({ ...userConfig, difficulty: userConfig.difficulty }),
   );
 
   // Guarda cada submision solo para usuarios registrados
@@ -64,7 +83,7 @@ export function MovementMissionScreen({
       const syncId = MissionHistoryLocalService.save({
         userId: user.id,
         missionType: 'movement',
-        difficulty: userConfig.difficulty,
+        difficulty,
         content: {
           stepIndex: stepResult.stepIndex + 1,
           totalSteps: stepResult.totalSteps,
@@ -95,8 +114,66 @@ export function MovementMissionScreen({
     isAuthenticated,
     isGuest,
     user?.id,
-    userConfig.difficulty,
+    difficulty,
   ]);
+
+  const handleStepResult = React.useCallback((stepResult: MovementStepResultEvent) => {
+    saveStepResult(stepResult);
+
+    if (stepResult.success) {
+      setFeedbackType('success');
+      setFeedbackMessage('Correcto.');
+      return;
+    }
+
+    const nextErrorCount = errorCount + 1;
+    const previousDifficulty = getPreviousDifficulty(difficulty);
+
+    if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+      setDifficulty(previousDifficulty);
+      setErrorCount(0);
+      setFeedbackType('warning');
+      setFeedbackMessage(
+        `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty)}.`,
+      );
+      setConfig(buildMovementMissionConfig({
+        difficulty: previousDifficulty,
+        quantity: userConfig.quantity,
+      }));
+      return;
+    }
+
+    if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
+      setErrorCount(0);
+      setFeedbackType('error');
+      setFeedbackMessage(
+        'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+      );
+      setConfig(buildMovementMissionConfig({
+        difficulty,
+        quantity: userConfig.quantity,
+      }));
+      return;
+    }
+
+    setErrorCount(nextErrorCount);
+
+    if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
+      setFeedbackType('warning');
+      setFeedbackMessage(
+        `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+      );
+    } else {
+      const remainingErrors = MAX_ERRORS - nextErrorCount;
+
+      setFeedbackType('error');
+      setFeedbackMessage(
+        `Movimiento no validado. Te quedan ${remainingErrors} intento${
+          remainingErrors === 1 ? '' : 's'
+        }.`,
+      );
+    }
+  }, [difficulty, errorCount, saveStepResult, userConfig.quantity]);
 
   const {
     phase,
@@ -110,9 +187,9 @@ export function MovementMissionScreen({
     detectionRatio,
     showStepError,
     start,
-  } = useMovementMission(config, saveStepResult);
+  } = useMovementMission(config, handleStepResult);
 
-  const style = DIFFICULTY_STYLES[userConfig.difficulty];
+  const style = DIFFICULTY_STYLES[difficulty];
   const currentStep = config.steps[currentStepIndex];
   const isSmall = width < 360;
   const isShort = height < 680;
@@ -120,6 +197,12 @@ export function MovementMissionScreen({
   const displayAlarmLabel = !alarmLabel || alarmLabel === 'Alarma'
     ? 'Hora de levantarse'
     : alarmLabel;
+  const handleStart = React.useCallback(() => {
+    if (feedbackType !== 'warning') {
+      setFeedbackMessage('');
+    }
+    start();
+  }, [feedbackType, start]);
 
   // Al completar todo, espera un momento para mostrar el estado final
   useEffect(() => {
@@ -138,7 +221,6 @@ export function MovementMissionScreen({
         <Text style={styles.stateText}>
           Esta mision necesita acelerometro o giroscopio para validar el movimiento.
         </Text>
-        <ReplaceAction color={style.accentColor} onReplace={onReplace} replacesLeft={replacesLeft} />
       </CenteredState>
     );
   }
@@ -181,38 +263,6 @@ export function MovementMissionScreen({
               : currentStep?.instruction ?? 'Realiza el movimiento:'}
           </Text>
 
-          <View style={styles.sequence}>
-            {config.steps.map((step, index) => {
-              const active = index === currentStepIndex;
-              const done = index < currentStepIndex || step.completed;
-
-              return (
-                <View
-                  key={step.id}
-                  style={[
-                    styles.sequenceDot,
-                    {
-                      borderColor: active || done ? style.accentColor : '#334455',
-                      backgroundColor: done ? style.accentColor : '#161616',
-                    },
-                  ]}
-                >
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.55}
-                    style={[
-                      styles.sequenceText,
-                      { color: done ? style.textColor : active ? style.accentColor : '#667788' },
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-
           {phase === 'countdown' ? (
             <View style={styles.countdown}>
               <Text style={[styles.countdownNumber, { color: style.accentColor }]}>
@@ -251,13 +301,26 @@ export function MovementMissionScreen({
 
           {phase === 'idle' && (
             <>
-              {showStepError && (
-                <Text style={styles.errorText}>Movimiento no validado, intenta de nuevo</Text>
+              {(showStepError || feedbackMessage) && (
+                <Text
+                  style={[
+                    styles.feedbackText,
+                    {
+                      color: feedbackType === 'success'
+                        ? '#4ADE80'
+                        : feedbackType === 'warning'
+                        ? style.accentColor
+                        : '#F87171',
+                    },
+                  ]}
+                >
+                  {feedbackMessage || 'Movimiento no validado, intenta de nuevo'}
+                </Text>
               )}
 
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: style.accentColor }]}
-              onPress={start}
+              onPress={handleStart}
               activeOpacity={0.85}
             >
               <Text style={[styles.confirmText, { color: style.textColor }]}>
@@ -267,14 +330,6 @@ export function MovementMissionScreen({
               </Text>
             </TouchableOpacity>
             </>
-          )}
-
-          {onReplace && replacesLeft > 0 && phase === 'idle' && (
-            <TouchableOpacity style={styles.replaceLink} onPress={onReplace}>
-              <Text style={styles.replaceLinkText}>
-                Reemplazar mision {replacesLeft}/3
-              </Text>
-            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -292,26 +347,6 @@ function CenteredState({
     <SafeAreaView style={styles.safe}>
       <View style={styles.centered}>{children}</View>
     </SafeAreaView>
-  );
-}
-
-function ReplaceAction({
-  color,
-  onReplace,
-  replacesLeft,
-}: {
-  color: string;
-  onReplace?: () => void;
-  replacesLeft: number;
-}) {
-  if (!onReplace || replacesLeft <= 0) return null;
-
-  return (
-    <TouchableOpacity style={[styles.replaceBtn, { borderColor: color }]} onPress={onReplace}>
-      <Text style={[styles.replaceBtnText, { color }]}>
-        Cambiar mision ({replacesLeft} restantes)
-      </Text>
-    </TouchableOpacity>
   );
 }
 
@@ -337,22 +372,7 @@ const styles = StyleSheet.create({
   divider: { height: 0.5, backgroundColor: '#1E1E1E', marginHorizontal: 16, marginVertical: 10 },
   body: { flex: 1, paddingHorizontal: 18, paddingBottom: 16 },
   instruction: { fontSize: 12, color: '#667788', marginBottom: 12 },
-  errorText: { fontSize: 11, color: '#F87171', textAlign: 'center', marginBottom: 8 },
-  sequence: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sequenceDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sequenceText: { fontSize: 12, fontWeight: '700' },
+  feedbackText: { fontSize: 11, textAlign: 'center', marginBottom: 8 },
   missionBox: {
     flex: 1,
     backgroundColor: '#161616',
@@ -397,8 +417,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   confirmText: { fontSize: 15, fontWeight: '500' },
-  replaceLink: { paddingVertical: 8, alignItems: 'center' },
-  replaceLinkText: { color: '#556677', fontSize: 13, textDecorationLine: 'underline' },
   centered: {
     flex: 1,
     backgroundColor: '#0D0D0D',
@@ -415,12 +433,4 @@ const styles = StyleSheet.create({
   },
   stateTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   stateText: { color: '#667788', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  replaceBtn: {
-    marginTop: 24,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  replaceBtnText: { fontSize: 14, fontWeight: '600' },
 });

@@ -20,15 +20,23 @@ import {
 
 interface MovementMissionConfigScreenProps {
   onConfirm: (config: MovementMissionUserConfig) => void;
+  initialDifficulty?: MovementDifficulty;
+  initialQuantity?: number;
 }
 
 const LEVELS: MovementDifficulty[] = ['easy', 'medium', 'hard'];
 
 // Pantalla para elegir dificultad y cantidad de movimientos
-export function MovementMissionConfigScreen({ onConfirm }: MovementMissionConfigScreenProps) {
+export function MovementMissionConfigScreen({
+  onConfirm,
+  initialDifficulty = 'easy',
+  initialQuantity = 3,
+}: MovementMissionConfigScreenProps) {
   const { width, height } = useWindowDimensions();
-  const [difficulty, setDifficulty] = useState<MovementDifficulty>('easy');
-  const [quantity, setQuantity] = useState(3);
+  const [difficulty, setDifficulty] = useState<MovementDifficulty>(initialDifficulty);
+  const [quantity, setQuantity] = useState(
+    Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, initialQuantity)),
+  );
 
   const style = DIFFICULTY_STYLES[difficulty];
   const sliderIdx = LEVELS.indexOf(difficulty);

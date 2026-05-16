@@ -81,7 +81,10 @@ export type MissionsStackParamList = {
     alarmLabel?: string;
   };
 
-  ConfigMovementMission: undefined;
+  ConfigMovementMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+  } | undefined;
 
   MovementMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
@@ -114,11 +117,13 @@ type MovementMissionProps = NativeStackScreenProps<
   'MovementMissionScreen'
 >;
 
-function ConfigMovementMissionRoute({ navigation }: ConfigMovementMissionProps) {
+function ConfigMovementMissionRoute({ navigation, route }: ConfigMovementMissionProps) {
   const { setUserConfig } = useMovementMissionStore();
 
   return (
     <MovementMissionConfigScreen
+      initialDifficulty={route.params?.difficulty}
+      initialQuantity={route.params?.quantity}
       onConfirm={(config) => {
         setUserConfig(config);
 

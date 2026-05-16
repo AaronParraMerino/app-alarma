@@ -9,7 +9,6 @@ import { WordCompletionService } from '../services/WordCompletionService';
 import { useWordCompletion } from '../hooks/useWordCompletion';
 import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
-import { ReplaceButton } from '../components/ReplaceButton';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
@@ -22,11 +21,26 @@ interface Props {
   alarmLabel?: string;
 }
 
+const DIFFICULTY_ORDER: Difficulty[] = ['easy', 'medium', 'hard'];
+const MAX_ERRORS = 3;
+
+function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
+  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
+  return currentIndex > 0 ? DIFFICULTY_ORDER[currentIndex - 1] : null;
+}
+
+function getDifficultyLabel(difficulty: Difficulty) {
+  return WordCompletionService.getDifficultyStyle(difficulty).label.toLowerCase();
+}
+
 export function WordCompletionMission({ difficulty: initialDifficulty, quantity, onComplete, alarmLabel }: Props) {
   const { width } = useWindowDimensions();
   const [missionCount, setMissionCount]   = useState(0);
   const [difficulty, setDifficulty]       = useState<Difficulty>(initialDifficulty);
   const [errorCount, setErrorCount]       = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackType, setFeedbackType] =
+    useState<'error' | 'warning' | 'success'>('error');
   const { user, isAuthenticated, isGuest } = useAuth();
 
   const style = WordCompletionService.getDifficultyStyle(difficulty);
@@ -60,11 +74,53 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
   React.useEffect(() => {
     if (state.hasError && !prevHasError.current) {
       const nextErrorCount = errorCount + 1;
-      setErrorCount(nextErrorCount);
+      const previousDifficulty = getPreviousDifficulty(difficulty);
+
       saveMissionHistory(false, nextErrorCount);
+
+      if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+        setDifficulty(previousDifficulty);
+        setErrorCount(0);
+        setFeedbackType('warning');
+        setFeedbackMessage(
+          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty)}.`,
+        );
+        handleReplace();
+        prevHasError.current = state.hasError;
+        return;
+      }
+
+      if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
+        setErrorCount(0);
+        setFeedbackType('error');
+        setFeedbackMessage(
+          'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+        );
+        handleReplace();
+        prevHasError.current = state.hasError;
+        return;
+      }
+
+      setErrorCount(nextErrorCount);
+
+      if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
+        setFeedbackType('warning');
+        setFeedbackMessage(
+          `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+        );
+      } else {
+        const remainingErrors = MAX_ERRORS - nextErrorCount;
+
+        setFeedbackType('error');
+        setFeedbackMessage(
+          `Respuesta incorrecta. Te quedan ${remainingErrors} intento${
+            remainingErrors === 1 ? '' : 's'
+          }.`,
+        );
+      }
     }
     prevHasError.current = state.hasError;
-  }, [state.hasError]);
+  }, [state.hasError, errorCount, difficulty, handleReplace]);
 
   // Reset errorCount al cambiar de palabra
   React.useEffect(() => {
@@ -102,15 +158,9 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
       setMissionCount(next);
       handleReplace();
       setErrorCount(0);
+      setFeedbackMessage('');
     }
   }, [state.isCompleted]);
-
-  // Baja de dificultad — reinicia la misión con nueva dificultad
-  const handleDifficultyDown = (next: Difficulty) => {
-    setDifficulty(next);
-    setErrorCount(0);
-    handleReplace();
-  };
 
   const saveMissionHistory = (success: boolean, nextErrorCount: number) => {
     if (!isAuthenticated || isGuest || !user?.id || !current) return;
@@ -191,16 +241,35 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
                 },
               ]}
               value={state.userInput}
-              onChangeText={handleInputChange}
+              onChangeText={(value) => {
+                handleInputChange(value);
+
+                if (feedbackMessage && feedbackType !== 'warning') {
+                  setFeedbackMessage('');
+                }
+              }}
               autoCapitalize="characters"
               placeholder={Array(maxLength).fill('_').join(' ')}
               placeholderTextColor="#334455"
               maxLength={maxLength}
             />
 
-            {state.hasError && (
-              <Text style={styles.errorText}>Respuesta incorrecta, intenta de nuevo</Text>
-            )}
+            {feedbackMessage ? (
+              <Text
+                style={[
+                  styles.feedbackText,
+                  {
+                    color: feedbackType === 'success'
+                      ? '#4ADE80'
+                      : feedbackType === 'warning'
+                      ? style.accentColor
+                      : '#F87171',
+                  },
+                ]}
+              >
+                {feedbackMessage}
+              </Text>
+            ) : null}
 
             <Text style={[styles.hint, { color: style.accentColor + '88' }]}>{hintText}</Text>
 
@@ -213,13 +282,6 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
                 {isHard ? `Confirmar palabra ${state.currentChallengeIndex + 1}` : 'Confirmar'}
               </Text>
             </TouchableOpacity>
-
-            <ReplaceButton
-              difficulty={difficulty}
-              errorCount={errorCount}
-              onReplace={() => { handleReplace(); setErrorCount(0); }}
-              onDifficultyDown={handleDifficultyDown}
-            />
 
           </View>
 
@@ -260,7 +322,7 @@ const styles = StyleSheet.create({
     height: 52, textAlign: 'center', fontWeight: '500',
     fontFamily: 'monospace', marginBottom: 6,
   },
-  errorText: { fontSize: 11, color: '#F87171', textAlign: 'center', marginBottom: 4 },
+  feedbackText: { fontSize: 11, textAlign: 'center', marginBottom: 4 },
   hint: { fontSize: 11, textAlign: 'center', marginBottom: 12 },
   confirmBtn: {
     borderRadius: 14, height: 50,
