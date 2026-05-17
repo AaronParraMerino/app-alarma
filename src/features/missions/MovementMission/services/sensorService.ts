@@ -12,50 +12,6 @@ export interface SensorReading {
   reason?: string;
 }
 
-const SENSOR_LOG_INTERVAL_MS = 250;
-const SENSOR_LOG_ENABLED = true;
-
-type SensorLogPayload = {
-  sensor: "accelerometer" | "gyroscope" | "pedometer";
-  x?: number;
-  y?: number;
-  z?: number;
-  magnitude?: number;
-  detected: boolean;
-  progress?: number;
-  extra?: Record<string, number | boolean | string>;
-};
-
-
-function createSensorLogger(type: MovementType) {
-  let lastLogAt = 0;
-
-  return (payload: SensorLogPayload) => {
-    if (!SENSOR_LOG_ENABLED) return;
-
-    const now = Date.now();
-    if (now - lastLogAt < SENSOR_LOG_INTERVAL_MS) return;
-    lastLogAt = now;
-
-    console.log("[MovementMission sensor]", {
-      type,
-      sensor: payload.sensor,
-      x: round(payload.x),
-      y: round(payload.y),
-      z: round(payload.z),
-      magnitude: round(payload.magnitude),
-      detected: payload.detected,
-      progress: round(payload.progress),
-      ...payload.extra,
-    });
-  };
-}
-
-
-function round(value?: number) {
-  return typeof value === "number" ? Number(value.toFixed(4)) : undefined;
-}
-
 // Revisa que sensores existen en el dispositivo.
 export async function checkSensorCapabilities(): Promise<SensorCapabilities> {
   const [accel, gyro, pedo] = await Promise.all([
@@ -76,27 +32,13 @@ export async function requestSensorPermissions(): Promise<boolean> {
   try {
     const pedometerAvailable = await Pedometer.isAvailableAsync().catch(() => false);
 
-    console.log("[Pedometer available]", pedometerAvailable);
-
     if (!pedometerAvailable) {
-      console.warn(
-        "[Pedometer] Not available. Walk mission will use accelerometer fallback.",
-      );
       return true;
     }
 
     const { status } = await Pedometer.requestPermissionsAsync();
-    console.log("[Pedometer permission]", status);
-
-    if (status !== "granted") {
-      console.warn(
-        "[Pedometer] Permission not granted. Walk mission may use accelerometer fallback.",
-      );
-    }
-
-    return true;
+    return status === "granted";
   } catch (error) {
-    console.warn("Sensor permission error:", error);
     return true;
   }
 }
@@ -108,22 +50,21 @@ export function subscribeToMovement(
   thresholdOverride?: number,
 ): SensorUnsubscribe {
   const threshold = thresholdOverride ?? MOVEMENT_THRESHOLDS[type];
-  const logSensor = createSensorLogger(type);
 
   if (type === "walk") {
-    return subscribeToWalk(threshold, onDetected, logSensor);
+    return subscribeToWalk(threshold, onDetected);
   }
 
   if (type === "tilt") {
-    return subscribeToTilt(threshold, onDetected, logSensor);
+    return subscribeToTilt(threshold, onDetected);
   }
 
   if (type === "shake") {
-    return subscribeToShake(threshold, onDetected, logSensor);
+    return subscribeToShake(threshold, onDetected);
   }
 
   if (type === "rotate") {
-    return subscribeToRotate(threshold, onDetected, logSensor);
+    return subscribeToRotate(threshold, onDetected);
   }
 
   return () => {};
@@ -133,7 +74,6 @@ export function subscribeToMovement(
 function subscribeToShake(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
-  logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Accelerometer.setUpdateInterval(100);
 
@@ -141,17 +81,6 @@ function subscribeToShake(
     const magnitude = Math.sqrt(x * x + y * y + z * z) * 9.81;
     const detected = magnitude > threshold;
     const progress = Math.min(magnitude / threshold, 1);
-
-    logSensor({
-      sensor: "accelerometer",
-      x,
-      y,
-      z,
-      magnitude,
-      detected,
-      progress,
-      extra: { threshold },
-    });
 
     onDetected({ magnitude, detected, progress });
   });
@@ -163,17 +92,14 @@ function subscribeToShake(
 function subscribeToWalk(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
-  logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
-  console.warn("[Walk] Using accelerometer as primary walking detector.");
-  return subscribeToWalkByAccelerometer(threshold, onDetected, logSensor);
+  return subscribeToWalkByAccelerometer(threshold, onDetected);
 }
 
 // Valida caminar por tiempo acumulado de movimiento real
 function subscribeToWalkByAccelerometer(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
-  logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Accelerometer.setUpdateInterval(70);
 
@@ -224,29 +150,6 @@ function subscribeToWalkByAccelerometer(
     const detected = progress >= 1;
     const shouldFail = !detected && idleMs > IDLE_FAIL_MS;
 
-
-    logSensor({
-      sensor: "accelerometer",
-      x,
-      y,
-      z,
-      magnitude: accumulatedWalkMs / 1000,
-      detected,
-      progress,
-      extra: {
-        mode: "accumulated_walk_time",
-        magnitudeG: round(magnitudeG) ?? 0,
-        dynamic: round(dynamic) ?? 0,
-        isMotionSample,
-        isWalking,
-        activeScore,
-        accumulatedWalkSeconds: round(accumulatedWalkMs / 1000) ?? 0,
-        requiredWalkSeconds: threshold,
-        idleSeconds: round(idleMs / 1000) ?? 0,
-        failed: shouldFail,
-      },
-    });
-
     onDetected({
       magnitude: accumulatedWalkMs / 1000,
       detected,
@@ -269,7 +172,6 @@ function subscribeToWalkByAccelerometer(
 function subscribeToTilt(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
-  logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Accelerometer.setUpdateInterval(100);
 
@@ -286,22 +188,6 @@ function subscribeToTilt(
       baselineY = (baselineY * baselineSamples + y) / (baselineSamples + 1);
       baselineZ = (baselineZ * baselineSamples + z) / (baselineSamples + 1);
       baselineSamples += 1;
-
-      logSensor({
-        sensor: "accelerometer",
-        x,
-        y,
-        z,
-        magnitude: 0,
-        detected: false,
-        progress: 0,
-        extra: {
-          baselineX: round(baselineX) ?? 0,
-          baselineY: round(baselineY) ?? 0,
-          baselineZ: round(baselineZ) ?? 0,
-          baselineSamples,
-        },
-      });
 
       onDetected({ magnitude: 0, detected: false, progress: 0 });
       return;
@@ -320,23 +206,6 @@ function subscribeToTilt(
     const progress = Math.min(angle / threshold, 1);
     const detected = angle > threshold;
 
-    logSensor({
-      sensor: "accelerometer",
-      x,
-      y,
-      z,
-      magnitude: angle,
-      detected,
-      progress,
-      extra: {
-        angle: round(angle) ?? 0,
-        baselineX: round(baselineX) ?? 0,
-        baselineY: round(baselineY) ?? 0,
-        baselineZ: round(baselineZ) ?? 0,
-        threshold,
-      },
-    });
-
     onDetected({ magnitude: angle, detected, progress });
   });
 
@@ -347,7 +216,6 @@ function subscribeToTilt(
 function subscribeToRotate(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
-  logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Gyroscope.setUpdateInterval(100);
 
@@ -355,17 +223,6 @@ function subscribeToRotate(
     const magnitude = Math.abs(z);
     const progress = Math.min(magnitude / threshold, 1);
     const detected = magnitude > threshold;
-
-    logSensor({
-      sensor: "gyroscope",
-      x,
-      y,
-      z,
-      magnitude,
-      detected,
-      progress,
-      extra: { threshold },
-    });
 
     onDetected({ magnitude, detected, progress });
   });

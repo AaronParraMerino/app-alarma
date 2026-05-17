@@ -67,13 +67,6 @@ export function MovementMissionScreen({
   // Guarda cada submision solo para usuarios registrados
   const saveStepResult = React.useCallback((stepResult: MovementStepResultEvent) => {
     if (!isAuthenticated || isGuest || !user?.id) {
-      console.log('[MovementMission history] skipped', {
-        isAuthenticated,
-        isGuest,
-        hasUserId: Boolean(user?.id),
-        step: stepResult.stepIndex + 1,
-        success: stepResult.success,
-      });
       return;
     }
 
@@ -81,7 +74,7 @@ export function MovementMissionScreen({
     savedStepResultIds.current.add(stepResult.id);
 
     try {
-      const syncId = MissionHistoryLocalService.save({
+      MissionHistoryLocalService.save({
         userId: user.id,
         missionType: 'movement',
         difficulty,
@@ -100,16 +93,9 @@ export function MovementMissionScreen({
         durationSeconds: stepResult.durationSeconds,
       });
 
-      console.log('[MovementMission history] saved locally', {
-        syncId,
-        step: stepResult.stepIndex + 1,
-        success: stepResult.success,
-      });
-
       void syncMissionHistory(user.id);
     } catch (error) {
       savedStepResultIds.current.delete(stepResult.id);
-      console.error('[MovementMission history] save failed:', error);
     }
   }, [
     isAuthenticated,

@@ -40,6 +40,11 @@ const MISSION_META: Record<string, { label: string; icon: IconName; color: strin
     icon: 'text-outline',
     color: Colors.missionColors.wordCompletion ?? Colors.primaryLight,
   },
+  physical: {
+    label: 'Movimiento',
+    icon: 'footsteps-outline',
+    color: Colors.missionColors.physical ?? Colors.primaryLight,
+  },
 };
 
 const RANDOM_META = {
