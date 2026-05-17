@@ -14,6 +14,7 @@ import { Colors } from '../../../shared/theme/colors';
 import { MathExercisesMission } from '../../missions/Math Exercises/components/MathExercisesMission';
 import { OperationType } from '../../missions/Math Exercises/types/mathExercises.types';
 import { WordCompletionMission } from '../../missions/wordCompletion/components/WordCompletionMission';
+import { MovementMissionScreen } from '../../missions/MovementMission/screens/MovementMissionScreen';
 import { cancelAlarmNotificationsByAlarmId } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
@@ -76,6 +77,10 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     return alarm.missions.map(mission => {
       if (mission.type === 'random') {
         return resolveRandomMission(mission);
+      }
+
+      if (mission.type === 'physical') {
+        return mission;
       }
 
       if (!RANDOM_MISSION_TYPES.includes(mission.type)) {
@@ -208,6 +213,20 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
+        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+      />
+    );
+  }
+
+  if (activeMission.type === 'physical') {
+    return (
+      <MovementMissionScreen
+        key={`movement-${currentMissionIndex}`}
+        userConfig={{
+          difficulty: toMissionDifficulty(activeMission.difficulty),
+          quantity: activeMission.quantity ?? 3,
+        }}
+        onSuccess={completeMission}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />
     );

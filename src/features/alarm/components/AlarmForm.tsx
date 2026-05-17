@@ -46,6 +46,12 @@ const DEFAULT_WORD_MISSION: AlarmMission = {
   quantity: 3,
 };
 
+const DEFAULT_MOVEMENT_MISSION: AlarmMission = {
+  type: 'physical',
+  difficulty: 'normal',
+  quantity: 3,
+};
+
 const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   type: 'random',
   difficulty: 'normal',
@@ -228,7 +234,9 @@ export default function AlarmForm({
       ? 'random'
       : mission.type === 'math'
         ? 'math'
-        : 'wordCompletion';
+        : mission.type === 'physical'
+          ? 'physical'
+          : 'wordCompletion';
 
     setEditingMissionIndex(index);
     setConfigSelection(selection);
@@ -255,7 +263,11 @@ export default function AlarmForm({
       return;
     }
 
-    const defaultMission = selection === 'math' ? DEFAULT_MATH_MISSION : DEFAULT_WORD_MISSION;
+    const defaultMission = selection === 'math'
+      ? DEFAULT_MATH_MISSION
+      : selection === 'physical'
+        ? DEFAULT_MOVEMENT_MISSION
+        : DEFAULT_WORD_MISSION;
     const existingMission = editingMissionIndex !== null
       ? configuredMissions[editingMissionIndex] ?? defaultMission
       : defaultMission;
@@ -290,6 +302,15 @@ export default function AlarmForm({
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
         operationType: mission.operationType ?? 'addition',
+        alarmConfigSessionId: sessionId,
+      });
+      return;
+    }
+
+    if (selection === 'physical') {
+      navigation.navigate('AlarmConfigMovementMission', {
+        difficulty: toRuntimeDifficulty(mission.difficulty),
+        quantity: mission.quantity ?? 3,
         alarmConfigSessionId: sessionId,
       });
       return;

@@ -30,6 +30,7 @@ const MovementMissionContext = createContext<MovementMissionContextType>({
   resetMission: () => {},
 });
 
+// Mantiene la configuracion actual de la mision de movimiento
 export function MovementMissionProvider({
   children,
 }: {
@@ -41,6 +42,7 @@ export function MovementMissionProvider({
   const [missionConfig, setMissionConfig] =
     useState<MovementMissionConfig>(DEFAULT_MISSION_CONFIG);
 
+  // Actualiza config del usuario y regenera la secuencia
   const setUserConfig = (config: MovementMissionUserConfig) => {
     setUserConfigState(config);
 
@@ -51,6 +53,7 @@ export function MovementMissionProvider({
   const generateMission = (
     config?: MovementMissionUserConfig,
   ): MovementMissionConfig => {
+    // Genera una nueva mision con la config indicada o la actual
     const configToUse = config ?? userConfig;
 
     const generatedConfig = buildMovementMissionConfig(configToUse);
@@ -61,6 +64,7 @@ export function MovementMissionProvider({
     return generatedConfig;
   };
 
+  // Vuelve a la configuracion inicial
   const resetMission = () => {
     const generatedConfig = buildMovementMissionConfig(DEFAULT_USER_CONFIG);
 
@@ -84,6 +88,7 @@ export function MovementMissionProvider({
   );
 }
 
+// Acceso rapido al contexto de MovementMission
 export function useMovementMissionStore() {
   return useContext(MovementMissionContext);
 }

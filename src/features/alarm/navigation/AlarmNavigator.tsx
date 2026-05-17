@@ -1,5 +1,8 @@
 // src/features/alarm/navigation/AlarmNavigator.tsx
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  createNativeStackNavigator,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import AlarmCreateScreen from '../screens/AlarmCreateScreen';
 import AlarmEditScreen from '../screens/AlarmEditScreen';
@@ -7,6 +10,8 @@ import AlarmRingingScreen from '../screens/AlarmRingingScreen';
 import { Colors } from '../../../shared/theme/colors';
 import { MathMissionConfigScreen } from '../../missions/Math Exercises/screens/MathMissionConfigScreen';
 import { WordCompletionConfigScreen } from '../../missions/wordCompletion/screens/WordCompletionConfigScreen';
+import { MovementMissionConfigScreen } from '../../missions/MovementMission/screens/MovementMissionConfigScreen';
+import { completeAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 
 export type AlarmStackParamList = {
   Home: undefined;
@@ -24,9 +29,44 @@ export type AlarmStackParamList = {
     quantity?: number;
     alarmConfigSessionId: string;
   };
+  AlarmConfigMovementMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<AlarmStackParamList>();
+
+type AlarmConfigMovementMissionProps = NativeStackScreenProps<
+  AlarmStackParamList,
+  'AlarmConfigMovementMission'
+>;
+
+function toAlarmDifficulty(difficulty: 'easy' | 'medium' | 'hard') {
+  return difficulty === 'medium' ? 'normal' : difficulty;
+}
+
+function AlarmConfigMovementMissionScreen({
+  navigation,
+  route,
+}: AlarmConfigMovementMissionProps) {
+  return (
+    <MovementMissionConfigScreen
+      initialDifficulty={route.params?.difficulty}
+      initialQuantity={route.params?.quantity}
+      onConfirm={(config) => {
+        completeAlarmMissionConfigSession(route.params.alarmConfigSessionId, {
+          type: 'physical',
+          difficulty: toAlarmDifficulty(config.difficulty),
+          quantity: config.quantity,
+        });
+
+        navigation.goBack();
+      }}
+    />
+  );
+}
 
 export default function AlarmNavigator() {
   return (
@@ -45,6 +85,10 @@ export default function AlarmNavigator() {
       <Stack.Screen
         name="AlarmConfigWordCompletionMission"
         component={WordCompletionConfigScreen as any}
+      />
+      <Stack.Screen
+        name="AlarmConfigMovementMission"
+        component={AlarmConfigMovementMissionScreen}
       />
       <Stack.Screen
         name="AlarmRinging"

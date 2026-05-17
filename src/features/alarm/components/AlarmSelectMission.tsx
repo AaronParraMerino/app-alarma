@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
 import { MissionType } from '../types/alarm.types';
 
-export type AlarmMissionSelection = 'random' | 'math' | 'wordCompletion';
+export type AlarmMissionSelection = 'random' | 'math' | 'wordCompletion' | 'physical';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -74,11 +74,12 @@ const MISSION_OPTIONS: MissionOption[] = [
     enabled: false,
   },
   {
-    id: 'steps',
-    label: 'Contar Pasos',
+    id: 'movement',
+    label: 'Mision de movimiento',
     icon: 'footsteps-outline',
+    value: 'physical',
     missionType: 'physical',
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'shake',
