@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { Modal } from '../../../shared/components/ui/Modal';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -208,10 +210,18 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 64, paddingBottom: 40 },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: Layout.maxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPaddingWide,
+    paddingTop: 64,
+    paddingBottom: 40,
+  },
   tabRow: {
     flexDirection: 'row', backgroundColor: Colors.bgCard,
-    borderRadius: 10, padding: 4, marginBottom: 24,
+    borderRadius: Layout.controlRadius, padding: 4, marginBottom: 24,
     borderWidth: 1, borderColor: Colors.border,
   },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
@@ -219,14 +229,14 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
   tabTextActive: { color: Colors.white },
   card: {
-    backgroundColor: Colors.bgCard, borderRadius: 16,
-    padding: 24, borderWidth: 1, borderColor: Colors.border, marginBottom: 16,
+    backgroundColor: Colors.bgCard, borderRadius: Layout.cardRadius,
+    padding: Layout.screenPaddingWide, borderWidth: 1, borderColor: Colors.border, marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 22, fontWeight: '800', color: Colors.text,
+    fontSize: Typography.title.fontSize, fontWeight: Typography.title.fontWeight, color: Colors.text,
     marginBottom: 20, textAlign: 'center', letterSpacing: -0.3,
   },
-  label: { fontSize: 13, color: Colors.textSecondary, marginBottom: 6, fontWeight: '500' },
+  label: { fontSize: Typography.label.fontSize, color: Colors.textSecondary, marginBottom: 6, fontWeight: Typography.label.fontWeight },
   input: {
     backgroundColor: Colors.bgElevated, color: Colors.text,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13,

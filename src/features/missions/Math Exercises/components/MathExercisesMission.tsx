@@ -17,6 +17,8 @@ import { useMathExercises } from '../hooks/useMathExercises';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -289,10 +291,10 @@ export function MathExercisesMission({
 
   const feedbackColor =
     feedbackType === 'success'
-      ? '#4ADE80'
+      ? Colors.success
       : feedbackType === 'warning'
       ? style.accentColor
-      : '#F87171';
+      : Colors.danger;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -368,7 +370,7 @@ export function MathExercisesMission({
                 styles.input,
                 {
                   borderColor: state.hasError
-                    ? '#F87171'
+                    ? Colors.danger
                     : style.accentColor + '60',
                   color: style.accentColor,
                   fontSize: width < 380 ? 18 : 22,
@@ -383,7 +385,7 @@ export function MathExercisesMission({
                 }
               }}
               placeholder="0"
-              placeholderTextColor="#334455"
+              placeholderTextColor={Colors.textMuted}
               keyboardType="number-pad"
               maxLength={8}
             />
@@ -416,7 +418,7 @@ export function MathExercisesMission({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
   },
 
   flex: {
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
     paddingTop: 40,
   },
 
@@ -451,33 +453,36 @@ const styles = StyleSheet.create({
 
   time: {
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: Colors.text,
     letterSpacing: -1,
     lineHeight: 56,
   },
 
   dateLabel: {
     fontSize: 12,
-    color: '#556677',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
 
   divider: {
     height: 0.5,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: Colors.border,
     marginHorizontal: 16,
     marginVertical: 10,
   },
 
   body: {
     flex: 1,
-    paddingHorizontal: 18,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingBottom: 16,
   },
 
   instruction: {
     fontSize: 12,
-    color: '#667788',
+    color: Colors.textSecondary,
     marginBottom: 12,
   },
 
@@ -499,9 +504,9 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    backgroundColor: '#161616',
+    backgroundColor: Colors.bgCard,
     borderWidth: 0.5,
-    borderRadius: 10,
+    borderRadius: Layout.controlRadius,
     height: 52,
     textAlign: 'center',
     fontWeight: '500',

@@ -16,6 +16,8 @@ import { useColoredFigures } from '../hooks/useColoredFigures';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -252,10 +254,10 @@ export function ColoredFiguresMission({
 
   const feedbackColor =
     feedbackType === 'success'
-      ? '#4ADE80'
+      ? Colors.success
       : feedbackType === 'warning'
       ? style.accentColor
-      : '#F87171';
+      : Colors.danger;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -299,7 +301,7 @@ export function ColoredFiguresMission({
               }
             }}
             placeholder="Escribe el color"
-            placeholderTextColor="#556677"
+            placeholderTextColor={Colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             style={[
@@ -334,7 +336,7 @@ export function ColoredFiguresMission({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
   },
 
   flex: {
@@ -343,7 +345,10 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 36,
     paddingBottom: 24,
   },
@@ -370,31 +375,31 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 52,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.text,
     lineHeight: 56,
   },
 
   day: {
     fontSize: 14,
-    color: '#8EA4B8',
+    color: Colors.textSecondary,
   },
 
   alarmLabel: {
     fontSize: 12,
-    color: '#556677',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
 
   card: {
-    backgroundColor: '#111A24',
-    borderRadius: 22,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Layout.cardRadius,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#1C2A38',
+    borderColor: Colors.border,
   },
 
   instruction: {
-    color: '#FFFFFF',
+    color: Colors.text,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
@@ -411,7 +416,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderWidth: 1,
-    borderColor: '#FFFFFF30',
+    borderColor: Colors.white + '30',
   },
 
   circle: {
@@ -427,7 +432,7 @@ const styles = StyleSheet.create({
     height: 95,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFFFFF30',
+    borderColor: Colors.white + '30',
   },
 
   diamond: {
@@ -436,7 +441,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     transform: [{ rotate: '45deg' }],
     borderWidth: 1,
-    borderColor: '#FFFFFF30',
+    borderColor: Colors.white + '30',
   },
 
   triangle: {
@@ -452,9 +457,9 @@ const styles = StyleSheet.create({
   input: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bgElevated,
     borderWidth: 2,
-    color: '#FFFFFF',
+    color: Colors.text,
     paddingHorizontal: 14,
     fontSize: 15,
     marginTop: 16,
@@ -462,11 +467,11 @@ const styles = StyleSheet.create({
   },
 
   inputError: {
-    borderColor: '#F87171',
+    borderColor: Colors.danger,
   },
 
   inputSuccess: {
-    borderColor: '#4ADE80',
+    borderColor: Colors.success,
   },
 
   feedbackText: {
@@ -488,7 +493,7 @@ const styles = StyleSheet.create({
   },
 
   confirmBtnText: {
-    color: '#0D0D0D',
+    color: Colors.bg,
     fontSize: 15,
     fontWeight: '700',
   },

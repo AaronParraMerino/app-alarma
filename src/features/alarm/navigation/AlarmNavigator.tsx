@@ -55,6 +55,7 @@ function AlarmConfigMovementMissionScreen({
     <MovementMissionConfigScreen
       initialDifficulty={route.params?.difficulty}
       initialQuantity={route.params?.quantity}
+      onBack={() => navigation.goBack()}
       onConfirm={(config) => {
         completeAlarmMissionConfigSession(route.params.alarmConfigSessionId, {
           type: 'physical',

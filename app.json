@@ -1,10 +1,11 @@
 {
   "expo": {
     "name": "Neuro Wake",
-    "slug": "neuro-wake",
+    "slug": "app-alarma",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "newArchEnabled": false,
     "scheme": [
       "neurowake",
       "appalarma"
@@ -20,10 +21,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0D0F14"
       },
       "intentFilters": [
         {
@@ -41,6 +41,11 @@
               "pathPrefix": "/reset-password"
             },
             {
+              "scheme": "neurowake",
+              "host": "alarm",
+              "pathPrefix": "/ringing"
+            },
+            {
               "scheme": "appalarma",
               "host": "auth",
               "pathPrefix": "/callback"
@@ -49,6 +54,11 @@
               "scheme": "appalarma",
               "host": "auth",
               "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "alarm",
+              "pathPrefix": "/ringing"
             }
           ],
           "category": [
@@ -60,6 +70,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
@@ -76,10 +91,11 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "alarms-default",
+          "defaultChannel": "alarms-v2-default",
           "sounds": [
             "./assets/sounds/blendertimer_cyber_alarms_synthesized_116358.mp3",
             "./assets/sounds/dennish18_biohazard_alarm_143105.mp3",
+            "./assets/sounds/esteno.mp3",
             "./assets/sounds/freesound_community_056338_25_alien_alarms_87068.mp3",
             "./assets/sounds/freesound_community_alarm_26718.mp3",
             "./assets/sounds/freesound_community_alarm_no3_14864.mp3",
@@ -96,6 +112,7 @@
       "@react-native-community/datetimepicker",
       "expo-web-browser",
       "expo-dev-client",
+      "./plugins/withAndroidAlarmFullScreen",
       [
         "expo-splash-screen",
         {

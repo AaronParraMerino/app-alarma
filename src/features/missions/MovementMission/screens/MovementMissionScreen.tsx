@@ -23,6 +23,8 @@ import { SensorBar } from '../components/SensorBar';
 import { StepRing } from '../components/StepRing';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -294,10 +296,10 @@ export function MovementMissionScreen({
                     styles.feedbackText,
                     {
                       color: feedbackType === 'success'
-                        ? '#4ADE80'
+                        ? Colors.success
                         : feedbackType === 'warning'
                         ? style.accentColor
-                        : '#F87171',
+                        : Colors.danger,
                     },
                   ]}
                 >
@@ -338,10 +340,10 @@ function CenteredState({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
+  safe: { flex: 1, backgroundColor: Colors.bg },
   screen: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
     paddingTop: 40,
   },
   pill: {
@@ -354,30 +356,37 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5 },
   timeBlock: { alignItems: 'center', paddingVertical: 10 },
-  time: { fontWeight: '500', color: '#FFFFFF', letterSpacing: -1, lineHeight: 56 },
-  dateLabel: { fontSize: 12, color: '#556677', marginTop: 2 },
-  divider: { height: 0.5, backgroundColor: '#1E1E1E', marginHorizontal: 16, marginVertical: 10 },
-  body: { flex: 1, paddingHorizontal: 18, paddingBottom: 16 },
-  instruction: { fontSize: 12, color: '#667788', marginBottom: 12 },
+  time: { fontWeight: '500', color: Colors.text, letterSpacing: -1, lineHeight: 56 },
+  dateLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  divider: { height: 0.5, backgroundColor: Colors.border, marginHorizontal: 16, marginVertical: 10 },
+  body: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    paddingBottom: 16,
+  },
+  instruction: { fontSize: 12, color: Colors.textSecondary, marginBottom: 12 },
   feedbackText: { fontSize: 11, textAlign: 'center', marginBottom: 8 },
   missionBox: {
     flex: 1,
-    backgroundColor: '#161616',
-    borderRadius: 12,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Layout.controlRadius,
     paddingVertical: 14,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepTitle: {
-    color: '#FFFFFF',
+    color: Colors.text,
     fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 14,
   },
   stepDetail: {
-    color: '#667788',
+    color: Colors.textSecondary,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
@@ -385,16 +394,16 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sensorBlock: { width: '86%', alignItems: 'center', gap: 6 },
-  stepCounter: { color: '#556677', fontSize: 12, marginTop: 10 },
+  stepCounter: { color: Colors.textSecondary, fontSize: 12, marginTop: 10 },
   countdown: {
     flex: 1,
-    backgroundColor: '#161616',
-    borderRadius: 12,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Layout.controlRadius,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countdownNumber: { fontSize: 104, fontWeight: '200', lineHeight: 112 },
-  hint: { fontSize: 11, textAlign: 'center', color: '#667788' },
+  hint: { fontSize: 11, textAlign: 'center', color: Colors.textSecondary },
   confirmBtn: {
     borderRadius: 14,
     height: 50,
@@ -406,18 +415,18 @@ const styles = StyleSheet.create({
   confirmText: { fontSize: 15, fontWeight: '500' },
   centered: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
   },
   stateIcon: {
-    color: '#E0E7FF',
+    color: Colors.text,
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 14,
   },
-  stateTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  stateText: { color: '#667788', fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  stateTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  stateText: { color: Colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 22 },
 });

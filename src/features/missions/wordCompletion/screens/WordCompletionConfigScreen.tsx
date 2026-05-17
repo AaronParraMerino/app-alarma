@@ -4,6 +4,10 @@ import {
   SafeAreaView, StatusBar, useWindowDimensions, ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
+import { Typography } from '../../../../shared/theme/typography';
 import { Difficulty } from '../types/wordCompletion.types';
 import {
   DIFFICULTY_STYLES, EXAMPLE_PREVIEWS,
@@ -60,13 +64,15 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: isSmall ? 14 : 20 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
+
         <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
           <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
             MISIÓN{'\n'}COMPLETAR PALABRAS
@@ -108,8 +114,8 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
                 <View style={[
                   styles.thumb,
                   {
-                    backgroundColor: sliderIdx >= i ? style.accentColor : '#2a2a2a',
-                    borderColor: sliderIdx >= i ? style.accentColor : '#444',
+                    backgroundColor: sliderIdx >= i ? style.accentColor : Colors.bgElevated,
+                    borderColor: sliderIdx >= i ? style.accentColor : Colors.textMuted,
                   },
                 ]} />
               </TouchableOpacity>
@@ -170,23 +176,38 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: { flexGrow: 1, paddingTop: 70, paddingBottom: 24 },
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingTop: 32,
+    paddingBottom: 24,
+  },
+  backButton: {
+    marginBottom: 14,
+  },
   headerPill: {
-    backgroundColor: '#1A6EF5', borderRadius: 24,
+    backgroundColor: Colors.primary, borderRadius: 24,
     paddingHorizontal: 24, alignItems: 'center', marginTop: 8,
   },
-  headerText: { color: '#E0E7FF', fontWeight: '500', textAlign: 'center', letterSpacing: 0.5 },
-  sectionLabel: { color: '#E0E7FF' },
-  subLabel: { color: '#AAAAAA', marginBottom: 8 },
+  headerText: {
+    color: Colors.white,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  sectionLabel: { color: Colors.text },
+  subLabel: { color: Colors.textSecondary, marginBottom: 8 },
   previewBox: {
-    backgroundColor: '#FFFFFF', borderRadius: 12,
+    backgroundColor: Colors.white, borderRadius: 12,
     paddingVertical: 16, paddingHorizontal: 12,
     alignItems: 'center', justifyContent: 'center',
   },
   sliderWrapper: {},
   trackBg: {
-    height: 4, backgroundColor: '#2a2a2a', borderRadius: 2,
+    height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2,
     marginHorizontal: 10, position: 'relative',
     justifyContent: 'center', marginBottom: 14,
   },
@@ -198,19 +219,19 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { color: '#667788' },
-  divider: { height: 0.5, backgroundColor: '#1E1E1E' },
+  labelText: { color: Colors.textMuted },
+  divider: { height: 0.5, backgroundColor: Colors.border },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: '#1A2A3A', borderRadius: 10, paddingHorizontal: 16,
+    backgroundColor: Colors.bgElevated, borderRadius: Layout.controlRadius, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 0.5, borderColor: '#2A4A6A',
+    borderWidth: 0.5, borderColor: Colors.border,
   },
-  quantityNum: { fontWeight: '500', color: '#E0E7FF', minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 11, color: '#AAAAAA' },
-  vecesText: { color: '#AAAAAA' },
+  arrowText: { fontSize: 11, color: Colors.textSecondary },
+  vecesText: { color: Colors.textSecondary },
   confirmBtn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontWeight: '500' },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { Colors } from '../../../../shared/theme/colors';
 import { WordChallenge } from '../types/wordCompletion.types';
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
   textColor?: string;
 }
 
-export function WordDisplay({ challenge, accentColor, accentBg, letterSize = 24, textColor = '#FFFFFF' }: Props) {
+export function WordDisplay({ challenge, accentColor, accentBg, letterSize = 24, textColor = Colors.text }: Props) {
   const { width } = useWindowDimensions();
   const cellSize = Math.min(letterSize, (width - 80) / challenge.word.length);
 
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
   letter: {
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: Colors.text,
     textAlign: 'center',
     fontFamily: 'monospace',
   },

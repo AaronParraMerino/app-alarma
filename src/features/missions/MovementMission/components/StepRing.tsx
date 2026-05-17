@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Colors } from '../../../../shared/theme/colors';
 
 interface StepRingProps {
   progress: number;
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     borderWidth: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#161616',
+    backgroundColor: Colors.bgCard,
     padding: 10,
   },
   content: {
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: Colors.border,
     overflow: 'hidden',
   },
   fill: {

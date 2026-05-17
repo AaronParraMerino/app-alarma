@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
+import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
+import { Typography } from '../../../../shared/theme/typography';
 import { useColoredFiguresStore } from '../store/ColoredFiguresStore';
 import {
   DIFFICULTY_STYLES,
@@ -82,8 +86,9 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       <ScrollView contentContainerStyle={styles.scroll}>
+        <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
 
         <View style={styles.headerPill}>
           <Text style={styles.headerText}>MISIÓN{'\n'}FIGURAS Y COLORES</Text>
@@ -115,7 +120,7 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
               >
                 <View style={[
                   styles.thumb,
-                  { backgroundColor: difficulty === lvl ? style.accentColor : '#444444', borderColor: style.accentColor },
+                  { backgroundColor: difficulty === lvl ? style.accentColor : Colors.bgElevated, borderColor: style.accentColor },
                 ]} />
               </TouchableOpacity>
             ))}
@@ -185,16 +190,31 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#0D0D0D', paddingHorizontal: 20 },
-  scroll: { paddingVertical: 32, gap: 12, paddingBottom: 40 },
+  safe:   { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    paddingVertical: 32,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  backButton: { marginBottom: 2 },
   headerPill: {
-    backgroundColor: '#1A6EF5', borderRadius: 24,
+    backgroundColor: Colors.primary, borderRadius: 24,
     paddingVertical: 10, paddingHorizontal: 24,
     alignItems: 'center', marginTop: 24, marginBottom: 24,
   },
-  headerText:   { color: '#E0E7FF', fontSize: 14, fontWeight: '500', textAlign: 'center', letterSpacing: 0.5 },
-  sectionLabel: { fontSize: 14, color: '#E0E7FF', marginBottom: 6 },
-  subLabel:     { fontSize: 12, color: '#AAAAAA', marginBottom: 8 },
+  headerText:   {
+    color: Colors.white,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  sectionLabel: { fontSize: Typography.sectionTitle.fontSize, color: Colors.text, marginBottom: 6 },
+  subLabel:     { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
   previewBox: {
     borderRadius: 16, paddingVertical: 24, paddingHorizontal: 16,
     alignItems: 'center', justifyContent: 'center',
@@ -203,7 +223,7 @@ const styles = StyleSheet.create({
   previewAnswer: { fontSize: 14, fontWeight: '600', marginTop: 8 },
   sliderWrapper: { marginBottom: 8 },
   trackBg: {
-    height: 4, backgroundColor: '#2a2a2a', borderRadius: 2,
+    height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2,
     marginHorizontal: 10, position: 'relative', justifyContent: 'center', marginBottom: 14,
   },
   trackFill:    { position: 'absolute', left: 0, height: 4, borderRadius: 2 },
@@ -211,25 +231,25 @@ const styles = StyleSheet.create({
   thumb:        { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn:     { flex: 1, alignItems: 'center' },
-  labelText:    { fontSize: 13, color: '#667788' },
-  divider:      { height: 0.5, backgroundColor: '#1E1E1E', marginVertical: 16 },
+  labelText:    { fontSize: 13, color: Colors.textMuted },
+  divider:      { height: 0.5, backgroundColor: Colors.border, marginVertical: 16 },
   colorsGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', paddingVertical: 8 },
   colorItem:    { alignItems: 'center', gap: 6, minWidth: 60 },
   colorSwatch:  { width: 48, height: 48, borderRadius: 24 },
-  swatchBorder: { borderWidth: 1, borderColor: '#555555' },
+  swatchBorder: { borderWidth: 1, borderColor: Colors.border },
   colorLabel:   { fontSize: 11, fontWeight: '500', textAlign: 'center' },
   quantityRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: '#1A2A3A', borderRadius: 10,
+    backgroundColor: Colors.bgElevated, borderRadius: Layout.controlRadius,
     paddingVertical: 10, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 0.5, borderColor: '#2A4A6A',
+    borderWidth: 0.5, borderColor: Colors.border,
   },
-  quantityNum:  { fontSize: 22, fontWeight: '500', color: '#E0E7FF', minWidth: 24, textAlign: 'center' },
+  quantityNum:  { fontSize: 22, fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows:       { gap: 2 },
   arrowBtn:     { paddingHorizontal: 4 },
-  arrowText:    { fontSize: 11, color: '#AAAAAA' },
-  vecesText:    { fontSize: 15, color: '#AAAAAA' },
+  arrowText:    { fontSize: 11, color: Colors.textSecondary },
+  vecesText:    { fontSize: 15, color: Colors.textSecondary },
   spacer:       { flex: 1 },
   confirmBtn:   { borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   confirmText:  { fontSize: 16, fontWeight: '500' },

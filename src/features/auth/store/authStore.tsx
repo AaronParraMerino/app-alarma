@@ -115,9 +115,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const {
           data: { session },
+          error,
         } = await supabase.auth.getSession();
 
         if (!mounted) return;
+
+        if (error) {
+          console.log('[Auth] Sesion local invalida, se limpia:', error.message);
+          await supabase.auth.signOut({ scope: 'local' });
+
+          if (await authService.isGuestSessionSaved()) {
+            dispatch({
+              type: 'LOGIN_GUEST',
+            });
+          } else {
+            dispatch({ type: 'SET_READY' });
+          }
+
+          return;
+        }
 
         /**
          * IMPORTANTE:

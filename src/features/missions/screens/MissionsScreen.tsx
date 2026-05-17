@@ -4,6 +4,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 
 export default function MissionsScreen() {
   return (
@@ -25,22 +27,28 @@ export default function MissionsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   header: {
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 16,
     paddingBottom: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
     letterSpacing: -0.5,
   },
   body: {
     flex: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingHorizontal: 40,
+    paddingHorizontal: Layout.screenPaddingWide,
   },
   soon: {
     fontSize: 18,

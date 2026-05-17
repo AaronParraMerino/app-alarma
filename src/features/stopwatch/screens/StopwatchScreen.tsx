@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 
 type StopwatchStatus = 'idle' | 'running' | 'paused';
 
@@ -244,6 +246,7 @@ export default function StopwatchScreen() {
         data={laps}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <LapRow item={item} />}
+        style={styles.lapsFrame}
         contentContainerStyle={[
           styles.lapsList,
           laps.length === 0 && styles.emptyList,
@@ -268,7 +271,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg,
   },
   header: {
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 16,
     paddingBottom: 14,
     flexDirection: 'row',
@@ -276,8 +282,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
   },
   statusBadge: {
@@ -313,9 +319,11 @@ const styles = StyleSheet.create({
     color: Colors.success,
   },
   timerPanel: {
-    marginHorizontal: 16,
+    width: '90%',
+    maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
+    alignSelf: 'center',
     backgroundColor: Colors.bgCard,
-    borderRadius: 18,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.primary + '33',
     paddingHorizontal: 18,
@@ -350,7 +358,9 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     gap: 10,
-    marginHorizontal: 16,
+    width: '90%',
+    maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
+    alignSelf: 'center',
     marginTop: 14,
   },
   controlButton: {
@@ -382,7 +392,9 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
+    width: '90%',
+    maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
+    alignSelf: 'center',
     marginTop: 14,
     backgroundColor: Colors.bgCard,
     borderRadius: 14,
@@ -413,10 +425,13 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   lapsHeader: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
     marginTop: 22,
     marginBottom: 8,
   },
@@ -434,6 +449,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 28,
     gap: 8,
+  },
+  lapsFrame: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
   },
   emptyList: {
     flexGrow: 1,

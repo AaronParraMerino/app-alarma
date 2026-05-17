@@ -11,11 +11,16 @@ import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { getAlarmsLocal } from '../../../shared/services/storage/localDB.service';
 import { MathExercisesMission } from '../../missions/Math Exercises/components/MathExercisesMission';
 import { OperationType } from '../../missions/Math Exercises/types/mathExercises.types';
 import { WordCompletionMission } from '../../missions/wordCompletion/components/WordCompletionMission';
 import { MovementMissionScreen } from '../../missions/MovementMission/screens/MovementMissionScreen';
-import { cancelAlarmNotificationsByAlarmId } from '../services/alarmScheduler';
+import {
+  dismissRingingAlarmByAlarmId,
+  isNativeAndroidAlarmAvailable,
+} from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
@@ -50,8 +55,13 @@ function toMissionDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard'
 
 export default function AlarmRingingScreen({ route, navigation }: Props) {
   const { alarms, updateAlarm } = useAlarmStore();
-  const alarm = alarms.find(a => a.id === route.params.alarmId);
+  const alarmId = route.params.alarmId;
+  const alarm = useMemo(
+    () => alarms.find(a => a.id === alarmId) ?? getAlarmsLocal().find(a => a.id === alarmId),
+    [alarms, alarmId],
+  );
   const alarmSoundAsset = getAlarmSoundAsset(alarm?.soundUri ?? null);
+  const shouldUseJsAudio = !isNativeAndroidAlarmAvailable();
   const player = useAudioPlayer(alarmSoundAsset, {
     keepAudioSessionActive: true,
   });
@@ -103,7 +113,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   }, [alarm?.id]);
 
   useEffect(() => {
-    if (!alarm || !alarmSoundAsset) return;
+    if (!alarm || !alarmSoundAsset || !shouldUseJsAudio) return;
 
     let mounted = true;
 
@@ -136,7 +146,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         console.log('[AlarmRinging] No se pudo detener el sonido:', error);
       }
     };
-  }, [alarm, alarmSoundAsset, player]);
+  }, [alarm, alarmSoundAsset, player, shouldUseJsAudio]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -151,7 +161,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       return;
     }
 
-    await cancelAlarmNotificationsByAlarmId(alarm.id);
+    await dismissRingingAlarmByAlarmId(alarm.id);
     player.pause();
     await player.seekTo(0);
 
@@ -247,7 +257,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#06080E',
+    backgroundColor: Colors.bg,
   },
   centered: {
     flex: 1,
@@ -263,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    backgroundColor: '#0A0F1A',
+    backgroundColor: Colors.bgCard,
     paddingHorizontal: 20,
   },
   missionSection: {
@@ -275,9 +285,12 @@ const styles = StyleSheet.create({
   },
   normalAlarmSection: {
     flex: 5,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: Layout.screenPaddingWide,
     paddingVertical: 24,
     gap: 10,
   },

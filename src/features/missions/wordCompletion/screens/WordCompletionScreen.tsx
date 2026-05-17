@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { Colors } from '../../../../shared/theme/colors';
 import { WordCompletionConfig } from '../types/wordCompletion.types';
 import { DIFFICULTY_STYLES } from '../constants/wordCompletion.config';
 import { WordCompletionMission } from '../components/WordCompletionMission';
@@ -44,7 +45,7 @@ export function WordCompletionScreen({ config, onAllCompleted, alarmLabel }: Pro
                   styles.dot,
                   i < current && { backgroundColor: style.accentColor + '60' },
                   i === current && { backgroundColor: style.accentColor },
-                  i > current && { backgroundColor: '#2a2a2a' },
+                  i > current && { backgroundColor: Colors.bgElevated },
                 ]}
               />
             ))}
@@ -59,11 +60,11 @@ export function WordCompletionScreen({ config, onAllCompleted, alarmLabel }: Pro
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   progressBar: {
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
     borderTopWidth: 0.5,
-    borderTopColor: '#1E1E1E',
+    borderTopColor: Colors.border,
     paddingVertical: 8,
     paddingHorizontal: 20,
     flexDirection: 'row',
