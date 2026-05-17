@@ -45,6 +45,11 @@ const MISSION_META: Record<string, { label: string; icon: IconName; color: strin
     icon: 'footsteps-outline',
     color: Colors.missionColors.physical ?? Colors.primaryLight,
   },
+  color: {
+    label: 'Figuras y colores',
+    icon: 'color-palette-outline',
+    color: Colors.missionColors.color ?? Colors.primaryLight,
+  },
 };
 
 const RANDOM_META = {

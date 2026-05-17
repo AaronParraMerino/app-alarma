@@ -55,6 +55,12 @@ const DEFAULT_MOVEMENT_MISSION: AlarmMission = {
   quantity: 3,
 };
 
+const DEFAULT_COLOR_MISSION: AlarmMission = {
+  type: 'color',
+  difficulty: 'normal',
+  quantity: 3,
+};
+
 const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   type: 'random',
   difficulty: 'normal',
@@ -239,7 +245,9 @@ export default function AlarmForm({
         ? 'math'
         : mission.type === 'physical'
           ? 'physical'
-          : 'wordCompletion';
+          : mission.type === 'color'
+            ? 'color'
+            : 'wordCompletion';
 
     setEditingMissionIndex(index);
     setConfigSelection(selection);
@@ -270,7 +278,9 @@ export default function AlarmForm({
       ? DEFAULT_MATH_MISSION
       : selection === 'physical'
         ? DEFAULT_MOVEMENT_MISSION
-        : DEFAULT_WORD_MISSION;
+        : selection === 'color'
+          ? DEFAULT_COLOR_MISSION
+          : DEFAULT_WORD_MISSION;
     const existingMission = editingMissionIndex !== null
       ? configuredMissions[editingMissionIndex] ?? defaultMission
       : defaultMission;
@@ -312,6 +322,15 @@ export default function AlarmForm({
 
     if (selection === 'physical') {
       navigation.navigate('AlarmConfigMovementMission', {
+        difficulty: toRuntimeDifficulty(mission.difficulty),
+        quantity: mission.quantity ?? 3,
+        alarmConfigSessionId: sessionId,
+      });
+      return;
+    }
+
+    if (selection === 'color') {
+      navigation.navigate('AlarmConfigColoredFiguresMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
         alarmConfigSessionId: sessionId,

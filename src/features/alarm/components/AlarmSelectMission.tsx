@@ -10,7 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
 import { MissionType } from '../types/alarm.types';
 
-export type AlarmMissionSelection = 'random' | 'math' | 'wordCompletion' | 'physical';
+export type AlarmMissionSelection =
+  | 'random'
+  | 'math'
+  | 'wordCompletion'
+  | 'physical'
+  | 'color';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -54,10 +59,11 @@ const MISSION_OPTIONS: MissionOption[] = [
   },
   {
     id: 'color',
-    label: 'Encontrar patrones de Color',
+    label: 'Figuras y colores',
     icon: 'color-palette-outline',
+    value: 'color',
     missionType: 'color',
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'photo',
@@ -83,9 +89,9 @@ const MISSION_OPTIONS: MissionOption[] = [
   },
   {
     id: 'shake',
-    label: 'Agita tu Telefono',
-    icon: 'phone-portrait-outline',
-    missionType: 'physical',
+    label: 'Encuentra el color diferente',
+    icon: 'grid-outline',
+    missionType: 'color',
     enabled: false,
   },
   {
