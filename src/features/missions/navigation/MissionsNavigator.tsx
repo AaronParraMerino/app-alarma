@@ -124,6 +124,7 @@ function ConfigMovementMissionRoute({ navigation, route }: ConfigMovementMission
     <MovementMissionConfigScreen
       initialDifficulty={route.params?.difficulty}
       initialQuantity={route.params?.quantity}
+      onBack={() => navigation.goBack()}
       onConfirm={(config) => {
         setUserConfig(config);
 

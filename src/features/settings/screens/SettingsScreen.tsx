@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { useAuth } from '../../auth/store/authStore';
 import { ProfileStackParamList } from '../../profile/navigation/ProfileNavigator';
@@ -176,26 +178,31 @@ export default function SettingsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingBottom: 20 },
+  scroll: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingBottom: 20,
+  },
 
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 16,
     paddingBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
     letterSpacing: -0.5,
   },
 
   // Tarjeta logueado
   profileCard: {
-    marginHorizontal: 16,
+    marginHorizontal: Layout.screenPadding,
     marginBottom: 24,
     backgroundColor: Colors.bgCard,
-    borderRadius: 18,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.primary + '44',
     padding: 16,
@@ -242,18 +249,18 @@ const styles = StyleSheet.create({
   // Secciones
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: Typography.label.fontWeight,
     color: Colors.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
     marginBottom: 8,
   },
   section: {
-    marginHorizontal: 16,
+    marginHorizontal: Layout.screenPadding,
     marginBottom: 20,
     backgroundColor: Colors.bgCard,
-    borderRadius: 16,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',

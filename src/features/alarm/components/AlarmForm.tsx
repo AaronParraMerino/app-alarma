@@ -11,7 +11,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { RandomMissionConfig } from '../../missions/random/components/RandomMissionConfig';
 import { registerAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
@@ -436,9 +439,7 @@ export default function AlarmForm({
   return (
     <>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.85}>
-          <Text style={styles.backBtnText}>{'<'}</Text>
-        </TouchableOpacity>
+        <BackButton onPress={onBack} style={styles.backBtn} />
         <Text style={styles.title}>{title}</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -594,7 +595,7 @@ export default function AlarmForm({
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 10,
     paddingBottom: 12,
     flexDirection: 'row',
@@ -602,37 +603,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  backBtnText: {
-    color: Colors.text,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '900',
+    minWidth: 76,
   },
   headerSpacer: {
-    width: 36,
+    width: 76,
   },
   title: {
     color: Colors.text,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: Typography.title.fontWeight,
   },
   content: {
-    paddingHorizontal: 16,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingBottom: 28,
     gap: 12,
   },
   card: {
     backgroundColor: Colors.bgCard,
-    borderRadius: 16,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: 14,
@@ -640,13 +631,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: Colors.text,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
   },
   inlineWheelFrame: {
     height: WHEEL_HEIGHT,
     borderRadius: 14,
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
     overflow: 'hidden',
   },
   input: {
@@ -867,19 +858,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   wheelItemText: {
-    color: '#2C2D33',
+    color: Colors.textMuted,
     fontSize: 40,
     lineHeight: 50,
     fontWeight: '500',
   },
   wheelItemTextActive: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 48,
     lineHeight: 56,
     fontWeight: '700',
   },
   wheelSeparator: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 46,
     lineHeight: 54,
     fontWeight: '800',

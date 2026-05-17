@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
 import { MISSION_LABELS } from '../../missions/constants/missions';
 import { generateChallenges } from '../../missions/wordCompletion/constants/wordCompletion.config';
 import { WordCompletionService } from '../../missions/wordCompletion/services/WordCompletionService';
@@ -265,11 +266,11 @@ export default function AlarmMissionChallenge({
 const styles = StyleSheet.create({
   card: {
     width: '100%',
-    maxWidth: 560,
-    backgroundColor: '#101727',
-    borderRadius: 20,
+    maxWidth: Layout.maxWideContentWidth,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: '#1A2741',
+    borderColor: Colors.border,
     padding: 18,
     alignItems: 'center',
     gap: 12,

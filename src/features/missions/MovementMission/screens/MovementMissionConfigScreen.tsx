@@ -10,6 +10,10 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
+import { Typography } from '../../../../shared/theme/typography';
 import { MovementDifficulty, MovementMissionUserConfig } from '../types/movement.types';
 import {
   ALL_MOVEMENT_STEPS,
@@ -22,6 +26,7 @@ import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 
 interface MovementMissionConfigScreenProps {
   onConfirm: (config: MovementMissionUserConfig) => void;
+  onBack?: () => void;
   initialDifficulty?: MovementDifficulty;
   initialQuantity?: number;
 }
@@ -31,6 +36,7 @@ const LEVELS: MovementDifficulty[] = ['easy', 'medium', 'hard'];
 // Pantalla para elegir dificultad y cantidad de movimientos
 export function MovementMissionConfigScreen({
   onConfirm,
+  onBack,
   initialDifficulty = 'easy',
   initialQuantity = 3,
 }: MovementMissionConfigScreenProps) {
@@ -55,13 +61,15 @@ export function MovementMissionConfigScreen({
   // La cantidad se limita entre el minimo y maximo permitidos
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: isSmall ? 14 : 20 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {onBack ? <BackButton style={styles.backButton} onPress={onBack} /> : null}
+
         <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
           <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
             MISION{'\n'}DE MOVIMIENTO
@@ -124,8 +132,8 @@ export function MovementMissionConfigScreen({
                   style={[
                     styles.thumb,
                     {
-                      backgroundColor: sliderIdx >= index ? style.accentColor : '#2a2a2a',
-                      borderColor: sliderIdx >= index ? style.accentColor : '#444',
+                      backgroundColor: sliderIdx >= index ? style.accentColor : Colors.bgElevated,
+                      borderColor: sliderIdx >= index ? style.accentColor : Colors.textMuted,
                     },
                   ]}
                 />
@@ -199,20 +207,35 @@ export function MovementMissionConfigScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: { flexGrow: 1, paddingTop: 70, paddingBottom: 24 },
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingTop: 32,
+    paddingBottom: 24,
+  },
+  backButton: {
+    marginBottom: 14,
+  },
   headerPill: {
-    backgroundColor: '#1A6EF5',
+    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
     marginTop: 8,
   },
-  headerText: { color: '#E0E7FF', fontWeight: '500', textAlign: 'center', letterSpacing: 0.5 },
-  sectionLabel: { color: '#E0E7FF' },
-  subLabel: { color: '#AAAAAA', marginBottom: 8 },
+  headerText: {
+    color: Colors.white,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  sectionLabel: { color: Colors.text },
+  subLabel: { color: Colors.textSecondary, marginBottom: 8 },
   previewBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 12,
@@ -224,11 +247,11 @@ const styles = StyleSheet.create({
   exampleRow: { flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' },
   exampleItem: { flex: 1, alignItems: 'center', gap: 6, minWidth: 0 },
   exampleImage: { width: 90, height: 90 },
-  exampleLabel: { color: '#1F2937', fontSize: 11, textAlign: 'center', lineHeight: 14, fontWeight: '600' },
+  exampleLabel: { color: Colors.bgElevated, fontSize: 11, textAlign: 'center', lineHeight: 14, fontWeight: '600' },
   sliderWrapper: {},
   trackBg: {
     height: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
@@ -248,24 +271,24 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { color: '#667788' },
-  divider: { height: 0.5, backgroundColor: '#1E1E1E' },
+  labelText: { color: Colors.textMuted },
+  divider: { height: 0.5, backgroundColor: Colors.border },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: '#1A2A3A',
-    borderRadius: 10,
+    backgroundColor: Colors.bgElevated,
+    borderRadius: Layout.controlRadius,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.5,
-    borderColor: '#2A4A6A',
+    borderColor: Colors.border,
   },
-  quantityNum: { fontWeight: '500', color: '#E0E7FF', minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 11, color: '#AAAAAA' },
-  vecesText: { color: '#AAAAAA' },
+  arrowText: { fontSize: 11, color: Colors.textSecondary },
+  vecesText: { color: Colors.textSecondary },
   confirmBtn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontWeight: '500' },
 });

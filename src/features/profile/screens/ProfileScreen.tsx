@@ -13,6 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
+import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { useAuth } from '../../auth/store/authStore';
@@ -141,15 +144,9 @@ export default function ProfileScreen({ navigation }: Props) {
 
       {/* Cabecera con botón de regreso */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
         <Text style={styles.topBarTitle}>Mi perfil</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 76 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -293,29 +290,30 @@ export default function ProfileScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingBottom: 20 },
+  scroll: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingBottom: 20,
+  },
 
   // Top bar
   topBar: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: Layout.screenPadding,
     paddingVertical: 12,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    minWidth: 76,
   },
   topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: Typography.action.fontSize,
+    fontWeight: Typography.action.fontWeight,
     color: Colors.text,
   },
 
@@ -323,7 +321,7 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: 'center',
     paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
   },
   avatarWrap: { marginBottom: 16 },
   avatarRing: {
@@ -370,7 +368,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginHorizontal: 16,
+    marginHorizontal: Layout.screenPadding,
     marginBottom: 24,
   },
   statCard: {
@@ -404,18 +402,18 @@ const styles = StyleSheet.create({
   // Secciones
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: Typography.label.fontWeight,
     color: Colors.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenPadding,
     marginBottom: 8,
   },
   section: {
-    marginHorizontal: 16,
+    marginHorizontal: Layout.screenPadding,
     marginBottom: 20,
     backgroundColor: Colors.bgCard,
-    borderRadius: 16,
+    borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',

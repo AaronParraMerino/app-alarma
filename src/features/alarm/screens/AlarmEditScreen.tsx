@@ -1,7 +1,8 @@
 import React from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Colors } from '../../../shared/theme/colors';
 import AlarmForm from '../components/AlarmForm';
 import { useAlarmStore } from '../store/alarmStore';
@@ -18,9 +19,7 @@ export default function AlarmEditScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Alarma no encontrada</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>Volver</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => navigation.goBack()} />
         </View>
       </SafeAreaView>
     );
@@ -70,17 +69,6 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: Colors.text,
     fontSize: 18,
-    fontWeight: '700',
-  },
-  backButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  backButtonText: {
-    color: Colors.white,
-    fontSize: 14,
     fontWeight: '700',
   },
 });

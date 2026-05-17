@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 
 // Palabras
@@ -38,9 +41,9 @@ type NavigationProp = NativeStackNavigationProp<
 >;
 
 const MOVEMENT_BG_COLORS: Record<Difficulty, string> = {
-  easy: '#1A3D2B',
-  medium: '#3D2E0A',
-  hard: '#3D1010',
+  easy: Colors.successDim,
+  medium: Colors.warningDim,
+  hard: Colors.dangerDim,
 };
 
 export default function MissionSelectorScreen() {
@@ -258,35 +261,38 @@ export default function MissionSelectorScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: Colors.bg,
   },
 
   scroll: {
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingVertical: 32,
     gap: 18,
     flexGrow: 1,
   },
 
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
+    color: Colors.text,
     marginBottom: 6,
     textAlign: 'center',
   },
 
   card: {
-    backgroundColor: '#111827',
-    borderRadius: 18,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Layout.cardRadius,
     padding: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#1F2937',
+    borderColor: Colors.border,
   },
 
   cardTitle: {
-    color: '#FFFFFF',
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -294,7 +300,7 @@ const styles = StyleSheet.create({
   },
 
   btn: {
-    backgroundColor: '#1A6EF5',
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
@@ -302,7 +308,7 @@ const styles = StyleSheet.create({
   },
 
   btnText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 15,
     fontWeight: '500',
   },
@@ -322,7 +328,7 @@ const styles = StyleSheet.create({
 
   summary: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 });

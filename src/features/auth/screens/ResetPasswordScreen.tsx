@@ -15,8 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { authService } from '../services/authService';
+import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 
 
@@ -92,6 +95,10 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {!completed ? (
+          <BackButton style={styles.backBtn} onPress={cancelRecovery} />
+        ) : null}
+
         <View style={styles.card}>
           <View style={styles.iconCircle}>
             <Ionicons
@@ -188,14 +195,20 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 82,
+    width: '100%',
+    maxWidth: Layout.maxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPaddingWide,
+    paddingTop: 58,
     paddingBottom: 40,
+  },
+  backBtn: {
+    marginBottom: 22,
   },
   card: {
     backgroundColor: Colors.bgCard,
-    borderRadius: 18,
-    padding: 24,
+    borderRadius: Layout.cardRadius,
+    padding: Layout.screenPaddingWide,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -212,24 +225,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary + '55',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: Typography.body.fontSize,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 22,
   },
   label: {
-    fontSize: 13,
+    fontSize: Typography.label.fontSize,
     color: Colors.textSecondary,
     marginBottom: 6,
-    fontWeight: '600',
+    fontWeight: Typography.label.fontWeight,
   },
   inputWrap: {
     flexDirection: 'row',

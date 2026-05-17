@@ -15,8 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { authService } from '../services/authService';
+import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 
 
@@ -88,14 +91,10 @@ export default function VerifyRecoveryCodeScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity
+        <BackButton
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-          <Text style={styles.backText}>Volver</Text>
-        </TouchableOpacity>
+        />
 
         <View style={styles.card}>
           <View style={styles.iconCircle}>
@@ -160,26 +159,20 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    width: '100%',
+    maxWidth: Layout.maxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPaddingWide,
     paddingTop: 58,
     paddingBottom: 40,
   },
   backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
     marginBottom: 22,
-    gap: 4,
-  },
-  backText: {
-    color: Colors.text,
-    fontSize: 15,
-    fontWeight: '600',
   },
   card: {
     backgroundColor: Colors.bgCard,
-    borderRadius: 18,
-    padding: 24,
+    borderRadius: Layout.cardRadius,
+    padding: Layout.screenPaddingWide,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -196,24 +189,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary + '55',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: Typography.body.fontSize,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 22,
   },
   label: {
-    fontSize: 13,
+    fontSize: Typography.label.fontSize,
     color: Colors.textSecondary,
     marginBottom: 6,
-    fontWeight: '600',
+    fontWeight: Typography.label.fontWeight,
   },
   codeInput: {
     backgroundColor: Colors.bgElevated,

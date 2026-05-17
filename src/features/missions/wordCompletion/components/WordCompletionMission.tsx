@@ -11,6 +11,8 @@ import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -235,7 +237,7 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
               style={[
                 styles.input,
                 {
-                  borderColor: state.hasError ? '#F87171' : style.accentColor + '60',
+                  borderColor: state.hasError ? Colors.danger : style.accentColor + '60',
                   color: style.accentColor,
                   fontSize: width < 380 ? 18 : 22,
                 },
@@ -250,7 +252,7 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
               }}
               autoCapitalize="characters"
               placeholder={Array(maxLength).fill('_').join(' ')}
-              placeholderTextColor="#334455"
+              placeholderTextColor={Colors.textMuted}
               maxLength={maxLength}
             />
 
@@ -260,10 +262,10 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
                   styles.feedbackText,
                   {
                     color: feedbackType === 'success'
-                      ? '#4ADE80'
+                      ? Colors.success
                       : feedbackType === 'warning'
                       ? style.accentColor
-                      : '#F87171',
+                      : Colors.danger,
                   },
                 ]}
               >
@@ -293,11 +295,11 @@ export function WordCompletionMission({ difficulty: initialDifficulty, quantity,
 
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
+  safe: { flex: 1, backgroundColor: Colors.bg },
   flex: { flex: 1 },
   screen: {
   flex: 1,
-  backgroundColor: '#0D0D0D',
+  backgroundColor: Colors.bg,
   paddingTop: 40,
   },
   pill: {
@@ -307,18 +309,25 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5 },
   timeBlock: { alignItems: 'center', paddingVertical: 10 },
-  time: { fontWeight: '500', color: '#FFFFFF', letterSpacing: -1, lineHeight: 56 },
-  dateLabel: { fontSize: 12, color: '#556677', marginTop: 2 },
-  divider: { height: 0.5, backgroundColor: '#1E1E1E', marginHorizontal: 16, marginVertical: 10 },
-  body: { flex: 1, paddingHorizontal: 18, paddingBottom: 16 },
-  instruction: { fontSize: 12, color: '#667788', marginBottom: 12 },
+  time: { fontWeight: '500', color: Colors.text, letterSpacing: -1, lineHeight: 56 },
+  dateLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  divider: { height: 0.5, backgroundColor: Colors.border, marginHorizontal: 16, marginVertical: 10 },
+  body: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    paddingBottom: 16,
+  },
+  instruction: { fontSize: 12, color: Colors.textSecondary, marginBottom: 12 },
   wordBox: {
-    backgroundColor: '#161616', borderRadius: 12,
+    backgroundColor: Colors.bgCard, borderRadius: Layout.controlRadius,
     paddingVertical: 14, paddingHorizontal: 10,
     alignItems: 'center', marginBottom: 4,
   },
   input: {
-    backgroundColor: '#161616', borderWidth: 0.5, borderRadius: 10,
+    backgroundColor: Colors.bgCard, borderWidth: 0.5, borderRadius: Layout.controlRadius,
     height: 52, textAlign: 'center', fontWeight: '500',
     fontFamily: 'monospace', marginBottom: 6,
   },

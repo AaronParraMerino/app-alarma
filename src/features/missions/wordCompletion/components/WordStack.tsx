@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '../../../../shared/theme/colors';
 import { WordChallenge } from '../types/wordCompletion.types';
 import { WordDisplay } from './WordDisplay';
 
@@ -37,8 +38,8 @@ export function WordStack({ challenges, currentIndex, completedIndexes, accentCo
             </Text>
             <WordDisplay
               challenge={challenge}
-              accentColor={isPending ? '#333333' : accentColor}
-              accentBg={isPending ? '#111111' : accentBg}
+              accentColor={isPending ? Colors.textMuted : accentColor}
+              accentBg={isPending ? Colors.bgCard : accentBg}
               letterSize={20}
             />
           </View>
@@ -51,7 +52,7 @@ export function WordStack({ challenges, currentIndex, completedIndexes, accentCo
 const styles = StyleSheet.create({
   container: { gap: 8 },
   card: {
-    backgroundColor: '#161616',
+    backgroundColor: Colors.bgCard,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -59,6 +60,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: '#445566',
+    color: Colors.textMuted,
   },
 });

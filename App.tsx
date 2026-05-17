@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 
 import { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image, Linking } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initDB } from './src/shared/db/localDB';
@@ -40,12 +40,28 @@ function AppContent() {
     WordSeedService.seedIfNeeded();
     void setupAlarmNotificationsAsync();
 
+    let mounted = true;
+    void Linking.getInitialURL().then(url => {
+      if (mounted && url?.includes('://alarm/ringing/')) {
+        setShowIntro(false);
+      }
+    });
+
     const timer = setTimeout(() => {
       setShowIntro(false);
     }, SPLASH_DURATION_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!showIntro) {
+      void SplashScreen.hideAsync();
+    }
+  }, [showIntro]);
 
   useEffect(() => {
     if (!isAuthenticated || isGuest || !userId) {

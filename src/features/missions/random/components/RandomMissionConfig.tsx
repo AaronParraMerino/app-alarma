@@ -8,6 +8,10 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
+import { Typography } from '../../../../shared/theme/typography';
 import {
   RANDOM_AVAILABLE_MISSIONS,
   RANDOM_MISSION_DEFAULT_CONFIG,
@@ -39,20 +43,20 @@ const DIFFICULTY_META: Record<
 > = {
   easy: {
     label: 'Facil',
-    color: '#4ADE80',
-    textColor: '#052010',
+    color: Colors.success,
+    textColor: Colors.bg,
     detail: 'Retos cortos para apagar rapido.',
   },
   medium: {
     label: 'Medio',
-    color: '#FBBF24',
-    textColor: '#1A0E00',
+    color: Colors.warning,
+    textColor: Colors.bg,
     detail: 'Equilibrio entre rapidez y concentracion.',
   },
   hard: {
     label: 'Dificil',
-    color: '#F87171',
-    textColor: '#1A0000',
+    color: Colors.danger,
+    textColor: Colors.bg,
     detail: 'Mayor esfuerzo para despertar bien.',
   },
 };
@@ -83,12 +87,10 @@ export function RandomMissionConfig({
 
   return (
     <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {onBack ? (
-          <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.85}>
-            <Text style={styles.backText}>{'<'}</Text>
-          </TouchableOpacity>
+          <BackButton style={styles.backButton} onPress={onBack} />
         ) : null}
 
         <View style={styles.headerPill}>
@@ -176,8 +178,8 @@ export function RandomMissionConfig({
                   style={[
                     styles.thumb,
                     {
-                      backgroundColor: sliderIdx >= index ? selected.color : '#2A2A2A',
-                      borderColor: sliderIdx >= index ? selected.color : '#444444',
+                      backgroundColor: sliderIdx >= index ? selected.color : Colors.bgElevated,
+                      borderColor: sliderIdx >= index ? selected.color : Colors.textMuted,
                     },
                   ]}
                 />
@@ -246,21 +248,22 @@ export function RandomMissionConfig({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 32, gap: 12, paddingBottom: 40 },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#172033',
-    borderWidth: 1,
-    borderColor: '#26324A',
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    paddingVertical: 32,
+    gap: 12,
+    paddingBottom: 40,
   },
-  backText: { color: '#E0E7FF', fontSize: 18, fontWeight: '900' },
+  backButton: {
+    marginBottom: 2,
+  },
   headerPill: {
-    backgroundColor: '#1A6EF5',
+    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 10,
     paddingHorizontal: 24,
@@ -269,21 +272,21 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerText: {
-    color: '#E0E7FF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: Colors.white,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { fontSize: 14, color: '#E0E7FF', marginBottom: 6 },
-  description: { color: '#AAAAAA', fontSize: 13, lineHeight: 19 },
+  sectionLabel: { fontSize: Typography.sectionTitle.fontSize, color: Colors.text, marginBottom: 6 },
+  description: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19 },
   missionList: { gap: 10, marginTop: 4 },
   missionRow: {
     minHeight: 68,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#26324A',
-    backgroundColor: '#121A2A',
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgCard,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -297,12 +300,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D0F14',
+    backgroundColor: Colors.bg,
   },
   missionCopy: { flex: 1, gap: 2 },
-  missionTitle: { color: '#F0F2F7', fontSize: 13, fontWeight: '800' },
-  missionDescription: { color: '#8A93B2', fontSize: 12, lineHeight: 16 },
-  divider: { height: 1, backgroundColor: '#1E1E1E', marginVertical: 16 },
+  missionTitle: { color: Colors.text, fontSize: 13, fontWeight: '800' },
+  missionDescription: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16 },
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 16 },
   countGrid: {
     flexDirection: 'row',
     gap: 8,
@@ -313,13 +316,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2A4A6A',
-    backgroundColor: '#1A2A3A',
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countText: {
-    color: '#E0E7FF',
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
   sliderWrapper: { marginBottom: 8 },
   trackBg: {
     height: 4,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
@@ -347,10 +350,10 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { fontSize: 13, color: '#667788' },
+  labelText: { fontSize: 13, color: Colors.textMuted },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: '#1A2A3A',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -358,13 +361,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#2A4A6A',
+    borderColor: Colors.border,
   },
-  quantityNum: { fontSize: 22, fontWeight: '700', color: '#E0E7FF', minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontSize: 22, fontWeight: '700', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 14, color: '#AAAAAA', fontWeight: '800' },
-  vecesText: { fontSize: 15, color: '#AAAAAA' },
+  arrowText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '800' },
+  vecesText: { fontSize: 15, color: Colors.textSecondary },
   spacer: { flex: 1, minHeight: 14 },
   confirmBtn: { borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   confirmText: { fontSize: 16, fontWeight: '800' },

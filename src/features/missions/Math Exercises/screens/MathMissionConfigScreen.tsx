@@ -11,6 +11,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
+import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Colors } from '../../../../shared/theme/colors';
+import { Layout } from '../../../../shared/theme/layout';
+import { Typography } from '../../../../shared/theme/typography';
 import { useMathExercisesStore } from '../store/mathExercisesStore';
 import { DIFFICULTY_STYLES, OPERATION_SYMBOLS, generateExpression } from '../constants/mathExercises.config';
 import { Difficulty, OperationType, GeneratedExpression } from '../types/mathExercises.types';
@@ -77,8 +81,10 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       <ScrollView contentContainerStyle={styles.scroll}>
+        <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
+
         <View style={styles.headerPill}>
           <Text style={styles.headerText}>MISIÓN{'\n'}MATEMÁTICAS</Text>
         </View>
@@ -114,11 +120,11 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
               >
                 <View
                   style={[
-                    styles.thumb,
-                    {
-                      backgroundColor: difficulty === lvl ? style.accentColor : '#444444',
+                  styles.thumb,
+                  {
+                      backgroundColor: difficulty === lvl ? style.accentColor : Colors.bgElevated,
                       borderColor: style.accentColor,
-                    },
+                  },
                   ]}
                 />
               </TouchableOpacity>
@@ -222,10 +228,21 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D', paddingHorizontal: 20 },
-  scroll: { paddingVertical: 32, gap: 12, paddingBottom: 40 },
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    paddingVertical: 32,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  backButton: {
+    marginBottom: 2,
+  },
   headerPill: {
-    backgroundColor: '#1A6EF5',
+    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 10,
     paddingHorizontal: 24,
@@ -234,16 +251,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerText: {
-    color: '#E0E7FF',
-    fontSize: 14,
-    fontWeight: '500',
+    color: Colors.white,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { fontSize: 14, color: '#E0E7FF', marginBottom: 6 },
-  subLabel: { fontSize: 12, color: '#AAAAAA', marginBottom: 8 },
+  sectionLabel: { fontSize: Typography.sectionTitle.fontSize, color: Colors.text, marginBottom: 6 },
+  subLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
   previewBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 12,
@@ -260,7 +277,7 @@ const styles = StyleSheet.create({
   sliderWrapper: { marginBottom: 8 },
   trackBg: {
     height: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
@@ -280,25 +297,25 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { fontSize: 13, color: '#667788' },
-  divider: { height: 0.5, backgroundColor: '#1E1E1E', marginVertical: 16 },
+  labelText: { fontSize: 13, color: Colors.textMuted },
+  divider: { height: 0.5, backgroundColor: Colors.border, marginVertical: 16 },
   operationsGrid: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
   operationBtn: {
     flex: 1,
-    backgroundColor: '#1A2A3A',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 0.5,
-    borderColor: '#2A4A6A',
+    borderColor: Colors.border,
   },
-  operationText: { fontSize: 24, fontWeight: '700', color: '#E0E7FF' },
-  operationLabel: { fontSize: 9, color: '#AAAAAA', marginTop: 2 },
+  operationText: { fontSize: 24, fontWeight: '700', color: Colors.text },
+  operationLabel: { fontSize: 9, color: Colors.textSecondary, marginTop: 2 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: '#1A2A3A',
+    backgroundColor: Colors.bgElevated,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -306,13 +323,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.5,
-    borderColor: '#2A4A6A',
+    borderColor: Colors.border,
   },
-  quantityNum: { fontSize: 22, fontWeight: '500', color: '#E0E7FF', minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontSize: 22, fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 11, color: '#AAAAAA' },
-  vecesText: { fontSize: 15, color: '#AAAAAA' },
+  arrowText: { fontSize: 11, color: Colors.textSecondary },
+  vecesText: { fontSize: 15, color: Colors.textSecondary },
   spacer: { flex: 1 },
   confirmBtn: {
     borderRadius: 14,

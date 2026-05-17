@@ -16,6 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../../shared/theme/colors';
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
 import { DAY_LABELS_SHORT, MISSION_ICONS } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
 import { Alarm } from '../types/alarm.types';
@@ -280,6 +282,7 @@ export default function HomeScreen() {
           data={sortedAlarms}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          style={styles.listFrame}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />
@@ -305,7 +308,10 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     paddingTop: 16,
     paddingBottom: 10,
   },
@@ -318,15 +324,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
     color: Colors.text,
     letterSpacing: -0.5,
   },
 
   // Banner
   banner: {
-    marginHorizontal: 20,
+    width: '90%',
+    maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
+    alignSelf: 'center',
     marginTop: 4,
     marginBottom: 16,
     paddingVertical: 14,
@@ -368,12 +376,20 @@ const styles = StyleSheet.create({
   alarmCount: {
     fontSize: 12,
     color: Colors.textMuted,
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
     marginBottom: 8,
     fontWeight: '500',
   },
 
   // Lista
+  listFrame: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+  },
   list: {
     paddingHorizontal: 16,
     paddingBottom: 100,

@@ -1,6 +1,6 @@
 // src/navigation/RootNavigator.tsx
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Linking } from 'react-native';
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -27,6 +27,7 @@ export type RootParamList = {
 
 const Root = createNativeStackNavigator<RootParamList>();
 const navigationRef = createNavigationContainerRef<RootParamList>();
+let pendingAlarmId: string | null = null;
 
 const navigationTheme = {
   ...DefaultTheme,
@@ -43,7 +44,10 @@ const navigationTheme = {
 };
 
 function navigateToRingingAlarm(alarmId: string) {
-  if (!navigationRef.isReady()) return;
+  if (!navigationRef.isReady()) {
+    pendingAlarmId = alarmId;
+    return;
+  }
 
   navigationRef.navigate('Main', {
     screen: 'AlarmTab',
@@ -54,6 +58,25 @@ function navigateToRingingAlarm(alarmId: string) {
   });
 }
 
+function flushPendingAlarmNavigation() {
+  if (!pendingAlarmId) return;
+
+  const alarmId = pendingAlarmId;
+  pendingAlarmId = null;
+  navigateToRingingAlarm(alarmId);
+}
+
+function extractAlarmIdFromUrl(url: string): string | null {
+  const match = url.match(/^[a-z][a-z0-9+.-]*:\/\/alarm\/ringing\/([^?#]+)/i);
+  if (!match?.[1]) return null;
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
 export default function RootNavigator() {
   const { isAuthenticated, isGuest, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated || isGuest;
@@ -61,16 +84,11 @@ export default function RootNavigator() {
   useEffect(() => {
     let receivedSub: { remove: () => void } | null = null;
     let responseSub: { remove: () => void } | null = null;
-
-    if (isLoading || !isLoggedIn) {
-      return () => {};
-    }
-
-    if (isExpoGoRuntime()) {
-      return () => {};
-    }
+    let linkingSub: { remove: () => void } | null = null;
 
     const setupListeners = async () => {
+      if (isExpoGoRuntime()) return;
+
       try {
         const Notifications = await import('expo-notifications');
 
@@ -91,12 +109,29 @@ export default function RootNavigator() {
       }
     };
 
+    const handleUrl = ({ url }: { url: string }) => {
+      const alarmId = extractAlarmIdFromUrl(url);
+      if (alarmId) navigateToRingingAlarm(alarmId);
+    };
+
     void setupListeners();
+    void Linking.getInitialURL().then(url => {
+      if (!url) return;
+      handleUrl({ url });
+    });
+    linkingSub = Linking.addEventListener('url', handleUrl);
 
     return () => {
       receivedSub?.remove();
       responseSub?.remove();
+      linkingSub?.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && isLoggedIn) {
+      flushPendingAlarmNavigation();
+    }
   }, [isLoading, isLoggedIn]);
 
   if (isLoading) {
@@ -104,7 +139,11 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navigationTheme}
+      onReady={flushPendingAlarmNavigation}
+    >
       <Root.Navigator
         screenOptions={{
           headerShown: false,
