@@ -77,11 +77,17 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
 
   const handleSave = () => {
     setConfig({ difficulty, quantity });
-    completeAlarmMissionConfigSession(
+    const savedInAlarmConfig = completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
-      { type: 'colored_figures' as any, difficulty: toAlarmDifficulty(difficulty), quantity },
+      { type: 'color', difficulty: toAlarmDifficulty(difficulty), quantity },
     );
-    navigation.goBack();
+
+    if (savedInAlarmConfig) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate('MissionSelector');
   };
 
   return (

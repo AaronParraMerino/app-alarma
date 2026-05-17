@@ -15,14 +15,64 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
-import { DAY_LABELS_SHORT, MISSION_ICONS } from '../../missions/constants/missions';
+import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
-import { Alarm } from '../types/alarm.types';
+import { Alarm, MissionType } from '../types/alarm.types';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import { getAlarmSoundLabel } from '../services/alarmService';
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const MISSION_ICON_META: Record<MissionType, { icon: IconName; color: string }> = {
+  random: {
+    icon: 'shuffle-outline',
+    color: Colors.missionColors.random ?? Colors.primaryLight,
+  },
+  math: {
+    icon: 'calculator-outline',
+    color: Colors.missionColors.math,
+  },
+  memory: {
+    icon: 'albums-outline',
+    color: Colors.missionColors.memory,
+  },
+  physical: {
+    icon: 'footsteps-outline',
+    color: Colors.missionColors.physical,
+  },
+  photo: {
+    icon: 'scan-outline',
+    color: Colors.missionColors.photo,
+  },
+  trivia: {
+    icon: 'help-circle-outline',
+    color: Colors.missionColors.trivia,
+  },
+  writing: {
+    icon: 'create-outline',
+    color: Colors.missionColors.writing,
+  },
+  color: {
+    icon: 'color-palette-outline',
+    color: Colors.missionColors.color,
+  },
+  shapes: {
+    icon: 'grid-outline',
+    color: Colors.missionColors.shapes,
+  },
+  sequence: {
+    icon: 'keypad-outline',
+    color: Colors.missionColors.sequence,
+  },
+  wordCompletion: {
+    icon: 'text-outline',
+    color: Colors.missionColors.wordCompletion ?? Colors.primaryLight,
+  },
+};
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -146,15 +196,23 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
           <View style={styles.missionRow}>
             {alarm.randomMissions ? (
               <View style={styles.missionBadge}>
-                <Text style={styles.missionBadgeText}>🎲</Text>
+                <Ionicons
+                  name={MISSION_ICON_META.random.icon}
+                  size={16}
+                  color={MISSION_ICON_META.random.color}
+                />
                 <Text style={styles.missionBadgeLabel}>Aleatorio</Text>
               </View>
             ) : (
-              alarm.missions.slice(0, 3).map((m, i) => (
-                <View key={i} style={[styles.missionBadge, !alarm.enabled && { opacity: 0.4 }]}>
-                  <Text style={styles.missionBadgeText}>{MISSION_ICONS[m.type]}</Text>
-                </View>
-              ))
+              alarm.missions.slice(0, 3).map((m, i) => {
+                const meta = MISSION_ICON_META[m.type] ?? MISSION_ICON_META.random;
+
+                return (
+                  <View key={i} style={[styles.missionBadge, !alarm.enabled && { opacity: 0.4 }]}>
+                    <Ionicons name={meta.icon} size={16} color={meta.color} />
+                  </View>
+                );
+              })
             )}
             {!alarm.randomMissions && alarm.missions.length > 3 && (
               <Text style={styles.moreMissions}>+{alarm.missions.length - 3}</Text>
@@ -484,7 +542,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  missionBadgeText: { fontSize: 13 },
   missionBadgeLabel: {
     fontSize: 11,
     color: Colors.textSecondary,
