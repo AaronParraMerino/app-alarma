@@ -346,7 +346,7 @@ export function useMovementMission(
       if (isWalkStep && reading.detected) {
         markStepSuccess();
       }
-    });
+    }, step.threshold);
 
     let elapsed = 0;
     stepTimer.current = setInterval(() => {

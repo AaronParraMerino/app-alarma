@@ -1,15 +1,22 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 interface StepRingProps {
   progress: number;
   color: string;
-  icon: string;
+  imageSource: ImageSourcePropType;
   size?: number;
 }
 
-// Muestra el avance del paso actual con icono y porcentaje.
-export function StepRing({ progress, color, icon, size = 140 }: StepRingProps) {
+// Muestra el avance del paso actual con imagen y porcentaje.
+export function StepRing({ progress, color, imageSource, size = 140 }: StepRingProps) {
   const animProgress = useRef(new Animated.Value(0)).current;
   const clamped = Math.max(0, Math.min(progress, 1));
   const percent = Math.round(clamped * 100);
@@ -41,15 +48,20 @@ export function StepRing({ progress, color, icon, size = 140 }: StepRingProps) {
           },
         ]}
       >
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.55}
-          style={[styles.icon, { color }]}
-        >
-          {icon}
-        </Text>
-        <Text style={[styles.percent, { color }]}>{percent}%</Text>
+        <View style={styles.content}>
+          <Image
+            source={imageSource}
+            style={[
+              styles.image,
+              {
+                width: size * 0.62,
+                height: size * 0.62,
+              },
+            ]}
+            resizeMode="contain"
+          />
+          <Text style={[styles.percent, { color }]}>{percent}%</Text>
+        </View>
       </View>
 
       <View style={styles.track}>
@@ -66,19 +78,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#161616',
-    paddingHorizontal: 16,
+    padding: 10,
   },
-  icon: {
+  content: {
+    flex: 1,
     width: '100%',
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: {
+    opacity: 0.95,
+    marginTop: -4,
   },
   percent: {
-    marginTop: 8,
+    marginTop: -2,
     fontSize: 16,
     fontWeight: '700',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   track: {
     marginTop: 16,

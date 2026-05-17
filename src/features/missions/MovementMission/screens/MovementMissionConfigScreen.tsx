@@ -4,6 +4,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Image,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -17,6 +18,7 @@ import {
   MIN_QUANTITY,
   MOVEMENT_EXAMPLES,
 } from '../constants/movementConstants';
+import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 
 interface MovementMissionConfigScreenProps {
   onConfirm: (config: MovementMissionUserConfig) => void;
@@ -58,6 +60,7 @@ export function MovementMissionConfigScreen({
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: isSmall ? 14 : 20 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
           <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
@@ -70,7 +73,16 @@ export function MovementMissionConfigScreen({
         </Text>
         <Text style={[styles.subLabel, { fontSize: isSmall ? 11 : 12 }]}>Ejemplo</Text>
 
-        <View style={[styles.previewBox, { minHeight: previewMin, marginBottom: sectionGap }]}>
+        <View
+          style={[
+            styles.previewBox,
+            {
+              minHeight: previewMin,
+              marginBottom: sectionGap,
+              borderColor: style.accentColor + '40',
+            },
+          ]}
+        >
           <Text style={[styles.previewTitle, { color: style.accentColor }]}>
             {style.label}
           </Text>
@@ -78,16 +90,11 @@ export function MovementMissionConfigScreen({
           <View style={styles.exampleRow}>
             {examples.map((step, index) => (
               <View key={`${step.type}-${index}`} style={styles.exampleItem}>
-                <View style={[styles.exampleIcon, { backgroundColor: style.bgColor }]}>
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.55}
-                    style={[styles.exampleIconText, { color: style.accentColor }]}
-                  >
-                    {step.icon}
-                  </Text>
-                </View>
+                <Image
+                  source={MOVEMENT_IMAGES[step.type]}
+                  style={styles.exampleImage}
+                  resizeMode="contain"
+                />
                 <Text numberOfLines={2} style={styles.exampleLabel}>
                   {step.label}
                 </Text>
@@ -159,25 +166,17 @@ export function MovementMissionConfigScreen({
                 onPress={() => setQuantity(q => Math.min(MAX_QUANTITY, q + 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>^</Text>
+                <Text style={styles.arrowText}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setQuantity(q => Math.max(MIN_QUANTITY, q - 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>v</Text>
+                <Text style={styles.arrowText}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>
-            {difficulty === 'easy'
-              ? quantity === 1
-                ? 'vez'
-                : 'veces'
-              : quantity === 1
-                ? 'vez'
-                : 'veces'}
-          </Text>
+          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>veces</Text>
         </View>
 
         <View style={{ height: isShort ? 16 : 32 }} />
@@ -219,20 +218,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 0.5,
   },
   previewTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, marginBottom: 12 },
   exampleRow: { flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' },
   exampleItem: { flex: 1, alignItems: 'center', gap: 6, minWidth: 0 },
-  exampleIcon: {
-    height: 42,
-    width: 54,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  exampleIconText: { fontSize: 12, fontWeight: '800', textAlign: 'center' },
-  exampleLabel: { color: '#555555', fontSize: 11, textAlign: 'center', lineHeight: 14 },
+  exampleImage: { width: 90, height: 90 },
+  exampleLabel: { color: '#1F2937', fontSize: 11, textAlign: 'center', lineHeight: 14, fontWeight: '600' },
   sliderWrapper: {},
   trackBg: {
     height: 4,

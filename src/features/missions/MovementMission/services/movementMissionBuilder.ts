@@ -12,6 +12,11 @@ import {
   MEDIUM_STEP_POOL,
 } from '../constants/movementConstants';
 
+const HARD_DURATION_MULTIPLIER = 2;
+const HARD_THRESHOLD_MULTIPLIER = 1.15;
+const HARD_REQUIRED_RATIO_BONUS = 0.2;
+const HARD_WALK_SECONDS = 10;
+
 // Toma movimientos aleatorios y repite el pool si hace falta
 function randomList<T>(arr: T[], count: number): T[] {
   const pool = [...arr];
@@ -35,14 +40,29 @@ function buildStep(
   difficulty: MovementDifficulty,
 ): MovementStep {
   const base = ALL_MOVEMENT_STEPS[type];
-  const hardMultiplier = difficulty === 'hard' ? 1.5 : 1;
+  const isHard = difficulty === 'hard';
+  const durationMultiplier = isHard ? HARD_DURATION_MULTIPLIER : 1;
+  const threshold = isHard
+    ? type === 'walk'
+      ? HARD_WALK_SECONDS
+      : base.threshold * HARD_THRESHOLD_MULTIPLIER
+    : base.threshold;
 
   return {
     ...base,
-    durationSeconds: Math.ceil(base.durationSeconds * hardMultiplier),
-    threshold: base.threshold,
-    requiredRatio: difficulty === 'hard' && type !== 'walk'
-      ? Math.min(base.requiredRatio + 0.1, 1)
+    durationSeconds: Math.ceil(base.durationSeconds * durationMultiplier),
+    threshold,
+    label: isHard && type === 'walk'
+      ? 'Camina mas pasos'
+      : base.label,
+    instruction: isHard && type === 'walk'
+      ? 'Camina con el telefono en la mano por mas tiempo.'
+      : base.instruction,
+    detail: isHard && type === 'walk'
+      ? 'Da aproximadamente 10 pasos reales. Estar quieto no llena el progreso.'
+      : base.detail,
+    requiredRatio: isHard && type !== 'walk'
+      ? Math.min(base.requiredRatio + HARD_REQUIRED_RATIO_BONUS, 1)
       : base.requiredRatio,
     id: `step_${index}_${Date.now()}_${Math.random().toString(16).slice(2)}`,
     completed: false,

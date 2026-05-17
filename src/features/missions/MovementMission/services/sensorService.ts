@@ -105,16 +105,17 @@ export async function requestSensorPermissions(): Promise<boolean> {
 export function subscribeToMovement(
   type: MovementType,
   onDetected: (reading: SensorReading) => void,
+  thresholdOverride?: number,
 ): SensorUnsubscribe {
-  const threshold = MOVEMENT_THRESHOLDS[type];
+  const threshold = thresholdOverride ?? MOVEMENT_THRESHOLDS[type];
   const logSensor = createSensorLogger(type);
 
   if (type === "walk") {
-    return subscribeToWalk(onDetected, logSensor);
+    return subscribeToWalk(threshold, onDetected, logSensor);
   }
 
   if (type === "tilt") {
-    return subscribeToTilt(onDetected, logSensor);
+    return subscribeToTilt(threshold, onDetected, logSensor);
   }
 
   if (type === "shake") {
@@ -160,21 +161,23 @@ function subscribeToShake(
 
 // Entrada principal de caminar.
 function subscribeToWalk(
+  threshold: number,
   onDetected: (reading: SensorReading) => void,
   logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   console.warn("[Walk] Using accelerometer as primary walking detector.");
-  return subscribeToWalkByAccelerometer(onDetected, logSensor);
+  return subscribeToWalkByAccelerometer(threshold, onDetected, logSensor);
 }
 
 // Valida caminar por tiempo acumulado de movimiento real
 function subscribeToWalkByAccelerometer(
+  threshold: number,
   onDetected: (reading: SensorReading) => void,
   logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Accelerometer.setUpdateInterval(70);
 
-  const requiredWalkMs = MOVEMENT_THRESHOLDS.walk * 1000;
+  const requiredWalkMs = threshold * 1000;
   const MIN_DYNAMIC_ACTIVITY = 0.022;
   const MAX_DYNAMIC_FOR_WALK = 0.75;
   const REQUIRED_ACTIVE_SCORE = 2;
@@ -238,7 +241,7 @@ function subscribeToWalkByAccelerometer(
         isWalking,
         activeScore,
         accumulatedWalkSeconds: round(accumulatedWalkMs / 1000) ?? 0,
-        requiredWalkSeconds: MOVEMENT_THRESHOLDS.walk,
+        requiredWalkSeconds: threshold,
         idleSeconds: round(idleMs / 1000) ?? 0,
         failed: shouldFail,
       },
@@ -264,12 +267,12 @@ function subscribeToWalkByAccelerometer(
 
 // Detecta inclinacion comparando contra una postura base
 function subscribeToTilt(
+  threshold: number,
   onDetected: (reading: SensorReading) => void,
   logSensor: (payload: SensorLogPayload) => void,
 ): SensorUnsubscribe {
   Accelerometer.setUpdateInterval(100);
 
-  const threshold = MOVEMENT_THRESHOLDS.tilt;
   const BASELINE_SAMPLE_COUNT = 6;
 
   let baselineX = 0;

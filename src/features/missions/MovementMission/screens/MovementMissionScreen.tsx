@@ -18,6 +18,7 @@ import {
   useMovementMission,
 } from '../hooks/useMovementMission';
 import { DIFFICULTY_STYLES } from '../constants/movementConstants';
+import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 import { SensorBar } from '../components/SensorBar';
 import { StepRing } from '../components/StepRing';
 import { useCurrentTime } from '../hooks/useCurrentTime';
@@ -275,7 +276,7 @@ export function MovementMissionScreen({
               <StepRing
                 progress={stepProgress}
                 color={style.accentColor}
-                icon={currentStep.icon}
+                imageSource={MOVEMENT_IMAGES[currentStep.type]}
                 size={ringSize}
               />
 
