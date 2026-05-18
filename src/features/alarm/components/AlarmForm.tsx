@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,9 +7,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackButton } from '../../../shared/components/ui/BackButton';
+import { Modal as AppModal } from '../../../shared/components/ui/Modal';
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
@@ -27,6 +28,7 @@ import { AlarmCreate, AlarmMission, Difficulty, RepeatDay } from '../types/alarm
 interface AlarmFormProps {
   title: string;
   submitLabel: string;
+  draftKey: string;
   initialData?: Partial<AlarmCreate>;
   onBack: () => void;
   onSubmit: (data: AlarmCreate) => void;
@@ -70,13 +72,26 @@ const DEFAULT_RANDOM_CONFIG: AlarmMission = {
 const HOUR_VALUES = Array.from({ length: 24 }, (_, index) => index);
 const MINUTE_VALUES = Array.from({ length: 60 }, (_, index) => index);
 const MAX_MISSIONS = 5;
-const WHEEL_ITEM_HEIGHT = 68;
-const WHEEL_VISIBLE_ITEMS = 3;
-const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ITEMS;
-const WHEEL_PADDING = WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ITEMS / 2);
+
+type AlarmFormDraft = {
+  hour: number;
+  minute: number;
+  label: string;
+  repeatDays: RepeatDay[];
+  missionEnabled: boolean;
+  randomMissions: boolean;
+  configuredMissions: AlarmMission[];
+  soundUri: string | null;
+};
+
+const alarmFormDrafts = new Map<string, AlarmFormDraft>();
 
 function padTime(value: number): string {
   return value.toString().padStart(2, '0');
+}
+
+function mod(value: number, length: number): number {
+  return ((value % length) + length) % length;
 }
 
 function toRuntimeDifficulty(difficulty: Difficulty): RuntimeDifficulty {
@@ -99,92 +114,265 @@ function buildRandomMissionGroup(
   }));
 }
 
+function applyConfiguredMission(
+  missions: AlarmMission[],
+  mission: AlarmMission,
+  index: number | null,
+): AlarmMission[] {
+  if (index === null || index < 0 || index >= missions.length) {
+    if (missions.length >= MAX_MISSIONS) return missions;
+    return [...missions, mission];
+  }
+
+  return missions.map((item, itemIndex) => (itemIndex === index ? mission : item));
+}
+
+type TimeWheelProps = {
+  values: number[];
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+};
+
+function TimeWheel({ values, value, onChange, label }: TimeWheelProps) {
+  const max = values.length;
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  const repeatDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearRepeat = () => {
+    if (repeatDelayRef.current) {
+      clearTimeout(repeatDelayRef.current);
+      repeatDelayRef.current = null;
+    }
+
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+  };
+
+  const changeBy = (delta: number) => {
+    const nextValue = values[mod(valueRef.current + delta, max)];
+    valueRef.current = nextValue;
+    onChangeRef.current(nextValue);
+  };
+
+  const startRepeat = (delta: number) => {
+    clearRepeat();
+    changeBy(delta);
+
+    repeatDelayRef.current = setTimeout(() => {
+      repeatDelayRef.current = null;
+      repeatIntervalRef.current = setInterval(() => {
+        changeBy(delta);
+      }, 72);
+    }, 260);
+  };
+
+  useEffect(() => {
+    valueRef.current = value;
+    onChangeRef.current = onChange;
+  }, [onChange, value]);
+
+  useEffect(() => clearRepeat, []);
+
+  return (
+    <View style={styles.timeStepper}>
+      <Text style={styles.timeStepperLabel}>{label}</Text>
+      <TouchableOpacity
+        style={styles.timeStepperButton}
+        onPressIn={() => startRepeat(1)}
+        onPressOut={clearRepeat}
+        activeOpacity={0.82}
+      >
+        <Ionicons name="chevron-up" size={26} color={Colors.text} />
+      </TouchableOpacity>
+      <Text style={styles.timeStepperValue}>{padTime(value)}</Text>
+      <TouchableOpacity
+        style={styles.timeStepperButton}
+        onPressIn={() => startRepeat(-1)}
+        onPressOut={clearRepeat}
+        activeOpacity={0.82}
+      >
+        <Ionicons name="chevron-down" size={26} color={Colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function AlarmForm({
   title,
   submitLabel,
+  draftKey,
   initialData,
   onBack,
   onSubmit,
   onDelete,
 }: AlarmFormProps) {
   const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList>>();
-  const initialMissionEnabled = Boolean(
-    initialData?.randomMissions || (initialData?.missions?.length ?? 0) > 0,
+  const insets = useSafeAreaInsets();
+  const initialDraftRef = useRef<AlarmFormDraft | null>(
+    alarmFormDrafts.get(draftKey) ?? null,
   );
-  const initialMissionList = initialData?.missions?.length
-    ? initialData.missions.slice(0, MAX_MISSIONS)
-    : [DEFAULT_RANDOM_CONFIG];
+  const initialDraft = initialDraftRef.current;
+  const initialMissionEnabled = Boolean(
+    initialDraft?.missionEnabled
+      ?? (initialData?.randomMissions || (initialData?.missions?.length ?? 0) > 0),
+  );
+  const initialMissionList = initialDraft?.configuredMissions?.length
+    ? initialDraft.configuredMissions.slice(0, MAX_MISSIONS)
+    : initialData?.missions?.length
+      ? initialData.missions.slice(0, MAX_MISSIONS)
+      : [DEFAULT_RANDOM_CONFIG];
   const initialMissions = initialMissionEnabled
     ? initialMissionList.map(mission =>
-        initialData?.randomMissions ? { ...mission, type: 'random' as const } : mission,
+        (initialDraft?.randomMissions ?? initialData?.randomMissions)
+          ? { ...mission, type: 'random' as const }
+          : mission,
       )
     : [];
 
-  const [hour, setHour] = useState<number>(initialData?.hour ?? 7);
-  const [minute, setMinute] = useState<number>(initialData?.minute ?? 0);
-  const [label, setLabel] = useState<string>(initialData?.label ?? '');
-  const [repeatDays, setRepeatDays] = useState<RepeatDay[]>(initialData?.repeatDays ?? []);
+  const [hour, setHour] = useState<number>(initialDraft?.hour ?? initialData?.hour ?? 7);
+  const [minute, setMinute] = useState<number>(initialDraft?.minute ?? initialData?.minute ?? 0);
+  const [hourText, setHourText] = useState(() =>
+    padTime(initialDraft?.hour ?? initialData?.hour ?? 7),
+  );
+  const [minuteText, setMinuteText] = useState(() =>
+    padTime(initialDraft?.minute ?? initialData?.minute ?? 0),
+  );
+  const [label, setLabel] = useState<string>(initialDraft?.label ?? initialData?.label ?? '');
+  const [repeatDays, setRepeatDays] = useState<RepeatDay[]>(
+    initialDraft?.repeatDays ?? initialData?.repeatDays ?? [],
+  );
   const [missionEnabled, setMissionEnabled] = useState(initialMissionEnabled);
-  const [randomMissions, setRandomMissions] = useState<boolean>(false);
+  const [randomMissions, setRandomMissions] = useState<boolean>(
+    initialDraft?.randomMissions ?? Boolean(initialData?.randomMissions),
+  );
   const [configuredMissions, setConfiguredMissions] = useState<AlarmMission[]>(
-    initialMissions,
+    initialDraft?.configuredMissions ?? initialMissions,
   );
   const [draftMission, setDraftMission] = useState<AlarmMission | null>(null);
   const [configSelection, setConfigSelection] = useState<AlarmMissionSelection | null>(null);
   const [editingMissionIndex, setEditingMissionIndex] = useState<number | null>(null);
   const [missionStep, setMissionStep] = useState<MissionStep>('form');
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [soundUri, setSoundUri] = useState<string | null>(
-    initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI,
+    initialDraft?.soundUri
+      ?? (initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI),
   );
-  const hourWheelRef = useRef<ScrollView>(null);
-  const minuteWheelRef = useRef<ScrollView>(null);
+  const draftClosedRef = useRef(false);
+  const draftRef = useRef<AlarmFormDraft>({
+    hour,
+    minute,
+    label,
+    repeatDays,
+    missionEnabled,
+    randomMissions,
+    configuredMissions,
+    soundUri,
+  });
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      hourWheelRef.current?.scrollTo({
-        y: hour * WHEEL_ITEM_HEIGHT,
-        animated: false,
-      });
-      minuteWheelRef.current?.scrollTo({
-        y: minute * WHEEL_ITEM_HEIGHT,
-        animated: false,
-      });
-    }, 0);
+    if (draftClosedRef.current) return;
 
-    return () => clearTimeout(timeout);
-  }, []);
+    draftRef.current = {
+      hour,
+      minute,
+      label,
+      repeatDays,
+      missionEnabled,
+      randomMissions,
+      configuredMissions,
+      soundUri,
+    };
+    alarmFormDrafts.set(draftKey, draftRef.current);
+  }, [
+    configuredMissions,
+    draftKey,
+    hour,
+    label,
+    minute,
+    missionEnabled,
+    randomMissions,
+    repeatDays,
+    soundUri,
+  ]);
 
-  const selectWheelValue = (
-    ref: React.RefObject<ScrollView | null>,
-    value: number,
-    type: 'hour' | 'minute',
-  ) => {
-    if (type === 'hour') {
-      setHour(value);
-    } else {
-      setMinute(value);
-    }
+  useEffect(() => {
+    setHourText(padTime(hour));
+  }, [hour]);
 
-    ref.current?.scrollTo({
-      y: value * WHEEL_ITEM_HEIGHT,
-      animated: true,
-    });
+  useEffect(() => {
+    setMinuteText(padTime(minute));
+  }, [minute]);
+
+  const persistDraft = (overrides: Partial<AlarmFormDraft> = {}) => {
+    if (draftClosedRef.current) return draftRef.current;
+
+    const draft: AlarmFormDraft = {
+      ...draftRef.current,
+      ...overrides,
+    };
+
+    draftRef.current = draft;
+    alarmFormDrafts.set(draftKey, draft);
+    return draft;
   };
 
-  const handleWheelEnd = (
-    type: 'hour' | 'minute',
-    values: number[],
-  ) => (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const rawIndex = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
-    const index = Math.max(0, Math.min(values.length - 1, rawIndex));
-    const value = values[index];
+  const clearSavedDraft = () => {
+    draftClosedRef.current = true;
+    alarmFormDrafts.delete(draftKey);
+  };
 
-    if (type === 'hour') {
-      setHour(value);
+  const updateHour = (nextHour: number) => {
+    setHour(nextHour);
+    persistDraft({ hour: nextHour });
+  };
+
+  const updateMinute = (nextMinute: number) => {
+    setMinute(nextMinute);
+    persistDraft({ minute: nextMinute });
+  };
+
+  const sanitizeTimeText = (text: string) => text.replace(/\D/g, '').slice(0, 2);
+
+  const commitHourText = () => {
+    const parsedHour = Number.parseInt(hourText, 10);
+
+    if (Number.isNaN(parsedHour)) {
+      setHourText(padTime(hour));
       return;
     }
 
-    setMinute(value);
+    updateHour(Math.max(0, Math.min(23, parsedHour)));
+  };
+
+  const commitMinuteText = () => {
+    const parsedMinute = Number.parseInt(minuteText, 10);
+
+    if (Number.isNaN(parsedMinute)) {
+      setMinuteText(padTime(minute));
+      return;
+    }
+
+    updateMinute(Math.max(0, Math.min(59, parsedMinute)));
+  };
+
+  const handleBack = () => {
+    clearSavedDraft();
+    onBack();
+  };
+
+  const handleDelete = () => {
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = () => {
+    clearSavedDraft();
+    setDeleteConfirmVisible(false);
+    onDelete?.();
   };
 
   const toggleDay = (day: RepeatDay) => {
@@ -199,6 +387,7 @@ export default function AlarmForm({
 
   const openMissionSelector = () => {
     setMissionEnabled(true);
+    persistDraft({ missionEnabled: true });
     setEditingMissionIndex(null);
     setMissionStep('select');
   };
@@ -226,12 +415,13 @@ export default function AlarmForm({
 
   const setConfiguredMissionAtIndex = (mission: AlarmMission, index: number | null) => {
     setConfiguredMissions(prev => {
-      if (index === null || index < 0 || index >= prev.length) {
-        if (prev.length >= MAX_MISSIONS) return prev;
-        return [...prev, mission];
-      }
-
-      return prev.map((item, itemIndex) => (itemIndex === index ? mission : item));
+      const next = applyConfiguredMission(prev, mission, index);
+      persistDraft({
+        configuredMissions: next,
+        missionEnabled: true,
+        randomMissions: false,
+      });
+      return next;
     });
   };
 
@@ -285,6 +475,7 @@ export default function AlarmForm({
       ? configuredMissions[editingMissionIndex] ?? defaultMission
       : defaultMission;
 
+    persistDraft({ missionEnabled: true });
     openConcreteMissionConfig(selection, existingMission, editingMissionIndex);
   };
 
@@ -311,6 +502,7 @@ export default function AlarmForm({
     });
 
     if (selection === 'math') {
+      persistDraft();
       navigation.navigate('AlarmConfigMathMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
@@ -321,6 +513,7 @@ export default function AlarmForm({
     }
 
     if (selection === 'physical') {
+      persistDraft();
       navigation.navigate('AlarmConfigMovementMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
@@ -330,6 +523,7 @@ export default function AlarmForm({
     }
 
     if (selection === 'color') {
+      persistDraft();
       navigation.navigate('AlarmConfigColoredFiguresMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
@@ -338,6 +532,7 @@ export default function AlarmForm({
       return;
     }
 
+    persistDraft();
     navigation.navigate('AlarmConfigWordCompletionMission', {
       difficulty: toRuntimeDifficulty(mission.difficulty),
       quantity: mission.quantity ?? 3,
@@ -387,10 +582,11 @@ export default function AlarmForm({
 
     setConfiguredMissions(prev => {
       const editingMission = editingMissionIndex !== null ? prev[editingMissionIndex] : null;
+      let next: AlarmMission[];
 
       if (editingMission?.type === 'random') {
         let inserted = false;
-        const next = prev.flatMap(mission => {
+        next = prev.flatMap(mission => {
           if (mission.type !== 'random') return [mission];
           if (inserted) return [];
 
@@ -398,16 +594,21 @@ export default function AlarmForm({
           return randomMissionGroup;
         });
 
-        return next.slice(0, MAX_MISSIONS);
-      }
-
-      if (editingMissionIndex !== null && editingMissionIndex >= 0 && editingMissionIndex < prev.length) {
-        return prev
+        next = next.slice(0, MAX_MISSIONS);
+      } else if (editingMissionIndex !== null && editingMissionIndex >= 0 && editingMissionIndex < prev.length) {
+        next = prev
           .flatMap((mission, index) => (index === editingMissionIndex ? randomMissionGroup : [mission]))
           .slice(0, MAX_MISSIONS);
+      } else {
+        next = [...prev, ...randomMissionGroup].slice(0, MAX_MISSIONS);
       }
 
-      return [...prev, ...randomMissionGroup].slice(0, MAX_MISSIONS);
+      persistDraft({
+        configuredMissions: next,
+        missionEnabled: true,
+        randomMissions: false,
+      });
+      return next;
     });
 
     setRandomMissions(false);
@@ -420,6 +621,7 @@ export default function AlarmForm({
   const saveAlarm = () => {
     const hasConfiguredMissions = missionEnabled && configuredMissions.length > 0;
 
+    clearSavedDraft();
     onSubmit({
       hour,
       minute,
@@ -458,75 +660,63 @@ export default function AlarmForm({
   return (
     <>
       <View style={styles.header}>
-        <BackButton onPress={onBack} style={styles.backBtn} />
+        <BackButton onPress={handleBack} style={styles.backBtn} />
         <Text style={styles.title}>{title}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: onDelete ? 132 + insets.bottom : 104 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Hora</Text>
-          <View style={styles.inlineWheelFrame}>
-            <View style={styles.wheelPicker}>
-              <ScrollView
-                ref={hourWheelRef}
-                style={styles.wheelColumn}
-                contentContainerStyle={styles.wheelContent}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled
-                snapToInterval={WHEEL_ITEM_HEIGHT}
-                decelerationRate="fast"
-                onMomentumScrollEnd={handleWheelEnd('hour', HOUR_VALUES)}
-                onScrollEndDrag={handleWheelEnd('hour', HOUR_VALUES)}
-              >
-                {HOUR_VALUES.map(value => {
-                  const active = value === hour;
+          <View style={styles.timePickerPanel}>
+            <TimeWheel
+              label="Hora"
+              values={HOUR_VALUES}
+              value={hour}
+              onChange={updateHour}
+            />
 
-                  return (
-                    <TouchableOpacity
-                      key={`hour-${value}`}
-                      style={styles.wheelItem}
-                      onPress={() => selectWheelValue(hourWheelRef, value, 'hour')}
-                      activeOpacity={0.78}
-                    >
-                      <Text style={[styles.wheelItemText, active && styles.wheelItemTextActive]}>
-                        {padTime(value)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+            <Text style={styles.timeSeparator}>:</Text>
 
-              <Text style={styles.wheelSeparator}>:</Text>
-
-              <ScrollView
-                ref={minuteWheelRef}
-                style={styles.wheelColumn}
-                contentContainerStyle={styles.wheelContent}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled
-                snapToInterval={WHEEL_ITEM_HEIGHT}
-                decelerationRate="fast"
-                onMomentumScrollEnd={handleWheelEnd('minute', MINUTE_VALUES)}
-                onScrollEndDrag={handleWheelEnd('minute', MINUTE_VALUES)}
-              >
-                {MINUTE_VALUES.map(value => {
-                  const active = value === minute;
-
-                  return (
-                    <TouchableOpacity
-                      key={`minute-${value}`}
-                      style={styles.wheelItem}
-                      onPress={() => selectWheelValue(minuteWheelRef, value, 'minute')}
-                      activeOpacity={0.78}
-                    >
-                      <Text style={[styles.wheelItemText, active && styles.wheelItemTextActive]}>
-                        {padTime(value)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+            <TimeWheel
+              label="Min"
+              values={MINUTE_VALUES}
+              value={minute}
+              onChange={updateMinute}
+            />
+          </View>
+          <View style={styles.directTimeRow}>
+            <Text style={styles.directTimeLabel}>Hora exacta</Text>
+            <View style={styles.directTimeInputs}>
+              <TextInput
+                style={styles.directTimeInput}
+                value={hourText}
+                onChangeText={text => setHourText(sanitizeTimeText(text))}
+                onBlur={commitHourText}
+                onSubmitEditing={commitHourText}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                returnKeyType="done"
+              />
+              <Text style={styles.directTimeSeparator}>:</Text>
+              <TextInput
+                style={styles.directTimeInput}
+                value={minuteText}
+                onChangeText={text => setMinuteText(sanitizeTimeText(text))}
+                onBlur={commitMinuteText}
+                onSubmitEditing={commitMinuteText}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                returnKeyType="done"
+              />
             </View>
           </View>
         </View>
@@ -596,18 +786,46 @@ export default function AlarmForm({
           onEditMission={editMission}
           onClearMission={clearMission}
         />
-
-        <TouchableOpacity style={styles.saveBtn} onPress={saveAlarm} activeOpacity={0.9}>
-          <Text style={styles.saveBtnText}>{submitLabel}</Text>
-        </TouchableOpacity>
-
-        {onDelete ? (
-          <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.9}>
-            <Text style={styles.deleteBtnText}>Eliminar alarma</Text>
-          </TouchableOpacity>
-        ) : null}
       </ScrollView>
 
+      <View style={[styles.actionShell, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View style={styles.actionBar}>
+          <TouchableOpacity
+            style={[styles.saveBtn, onDelete && styles.saveBtnWithDelete]}
+            onPress={saveAlarm}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.saveBtnText}>{submitLabel}</Text>
+          </TouchableOpacity>
+
+          {onDelete ? (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={handleDelete}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.deleteBtnText}>Eliminar</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      <AppModal
+        visible={deleteConfirmVisible}
+        type="warning"
+        title="Eliminar alarma"
+        message="Esta acción no se puede deshacer."
+        closeOnBackdropPress
+        onClose={() => setDeleteConfirmVisible(false)}
+        cancelAction={{
+          label: 'Cancelar',
+          onPress: () => setDeleteConfirmVisible(false),
+        }}
+        confirmAction={{
+          label: 'Eliminar',
+          onPress: confirmDelete,
+        }}
+      />
     </>
   );
 }
@@ -653,11 +871,96 @@ const styles = StyleSheet.create({
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
   },
-  inlineWheelFrame: {
-    height: WHEEL_HEIGHT,
+  timePickerPanel: {
+    minHeight: 154,
     borderRadius: 14,
-    backgroundColor: Colors.black,
-    overflow: 'hidden',
+    backgroundColor: Colors.bg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  timeStepper: {
+    flex: 1,
+    maxWidth: 120,
+    alignItems: 'center',
+    gap: 7,
+  },
+  timeStepperLabel: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  timeStepperButton: {
+    width: '100%',
+    minHeight: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeStepperValue: {
+    width: '100%',
+    color: Colors.white,
+    fontSize: 44,
+    lineHeight: 52,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  timeSeparator: {
+    color: Colors.white,
+    fontSize: 40,
+    lineHeight: 48,
+    fontWeight: '900',
+    marginTop: 18,
+  },
+  directTimeRow: {
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  directTimeLabel: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  directTimeInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  directTimeInput: {
+    width: 48,
+    minHeight: 36,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bg,
+    color: Colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  directTimeSeparator: {
+    color: Colors.text,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '900',
   },
   input: {
     borderRadius: 12,
@@ -831,13 +1134,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   saveBtn: {
-    marginTop: 6,
+    flex: 1,
+    minHeight: 52,
     backgroundColor: Colors.primary,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.primaryDeep,
-    paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  saveBtnWithDelete: {
+    flex: 1.35,
   },
   saveBtnText: {
     color: Colors.white,
@@ -845,54 +1153,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   deleteBtn: {
+    minWidth: 104,
+    minHeight: 52,
     backgroundColor: Colors.dangerDim,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.danger,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtnText: {
     color: Colors.danger,
     fontSize: 15,
     fontWeight: '700',
   },
-  wheelPicker: {
-    height: WHEEL_HEIGHT,
+  actionShell: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.bg + 'F2',
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: 10,
+    paddingHorizontal: Layout.screenPadding,
+  },
+  actionBar: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    minHeight: 52,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  wheelColumn: {
-    width: 112,
-    height: WHEEL_HEIGHT,
-  },
-  wheelContent: {
-    paddingVertical: WHEEL_PADDING,
-  },
-  wheelItem: {
-    height: WHEEL_ITEM_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wheelItemText: {
-    color: Colors.textMuted,
-    fontSize: 40,
-    lineHeight: 50,
-    fontWeight: '500',
-  },
-  wheelItemTextActive: {
-    color: Colors.white,
-    fontSize: 48,
-    lineHeight: 56,
-    fontWeight: '700',
-  },
-  wheelSeparator: {
-    color: Colors.white,
-    fontSize: 46,
-    lineHeight: 54,
-    fontWeight: '800',
-    paddingHorizontal: 6,
+    gap: 10,
   },
 });

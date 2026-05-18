@@ -11,10 +11,28 @@ import { insertAlarmCloud, getAlarmsCloud, deleteAlarmCloud } from './cloudDB.se
 
 let unsubscribeNetInfo: (() => void) | null = null;
 let isSyncing = false;
+const alarmSyncListeners = new Set<() => void>();
+
+export const subscribeAlarmSync = (listener: () => void): (() => void) => {
+  alarmSyncListeners.add(listener);
+  return () => {
+    alarmSyncListeners.delete(listener);
+  };
+};
+
+const notifyAlarmSyncListeners = (): void => {
+  alarmSyncListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (error) {
+      console.log('[Sync] Error notificando cambios locales:', error);
+    }
+  });
+};
 
 const isOnline = async (): Promise<boolean> => {
   const state = await NetInfo.fetch();
-  return !!state.isConnected && !!state.isInternetReachable;
+  return !!state.isConnected && state.isInternetReachable !== false;
 };
 
 export const syncAlarms = async (userId: string): Promise<void> => {
@@ -60,6 +78,7 @@ export const syncAlarms = async (userId: string): Promise<void> => {
     }
 
     console.log('[Sync] Completado correctamente');
+    notifyAlarmSyncListeners();
   } catch (error) {
     console.log('[Sync] Error:', error);
   } finally {
@@ -83,7 +102,7 @@ export const startSyncListener = (userId: string): void => {
       return;
     }
 
-    const online = !!state.isConnected && !!state.isInternetReachable;
+    const online = !!state.isConnected && state.isInternetReachable !== false;
     if (online) {
       console.log('[Sync] Reconexión detectada, sincronizando...');
       syncAlarms(userId);

@@ -17,6 +17,7 @@ export default function AlarmCreateScreen({ navigation }: Props) {
       <AlarmForm
         title="Nueva alarma"
         submitLabel="Guardar alarma"
+        draftKey="alarm-create"
         onBack={() => navigation.goBack()}
         onSubmit={data => {
           addAlarm(data);

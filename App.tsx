@@ -17,7 +17,12 @@ import { StatusBar } from 'expo-status-bar';
 import { AlarmProvider } from './src/features/alarm/store/alarmStore';
 import { AuthProvider } from './src/features/auth/store/authStore';
 import { MissionsProvider } from './src/features/missions/store/missionsStore';
-import { setupAlarmNotificationsAsync } from './src/features/alarm/services/alarmScheduler';
+import {
+  extractAlarmIdFromUrl,
+  getPendingNativeRingingAlarmId,
+  setupAlarmNotificationsAsync,
+  shouldOpenRingingAlarmId,
+} from './src/features/alarm/services/alarmScheduler';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useAuth } from './src/features/auth/hooks/useAuth';
 import { Colors } from './src/shared/theme/colors';
@@ -41,11 +46,22 @@ function AppContent() {
     void setupAlarmNotificationsAsync();
 
     let mounted = true;
-    void Linking.getInitialURL().then(url => {
-      if (mounted && url?.includes('://alarm/ringing/')) {
+    const skipIntroForActiveAlarm = async () => {
+      const [url, pendingAlarmId] = await Promise.all([
+        Linking.getInitialURL(),
+        getPendingNativeRingingAlarmId(),
+      ]);
+      const urlAlarmId = url ? extractAlarmIdFromUrl(url) : null;
+      const shouldOpenFromUrl = urlAlarmId
+        ? await shouldOpenRingingAlarmId(urlAlarmId)
+        : false;
+
+      if (mounted && (pendingAlarmId || shouldOpenFromUrl)) {
         setShowIntro(false);
       }
-    });
+    };
+
+    void skipIntroForActiveAlarm();
 
     const timer = setTimeout(() => {
       setShowIntro(false);

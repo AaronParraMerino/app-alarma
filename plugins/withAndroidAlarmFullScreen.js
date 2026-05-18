@@ -93,10 +93,14 @@ function addMainActivityAlarmWindow(contents) {
   }
 
   private fun configureAlarmWindow(intent: Intent?) {
-    val uri = intent?.data ?: return
-    if (uri.host != "alarm" || uri.path?.startsWith("/ringing") != true) return
+    val uri = intent?.data
+    if (uri?.host != "alarm" || uri.path?.startsWith("/ringing") != true) {
+      clearAlarmWindow()
+      return
+    }
 
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    window.addFlags(WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
       setShowWhenLocked(true)
@@ -104,7 +108,19 @@ function addMainActivityAlarmWindow(contents) {
     } else {
       window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
       window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
-      window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+    }
+  }
+
+  private fun clearAlarmWindow() {
+    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    window.clearFlags(WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON)
+    window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+    window.clearFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+    window.clearFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+      setShowWhenLocked(false)
+      setTurnScreenOn(false)
     }
   }
 
@@ -126,7 +142,7 @@ function javaSources(packageName) {
 final class AlarmConstants {
   static final String MODULE_NAME = "NeuroWakeAlarmScheduler";
   static final String PREFS_NAME = "neuro_wake_alarm_scheduler";
-  static final String CHANNEL_ID = "neuro_wake_native_alarm";
+  static final String CHANNEL_ID = "neuro_wake_native_alarm_v3";
   static final String ACTION_TRIGGER = "${appPackage}.alarm.ACTION_TRIGGER";
   static final String ACTION_STOP = "${appPackage}.alarm.ACTION_STOP";
   static final String EXTRA_ALARM_ID = "alarmId";
@@ -136,6 +152,7 @@ final class AlarmConstants {
   static final String EXTRA_SCHEME = "scheme";
   static final String EXTRA_TRIGGER_AT = "triggerAtMillis";
   static final String EXTRA_REPEAT_INTERVAL = "repeatIntervalMillis";
+  static final String KEY_ACTIVE_ALARM_ID = "activeAlarmId";
 
   private AlarmConstants() {}
 }
@@ -143,12 +160,14 @@ final class AlarmConstants {
     'AlarmScheduler.java': `package ${pkg};
 
 import android.app.AlarmManager;
+import android.app.KeyguardManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -267,16 +286,39 @@ final class AlarmScheduler {
     String safeAlarmId = alarmId == null ? "" : alarmId;
     Uri alarmUri = Uri.parse(safeScheme + "://alarm/ringing/" + Uri.encode(safeAlarmId));
     Intent intent = new Intent(Intent.ACTION_VIEW, alarmUri);
-    intent.setPackage(context.getPackageName());
+    intent.setClass(context, AlarmActivity.class);
     intent.putExtra(AlarmConstants.EXTRA_ALARM_ID, alarmId);
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    intent.addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION);
     return intent;
   }
 
   static int notificationId(String alarmId) {
     return Math.abs(("alarm:" + alarmId).hashCode());
+  }
+
+  static boolean shouldOpenAlarmScreen(Context context) {
+    try {
+      KeyguardManager keyguardManager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+      if (keyguardManager != null && keyguardManager.isKeyguardLocked()) {
+        return true;
+      }
+
+      PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+      if (powerManager == null) {
+        return true;
+      }
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+        return !powerManager.isInteractive();
+      }
+
+      return !powerManager.isScreenOn();
+    } catch (Exception ignored) {
+      return true;
+    }
   }
 
   private static PendingIntent createBroadcastPendingIntent(Context context, String scheduleId) {
@@ -348,6 +390,69 @@ final class AlarmScheduler {
   }
 }
 `,
+    'AlarmActivity.kt': `package ${pkg}
+
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.view.WindowManager
+
+import com.facebook.react.ReactActivity
+import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
+import com.facebook.react.defaults.DefaultReactActivityDelegate
+
+import expo.modules.ReactActivityDelegateWrapper
+import expo.modules.splashscreen.SplashScreenManager
+
+import ${appPackage}.BuildConfig
+
+class AlarmActivity : ReactActivity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    SplashScreenManager.registerOnActivity(this)
+    configureAlarmWindow()
+    super.onCreate(null)
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    configureAlarmWindow()
+  }
+
+  private fun configureAlarmWindow() {
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    window.addFlags(WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+      setShowWhenLocked(true)
+      setTurnScreenOn(true)
+    } else {
+      window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+      window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+      window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+    }
+  }
+
+  override fun getMainComponentName(): String = "main"
+
+  override fun createReactActivityDelegate(): ReactActivityDelegate {
+    return ReactActivityDelegateWrapper(
+      this,
+      BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
+      object : DefaultReactActivityDelegate(
+        this,
+        mainComponentName,
+        fabricEnabled
+      ) {}
+    )
+  }
+
+  override fun invokeDefaultOnBackPressed() {
+    moveTaskToBack(true)
+  }
+}
+`,
     'AlarmReceiver.java': `package ${pkg};
 
 import android.content.BroadcastReceiver;
@@ -376,19 +481,21 @@ public class AlarmReceiver extends BroadcastReceiver {
       context.startService(serviceIntent);
     }
 
-    try {
-      context.startActivity(
-        AlarmScheduler.createFullScreenIntent(
-          context,
-          intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID),
-          intent.getStringExtra(AlarmConstants.EXTRA_LABEL),
-          intent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI),
-          intent.getStringExtra(AlarmConstants.EXTRA_SCHEME)
-        )
-      );
-    } catch (Exception ignored) {
-      // Android may block background activity starts. The foreground notification
-      // also carries a full-screen intent and is the primary wake-up path.
+    if (AlarmScheduler.shouldOpenAlarmScreen(context)) {
+      try {
+        context.startActivity(
+          AlarmScheduler.createFullScreenIntent(
+            context,
+            intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID),
+            intent.getStringExtra(AlarmConstants.EXTRA_LABEL),
+            intent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI),
+            intent.getStringExtra(AlarmConstants.EXTRA_SCHEME)
+          )
+        );
+      } catch (Exception ignored) {
+        // Android may block background activity starts. The foreground notification
+        // also carries a full-screen intent and is the primary wake-up path.
+      }
     }
   }
 }
@@ -404,12 +511,15 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -418,7 +528,16 @@ import java.util.Locale;
 
 public class AlarmRingingService extends Service {
   private MediaPlayer mediaPlayer;
+  private PowerManager.WakeLock wakeLock;
+  private AudioManager audioManager;
+  private AudioFocusRequest audioFocusRequest;
   private String currentAlarmId;
+  private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener =
+    new AudioManager.OnAudioFocusChangeListener() {
+      @Override
+      public void onAudioFocusChange(int focusChange) {
+      }
+    };
 
   static void stop(Context context, String alarmId) {
     Intent intent = new Intent(context, AlarmRingingService.class);
@@ -441,7 +560,10 @@ public class AlarmRingingService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     if (intent != null && AlarmConstants.ACTION_STOP.equals(intent.getAction())) {
+      String alarmId = intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID);
       stopSound();
+      releaseWakeLock();
+      clearActiveAlarmId(alarmId);
       stopForegroundCompat();
       stopSelf();
       return START_NOT_STICKY;
@@ -457,6 +579,9 @@ public class AlarmRingingService extends Service {
     String scheme = intent.getStringExtra(AlarmConstants.EXTRA_SCHEME);
 
     currentAlarmId = alarmId;
+    saveActiveAlarmId(alarmId);
+    boolean shouldOpenAlarmScreen = shouldOpenAlarmScreen();
+    wakeScreen();
     Notification notification = buildNotification(alarmId, label, soundUri, scheme);
     int notificationId = AlarmScheduler.notificationId(alarmId == null ? "active" : alarmId);
 
@@ -467,6 +592,9 @@ public class AlarmRingingService extends Service {
     }
 
     startSound(soundUri);
+    if (shouldOpenAlarmScreen) {
+      openAlarmScreen(alarmId, label, soundUri, scheme);
+    }
     return START_STICKY;
   }
 
@@ -479,6 +607,7 @@ public class AlarmRingingService extends Service {
   @Override
   public void onDestroy() {
     stopSound();
+    releaseWakeLock();
     super.onDestroy();
   }
 
@@ -509,6 +638,88 @@ public class AlarmRingingService extends Service {
       .build();
   }
 
+  private boolean shouldOpenAlarmScreen() {
+    return AlarmScheduler.shouldOpenAlarmScreen(this);
+  }
+
+  private void openAlarmScreen(String alarmId, String label, String soundUri, String scheme) {
+    try {
+      startActivity(
+        AlarmScheduler.createFullScreenIntent(
+          this,
+          alarmId,
+          label,
+          soundUri,
+          scheme
+        )
+      );
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void wakeScreen() {
+    try {
+      PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+      if (powerManager == null) {
+        return;
+      }
+
+      if (wakeLock != null && wakeLock.isHeld()) {
+        return;
+      }
+
+      wakeLock = powerManager.newWakeLock(
+        PowerManager.SCREEN_BRIGHT_WAKE_LOCK
+          | PowerManager.ACQUIRE_CAUSES_WAKEUP
+          | PowerManager.ON_AFTER_RELEASE,
+        getPackageName() + ":AlarmWakeLock"
+      );
+      wakeLock.setReferenceCounted(false);
+      wakeLock.acquire(10 * 60 * 1000L);
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void releaseWakeLock() {
+    if (wakeLock == null) {
+      return;
+    }
+
+    try {
+      if (wakeLock.isHeld()) {
+        wakeLock.release();
+      }
+    } catch (Exception ignored) {
+    }
+
+    wakeLock = null;
+  }
+
+  private void saveActiveAlarmId(String alarmId) {
+    if (alarmId == null || alarmId.trim().isEmpty()) {
+      return;
+    }
+
+    getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .putString(AlarmConstants.KEY_ACTIVE_ALARM_ID, alarmId)
+      .apply();
+  }
+
+  private void clearActiveAlarmId(String alarmId) {
+    String activeAlarmId = getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+      .getString(AlarmConstants.KEY_ACTIVE_ALARM_ID, null);
+
+    if (alarmId != null && activeAlarmId != null && !alarmId.equals(activeAlarmId)) {
+      return;
+    }
+
+    getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .remove(AlarmConstants.KEY_ACTIVE_ALARM_ID)
+      .apply();
+  }
+
   private void startSound(String soundUri) {
     stopSound();
 
@@ -517,6 +728,8 @@ public class AlarmRingingService extends Service {
     }
 
     try {
+      requestAlarmAudioFocus();
+
       int rawResourceId = resolveRawSound(soundUri);
       if (rawResourceId != 0) {
         mediaPlayer = MediaPlayer.create(this, rawResourceId, alarmAudioAttributes(), 0);
@@ -532,7 +745,13 @@ public class AlarmRingingService extends Service {
       }
 
       if (mediaPlayer == null) {
+        abandonAlarmAudioFocus();
         return;
+      }
+
+      try {
+        mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+      } catch (Exception ignored) {
       }
 
       mediaPlayer.setLooping(true);
@@ -545,6 +764,7 @@ public class AlarmRingingService extends Service {
 
   private void stopSound() {
     if (mediaPlayer == null) {
+      abandonAlarmAudioFocus();
       return;
     }
 
@@ -561,6 +781,49 @@ public class AlarmRingingService extends Service {
     }
 
     mediaPlayer = null;
+    abandonAlarmAudioFocus();
+  }
+
+  private void requestAlarmAudioFocus() {
+    try {
+      audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+      if (audioManager == null) {
+        return;
+      }
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+          .setAudioAttributes(alarmAudioAttributes())
+          .setOnAudioFocusChangeListener(audioFocusChangeListener)
+          .build();
+        audioManager.requestAudioFocus(audioFocusRequest);
+        return;
+      }
+
+      audioManager.requestAudioFocus(
+        audioFocusChangeListener,
+        AudioManager.STREAM_ALARM,
+        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+      );
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void abandonAlarmAudioFocus() {
+    try {
+      if (audioManager == null) {
+        return;
+      }
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && audioFocusRequest != null) {
+        audioManager.abandonAudioFocusRequest(audioFocusRequest);
+      } else {
+        audioManager.abandonAudioFocus(audioFocusChangeListener);
+      }
+    } catch (Exception ignored) {
+    }
+
+    audioFocusRequest = null;
   }
 
   private int resolveRawSound(String soundUri) {
@@ -651,12 +914,14 @@ public class NeuroWakeAlarmPackage implements ReactPackage {
 `,
     'NeuroWakeAlarmSchedulerModule.java': `package ${pkg};
 
+import android.app.Activity;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 
@@ -759,7 +1024,6 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
     try {
       Context context = getReactApplicationContext().getApplicationContext();
       AlarmScheduler.cancelAlarm(context, alarmId);
-      AlarmRingingService.stop(context, alarmId);
       promise.resolve(null);
     } catch (Exception error) {
       promise.reject("ERR_ALARM_CANCEL", error);
@@ -770,11 +1034,114 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
   public void stopAlarm(String alarmId, Promise promise) {
     try {
       Context context = getReactApplicationContext().getApplicationContext();
+      clearActiveAlarmId(context, alarmId);
       AlarmRingingService.stop(context, alarmId);
       promise.resolve(null);
     } catch (Exception error) {
       promise.reject("ERR_ALARM_STOP", error);
     }
+  }
+
+  @ReactMethod
+  public void getPendingAlarmId(Promise promise) {
+    try {
+      Activity activity = getCurrentActivity();
+      String alarmId = activity == null ? null : extractAlarmIdFromIntent(activity.getIntent());
+      if (alarmId == null || alarmId.trim().isEmpty()) {
+        Context context = getReactApplicationContext().getApplicationContext();
+        alarmId = context
+          .getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+          .getString(AlarmConstants.KEY_ACTIVE_ALARM_ID, null);
+      }
+
+      promise.resolve(alarmId);
+    } catch (Exception error) {
+      promise.reject("ERR_PENDING_ALARM_ID", error);
+    }
+  }
+
+  @ReactMethod
+  public void closeAlarmScreen(Promise promise) {
+    try {
+      Activity activity = getCurrentActivity();
+      if (activity == null) {
+        promise.resolve(false);
+        return;
+      }
+
+      activity.runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON);
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+              activity.setShowWhenLocked(false);
+              activity.setTurnScreenOn(false);
+            }
+
+            if (activity.getClass().getName().endsWith(".alarm.AlarmActivity")) {
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                activity.finishAndRemoveTask();
+              } else {
+                activity.finish();
+              }
+            } else {
+              activity.moveTaskToBack(true);
+            }
+
+            promise.resolve(true);
+          } catch (Exception error) {
+            promise.reject("ERR_ALARM_SCREEN_CLOSE", error);
+          }
+        }
+      });
+    } catch (Exception error) {
+      promise.reject("ERR_ALARM_SCREEN_CLOSE", error);
+    }
+  }
+
+  private String extractAlarmIdFromIntent(Intent intent) {
+    if (intent == null) {
+      return null;
+    }
+
+    String alarmId = intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID);
+    if (alarmId != null && !alarmId.trim().isEmpty()) {
+      return alarmId;
+    }
+
+    Uri data = intent.getData();
+    if (data == null || !"alarm".equals(data.getHost())) {
+      return null;
+    }
+
+    String path = data.getPath();
+    if (path == null || !path.startsWith("/ringing")) {
+      return null;
+    }
+
+    return data.getLastPathSegment();
+  }
+
+  private void clearActiveAlarmId(Context context, String alarmId) {
+    String activeAlarmId = context
+      .getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+      .getString(AlarmConstants.KEY_ACTIVE_ALARM_ID, null);
+
+    if (alarmId != null && activeAlarmId != null && !alarmId.equals(activeAlarmId)) {
+      return;
+    }
+
+    context
+      .getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .remove(AlarmConstants.KEY_ACTIVE_ALARM_ID)
+      .apply();
   }
 }
 `,
@@ -818,6 +1185,8 @@ function writeNativeFiles(projectRoot, packageName) {
     fs.mkdirSync(rawSoundsDir, { recursive: true });
     for (const filename of fs.readdirSync(sourceSoundsDir)) {
       if (!/\.(mp3|wav|ogg)$/i.test(filename)) continue;
+      const sourceSoundPath = path.join(sourceSoundsDir, filename);
+      if (fs.statSync(sourceSoundPath).size <= 0) continue;
 
       const ext = path.extname(filename).toLowerCase();
       const rawName = path
@@ -826,7 +1195,7 @@ function writeNativeFiles(projectRoot, packageName) {
         .replace(/[^a-z0-9_]/g, '_');
 
       fs.copyFileSync(
-        path.join(sourceSoundsDir, filename),
+        sourceSoundPath,
         path.join(rawSoundsDir, `${rawName}${ext}`),
       );
     }
@@ -890,9 +1259,25 @@ module.exports = function withAndroidAlarmFullScreen(config) {
     });
 
     if (mainActivity?.$) {
-      mainActivity.$['android:showWhenLocked'] = 'true';
-      mainActivity.$['android:turnScreenOn'] = 'true';
+      delete mainActivity.$['android:showWhenLocked'];
+      delete mainActivity.$['android:turnScreenOn'];
     }
+
+    upsertManifestItem(activities, {
+      $: {
+        'android:name': '.alarm.AlarmActivity',
+        'android:configChanges': 'keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize',
+        'android:excludeFromRecents': 'true',
+        'android:exported': 'false',
+        'android:launchMode': 'singleTask',
+        'android:screenOrientation': 'portrait',
+        'android:showWhenLocked': 'true',
+        'android:taskAffinity': `${packageName}.alarm`,
+        'android:theme': '@style/Theme.App.SplashScreen',
+        'android:turnScreenOn': 'true',
+        'android:windowSoftInputMode': 'adjustResize',
+      },
+    });
 
     upsertManifestItem(ensureArray(application, 'receiver'), {
       $: {

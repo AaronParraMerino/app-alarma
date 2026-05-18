@@ -2,6 +2,14 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabaseSync('app.db');
 
+function ensureColumn(table: string, column: string, definition: string): void {
+  const columns = db.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`);
+  const exists = columns.some(item => item.name === column);
+  if (exists) return;
+
+  db.execSync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
 export const initDB = () => {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS alarms (
@@ -64,6 +72,16 @@ export const initDB = () => {
     );
 
   `);
+
+  ensureColumn('alarms', 'label', "TEXT DEFAULT ''");
+  ensureColumn('alarms', 'active', 'INTEGER DEFAULT 1');
+  ensureColumn('alarms', 'repeat_days', "TEXT DEFAULT '[]'");
+  ensureColumn('alarms', 'missions', "TEXT DEFAULT '[]'");
+  ensureColumn('alarms', 'random_missions', 'INTEGER DEFAULT 0');
+  ensureColumn('alarms', 'sound_uri', 'TEXT');
+  ensureColumn('alarms', 'synced', 'INTEGER DEFAULT 0');
+  ensureColumn('alarms', 'created_at', 'INTEGER');
+  ensureColumn('alarms', 'updated_at', 'INTEGER');
 };
 
 export default db;

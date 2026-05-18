@@ -1,5 +1,5 @@
 // src/features/alarm/screens/HomeScreen.tsx
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   StyleSheet,
   StatusBar,
   Animated,
-  Alert,
   ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { Modal as AppModal } from '../../../shared/components/ui/Modal';
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
 import { Alarm, MissionType } from '../types/alarm.types';
@@ -267,6 +267,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList, 'Home'>>();
   const { alarms, toggleAlarm, deleteAlarm } = useAlarmStore();
+  const [alarmToDelete, setAlarmToDelete] = useState<Alarm | null>(null);
 
   const handleAdd = useCallback(() => {
     navigation.navigate('AlarmCreate');
@@ -277,15 +278,25 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const handleLongPress = useCallback((alarm: Alarm) => {
-    Alert.alert(
+    setAlarmToDelete(alarm);
+    return;
+
+    /*
       'Eliminar alarma',
       `¿Eliminar "${alarm.label || formatTime(alarm.hour, alarm.minute)}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Eliminar', style: 'destructive', onPress: () => deleteAlarm(alarm.id) },
       ],
-    );
-  }, [deleteAlarm]);
+    */
+  }, []);
+
+  const confirmDeleteAlarm = useCallback(() => {
+    if (!alarmToDelete) return;
+
+    deleteAlarm(alarmToDelete.id);
+    setAlarmToDelete(null);
+  }, [alarmToDelete, deleteAlarm]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<Alarm>) => (
@@ -352,6 +363,27 @@ export default function HomeScreen() {
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
       )}
+
+      <AppModal
+        visible={Boolean(alarmToDelete)}
+        type="warning"
+        title="Eliminar alarma"
+        message={
+          alarmToDelete
+            ? `¿Eliminar "${alarmToDelete.label || formatTime(alarmToDelete.hour, alarmToDelete.minute)}"?`
+            : undefined
+        }
+        closeOnBackdropPress
+        onClose={() => setAlarmToDelete(null)}
+        cancelAction={{
+          label: 'Cancelar',
+          onPress: () => setAlarmToDelete(null),
+        }}
+        confirmAction={{
+          label: 'Eliminar',
+          onPress: confirmDeleteAlarm,
+        }}
+      />
     </SafeAreaView>
   );
 }
