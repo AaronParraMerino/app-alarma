@@ -1,27 +1,85 @@
 {
   "expo": {
-    "name": "app-alarma",
+    "name": "Neuro Wake",
     "slug": "app-alarma",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "scheme": [
+      "neurowake",
+      "appalarma"
+    ],
+    "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logoAlarma.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D0F14"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0D0F14"
       },
-      "predictiveBackGestureEnabled": false
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "neurowake",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "neurowake",
+              "host": "auth",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "neurowake",
+              "host": "alarm",
+              "pathPrefix": "/ringing"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "auth",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "appalarma",
+              "host": "alarm",
+              "pathPrefix": "/ringing"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "package": "com.aarongpm.appalarma"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,7 +87,46 @@
     "plugins": [
       "expo-sqlite",
       "expo-audio",
-      "@react-native-community/datetimepicker"
-    ]
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "alarms-v2-default",
+          "sounds": [
+            "./assets/sounds/blendertimer_cyber_alarms_synthesized_116358.mp3",
+            "./assets/sounds/dennish18_biohazard_alarm_143105.mp3",
+            "./assets/sounds/freesound_community_056338_25_alien_alarms_87068.mp3",
+            "./assets/sounds/freesound_community_alarm_26718.mp3",
+            "./assets/sounds/freesound_community_alarm_no3_14864.mp3",
+            "./assets/sounds/freesound_community_facility_siren_loopable_100687.mp3",
+            "./assets/sounds/freesound_community_imminent2_80967.mp3",
+            "./assets/sounds/freesound_community_meltdown_73617.mp3",
+            "./assets/sounds/freesound_community_multiple_tornado_alarms_17375.mp3",
+            "./assets/sounds/freesound_community_thunder_69076.mp3",
+            "./assets/sounds/jeremayjimenez_greece_eas_alarm_451404.mp3",
+            "./assets/sounds/jeremayjimenez_saudi_arabia_eas_alarm_1924_526917.mp3"
+          ]
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-web-browser",
+      "expo-dev-client",
+      "./plugins/withAndroidAlarmFullScreen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0D0F14",
+          "image": "./assets/logoAlarma.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-font",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "efd7c3e2-09ed-4110-a1db-2d88ca1af551"
+      }
+    }
   }
 }

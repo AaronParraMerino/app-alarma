@@ -1,0 +1,1 @@
+export { Menssage as AuthMessage } from '../../../shared/components/ui/Menssage';
