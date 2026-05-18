@@ -5,12 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "newArchEnabled": false,
     "scheme": [
       "neurowake",
       "appalarma"
     ],
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/logoAlarma.png",
       "resizeMode": "contain",
@@ -95,7 +94,6 @@
           "sounds": [
             "./assets/sounds/blendertimer_cyber_alarms_synthesized_116358.mp3",
             "./assets/sounds/dennish18_biohazard_alarm_143105.mp3",
-            "./assets/sounds/esteno.mp3",
             "./assets/sounds/freesound_community_056338_25_alien_alarms_87068.mp3",
             "./assets/sounds/freesound_community_alarm_26718.mp3",
             "./assets/sounds/freesound_community_alarm_no3_14864.mp3",
@@ -121,7 +119,9 @@
           "imageWidth": 220,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

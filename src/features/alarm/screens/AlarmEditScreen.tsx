@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../shared/components/ui/BackButton';
@@ -30,6 +30,7 @@ export default function AlarmEditScreen({ navigation, route }: Props) {
       <AlarmForm
         title="Editar alarma"
         submitLabel="Guardar cambios"
+        draftKey={`alarm-edit-${alarm.id}`}
         initialData={alarm}
         onBack={() => navigation.goBack()}
         onSubmit={data => {
@@ -37,17 +38,8 @@ export default function AlarmEditScreen({ navigation, route }: Props) {
           navigation.goBack();
         }}
         onDelete={() => {
-          Alert.alert('Eliminar alarma', 'Esta acción no se puede deshacer.', [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Eliminar',
-              style: 'destructive',
-              onPress: () => {
-                deleteAlarm(alarm.id);
-                navigation.goBack();
-              },
-            },
-          ]);
+          deleteAlarm(alarm.id);
+          navigation.goBack();
         }}
       />
     </SafeAreaView>

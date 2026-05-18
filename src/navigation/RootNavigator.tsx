@@ -1,6 +1,6 @@
 // src/navigation/RootNavigator.tsx
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
+import { AppState, View, StyleSheet, Linking } from 'react-native';
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -15,7 +15,10 @@ import AuthNavigator from '../features/auth/navigation/AuthNavigator';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import {
   extractAlarmIdFromNotification,
+  extractAlarmIdFromUrl,
+  getPendingNativeRingingAlarmId,
   isExpoGoRuntime,
+  shouldOpenRingingAlarmId,
 } from '../features/alarm/services/alarmScheduler';
 
 import { Colors } from '../shared/theme/colors';
@@ -49,6 +52,14 @@ function navigateToRingingAlarm(alarmId: string) {
     return;
   }
 
+  const currentRoute = navigationRef.getCurrentRoute();
+  if (
+    currentRoute?.name === 'AlarmRinging'
+    && (currentRoute.params as { alarmId?: string } | undefined)?.alarmId === alarmId
+  ) {
+    return;
+  }
+
   navigationRef.navigate('Main', {
     screen: 'AlarmTab',
     params: {
@@ -66,17 +77,6 @@ function flushPendingAlarmNavigation() {
   navigateToRingingAlarm(alarmId);
 }
 
-function extractAlarmIdFromUrl(url: string): string | null {
-  const match = url.match(/^[a-z][a-z0-9+.-]*:\/\/alarm\/ringing\/([^?#]+)/i);
-  if (!match?.[1]) return null;
-
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return match[1];
-  }
-}
-
 export default function RootNavigator() {
   const { isAuthenticated, isGuest, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated || isGuest;
@@ -85,6 +85,12 @@ export default function RootNavigator() {
     let receivedSub: { remove: () => void } | null = null;
     let responseSub: { remove: () => void } | null = null;
     let linkingSub: { remove: () => void } | null = null;
+    let appStateSub: { remove: () => void } | null = null;
+
+    const handleRingingAlarmId = async (alarmId: string) => {
+      const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
+      if (shouldOpen) navigateToRingingAlarm(alarmId);
+    };
 
     const setupListeners = async () => {
       if (isExpoGoRuntime()) return;
@@ -94,12 +100,12 @@ export default function RootNavigator() {
 
         receivedSub = Notifications.addNotificationReceivedListener(notification => {
           const alarmId = extractAlarmIdFromNotification(notification);
-          if (alarmId) navigateToRingingAlarm(alarmId);
+          if (alarmId) void handleRingingAlarmId(alarmId);
         });
 
         responseSub = Notifications.addNotificationResponseReceivedListener(response => {
           const alarmId = extractAlarmIdFromNotification(response);
-          if (alarmId) navigateToRingingAlarm(alarmId);
+          if (alarmId) void handleRingingAlarmId(alarmId);
         });
       } catch (error) {
         console.log(
@@ -111,20 +117,35 @@ export default function RootNavigator() {
 
     const handleUrl = ({ url }: { url: string }) => {
       const alarmId = extractAlarmIdFromUrl(url);
+      if (alarmId) void handleRingingAlarmId(alarmId);
+    };
+
+    const handlePendingNativeAlarm = async () => {
+      const alarmId = await getPendingNativeRingingAlarmId();
       if (alarmId) navigateToRingingAlarm(alarmId);
     };
 
     void setupListeners();
     void Linking.getInitialURL().then(url => {
-      if (!url) return;
-      handleUrl({ url });
+      if (url) {
+        handleUrl({ url });
+        return;
+      }
+
+      void handlePendingNativeAlarm();
     });
     linkingSub = Linking.addEventListener('url', handleUrl);
+    appStateSub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        void handlePendingNativeAlarm();
+      }
+    });
 
     return () => {
       receivedSub?.remove();
       responseSub?.remove();
       linkingSub?.remove();
+      appStateSub?.remove();
     };
   }, []);
 

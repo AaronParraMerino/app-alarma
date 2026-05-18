@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import type * as ExpoNotifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
 import { Alarm, RepeatDay } from '../types/alarm.types';
 import { DEFAULT_ALARM_SOUND_URI } from './alarmService';
@@ -41,12 +42,20 @@ type NativeAlarmSchedulerModule = {
   scheduleAlarm?: (options: NativeAlarmScheduleOptions) => Promise<void>;
   cancelAlarm?: (alarmId: string) => Promise<void>;
   stopAlarm?: (alarmId: string) => Promise<void>;
+  getPendingAlarmId?: () => Promise<string | null>;
+  closeAlarmScreen?: () => Promise<boolean>;
 };
 
 const NativeAlarmScheduler = NativeModules.NeuroWakeAlarmScheduler as
   | NativeAlarmSchedulerModule
   | undefined;
 let nativeAlarmAvailabilityLogged = false;
+let fullScreenSettingsOpenedThisSession = false;
+const RESOLVED_ALARM_STORAGE_KEY = 'neuroWake.resolvedRingingAlarms.v1';
+const RESOLVED_ALARM_SUPPRESSION_MS = 4 * 60 * 60 * 1000;
+const recentlyResolvedAlarmIds = new Map<string, number>();
+let resolvedAlarmCacheLoaded = false;
+let resolvedAlarmCachePromise: Promise<void> | null = null;
 
 function isExpoGoRuntime(): boolean {
   return Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
@@ -101,6 +110,89 @@ export function isNativeAndroidAlarmAvailable(): boolean {
   return Platform.OS === 'android' && typeof NativeAlarmScheduler?.scheduleAlarm === 'function';
 }
 
+function pruneResolvedAlarmCache(now = Date.now()): boolean {
+  let changed = false;
+
+  recentlyResolvedAlarmIds.forEach((resolvedAt, alarmId) => {
+    if (now - resolvedAt > RESOLVED_ALARM_SUPPRESSION_MS) {
+      recentlyResolvedAlarmIds.delete(alarmId);
+      changed = true;
+    }
+  });
+
+  return changed;
+}
+
+async function persistResolvedAlarmCacheAsync(): Promise<void> {
+  const entries = Array.from(recentlyResolvedAlarmIds.entries()).map(
+    ([alarmId, resolvedAt]) => ({ alarmId, resolvedAt }),
+  );
+
+  if (entries.length === 0) {
+    await AsyncStorage.removeItem(RESOLVED_ALARM_STORAGE_KEY);
+    return;
+  }
+
+  await AsyncStorage.setItem(RESOLVED_ALARM_STORAGE_KEY, JSON.stringify(entries));
+}
+
+async function loadResolvedAlarmCacheAsync(): Promise<void> {
+  if (resolvedAlarmCacheLoaded) return;
+  if (resolvedAlarmCachePromise) return resolvedAlarmCachePromise;
+
+  resolvedAlarmCachePromise = (async () => {
+    try {
+      const raw = await AsyncStorage.getItem(RESOLVED_ALARM_STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Array<{ alarmId?: unknown; resolvedAt?: unknown }>;
+      if (!Array.isArray(parsed)) return;
+
+      parsed.forEach(item => {
+        if (typeof item.alarmId !== 'string' || typeof item.resolvedAt !== 'number') {
+          return;
+        }
+
+        recentlyResolvedAlarmIds.set(item.alarmId, item.resolvedAt);
+      });
+
+      if (pruneResolvedAlarmCache()) {
+        await persistResolvedAlarmCacheAsync();
+      }
+    } catch (error) {
+      console.log('[AlarmScheduler] No se pudo cargar cache de alarmas resueltas:', error);
+      await AsyncStorage.removeItem(RESOLVED_ALARM_STORAGE_KEY);
+    } finally {
+      resolvedAlarmCacheLoaded = true;
+      resolvedAlarmCachePromise = null;
+    }
+  })();
+
+  return resolvedAlarmCachePromise;
+}
+
+async function markRingingAlarmResolved(alarmId: string): Promise<void> {
+  await loadResolvedAlarmCacheAsync();
+  recentlyResolvedAlarmIds.set(alarmId, Date.now());
+  pruneResolvedAlarmCache();
+  await persistResolvedAlarmCacheAsync();
+}
+
+async function isRingingAlarmRecentlyResolved(alarmId: string): Promise<boolean> {
+  await loadResolvedAlarmCacheAsync();
+
+  const resolvedAt = recentlyResolvedAlarmIds.get(alarmId);
+  if (!resolvedAt) return false;
+
+  if (Date.now() - resolvedAt > RESOLVED_ALARM_SUPPRESSION_MS) {
+    recentlyResolvedAlarmIds.delete(alarmId);
+    await persistResolvedAlarmCacheAsync();
+    return false;
+  }
+
+  return true;
+}
+
 function logNativeAlarmAvailabilityOnce(): void {
   if (Platform.OS !== 'android' || nativeAlarmAvailabilityLogged) return;
 
@@ -125,29 +217,100 @@ function logNativeAlarmAvailabilityOnce(): void {
   );
 }
 
+export async function canUseNativeAlarmFullScreenIntent(): Promise<boolean> {
+  if (!isNativeAndroidAlarmAvailable() || !NativeAlarmScheduler?.canUseFullScreenIntent) {
+    return false;
+  }
+
+  try {
+    return await NativeAlarmScheduler.canUseFullScreenIntent();
+  } catch (error) {
+    console.log('[AlarmScheduler] No se pudo verificar full-screen intent:', error);
+    return true;
+  }
+}
+
 async function logNativeFullScreenPermissionAsync(): Promise<void> {
   if (!isNativeAndroidAlarmAvailable() || !NativeAlarmScheduler?.canUseFullScreenIntent) {
     return;
   }
 
-  try {
-    const canUseFullScreenIntent = await NativeAlarmScheduler.canUseFullScreenIntent();
-    if (canUseFullScreenIntent) {
-      console.log('[AlarmScheduler] Permiso Android full-screen intent disponible.');
-      return;
-    }
-
-    console.log(
-      '[AlarmScheduler] Permiso Android full-screen intent desactivado. La alarma puede quedar solo como notificacion.',
-    );
-  } catch (error) {
-    console.log('[AlarmScheduler] No se pudo verificar full-screen intent:', error);
+  const canUseFullScreenIntent = await canUseNativeAlarmFullScreenIntent();
+  if (canUseFullScreenIntent) {
+    console.log('[AlarmScheduler] Permiso Android full-screen intent disponible.');
+    return;
   }
+
+  console.log(
+    '[AlarmScheduler] Permiso Android full-screen intent desactivado. La alarma puede quedar solo como notificacion.',
+  );
 }
 
 export async function openNativeAlarmFullScreenSettings(): Promise<void> {
   if (!NativeAlarmScheduler?.openFullScreenIntentSettings) return;
   await NativeAlarmScheduler.openFullScreenIntentSettings();
+}
+
+async function ensureNativeAlarmFullScreenPermissionAsync(): Promise<void> {
+  if (!isNativeAndroidAlarmAvailable()) return;
+
+  const canUseFullScreenIntent = await canUseNativeAlarmFullScreenIntent();
+  if (canUseFullScreenIntent || fullScreenSettingsOpenedThisSession) return;
+
+  fullScreenSettingsOpenedThisSession = true;
+  console.log(
+    '[AlarmScheduler] Abriendo ajustes de alarmas en pantalla completa. Activa este permiso para que la alarma aparezca sobre bloqueo.',
+  );
+  await openNativeAlarmFullScreenSettings();
+}
+
+export async function closeNativeAlarmScreen(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !NativeAlarmScheduler?.closeAlarmScreen) {
+    return false;
+  }
+
+  try {
+    return await NativeAlarmScheduler.closeAlarmScreen();
+  } catch (error) {
+    console.log('[AlarmScheduler] Native close alarm screen skipped:', error);
+    return false;
+  }
+}
+
+export async function getPendingNativeRingingAlarmId(): Promise<string | null> {
+  if (Platform.OS !== 'android' || !NativeAlarmScheduler?.getPendingAlarmId) {
+    return null;
+  }
+
+  try {
+    const alarmId = await NativeAlarmScheduler.getPendingAlarmId();
+    if (!alarmId) return null;
+
+    return String(alarmId);
+  } catch (error) {
+    console.log('[AlarmScheduler] Pending native alarm check skipped:', error);
+    return null;
+  }
+}
+
+export function extractAlarmIdFromUrl(url: string): string | null {
+  const match = url.match(/^[a-z][a-z0-9+.-]*:\/\/alarm\/ringing\/([^?#]+)/i);
+  if (!match?.[1]) return null;
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
+export async function shouldOpenRingingAlarmId(alarmId: string): Promise<boolean> {
+  if (isNativeAndroidAlarmAvailable()) {
+    const pendingAlarmId = await getPendingNativeRingingAlarmId();
+    return pendingAlarmId === alarmId;
+  }
+
+  return !(await isRingingAlarmRecentlyResolved(alarmId));
 }
 
 function getAppScheme(): string {
@@ -428,6 +591,7 @@ export async function cancelAlarmNotificationsByAlarmId(alarmId: string): Promis
 
 export async function dismissRingingAlarmByAlarmId(alarmId: string): Promise<void> {
   try {
+    await markRingingAlarmResolved(alarmId);
     await stopNativeRingingAlarm(alarmId);
 
     const Notifications = await getNotificationsModule();
@@ -455,6 +619,7 @@ export async function scheduleAlarmNotifications(alarm: Alarm): Promise<void> {
 
     if (isNativeAndroidAlarmAvailable()) {
       try {
+        await ensureNativeAlarmFullScreenPermissionAsync();
         await scheduleNativeAlarm(alarm);
         return;
       } catch (error) {

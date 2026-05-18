@@ -21,6 +21,7 @@ import {
   scheduleAlarmNotifications,
 } from '../services/alarmScheduler';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { subscribeAlarmSync } from '../../../shared/services/storage/sync.service';
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 interface AlarmContextType {
@@ -38,8 +39,7 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isGuest, user } = useAuth();
   const userId = isAuthenticated && !isGuest ? user?.id : undefined;
 
-  useEffect(() => {
-    initDB();
+  const reloadLocalAlarms = useCallback(() => {
     const localAlarms = getAlarmsLocal();
     setAlarms(localAlarms);
 
@@ -47,6 +47,13 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
       void scheduleAlarmNotifications(alarm);
     });
   }, []);
+
+  useEffect(() => {
+    initDB();
+    reloadLocalAlarms();
+  }, [reloadLocalAlarms]);
+
+  useEffect(() => subscribeAlarmSync(reloadLocalAlarms), [reloadLocalAlarms]);
 
   const addAlarm = useCallback((data: AlarmCreate) => {
     const now = Date.now();

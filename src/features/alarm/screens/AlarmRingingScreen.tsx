@@ -19,7 +19,9 @@ import { WordCompletionMission } from '../../missions/wordCompletion/components/
 import { MovementMissionScreen } from '../../missions/MovementMission/screens/MovementMissionScreen';
 import { ColoredFiguresMission } from '../../missions/ColoredFigures/components/ColoredFigureMission';
 import {
+  closeNativeAlarmScreen,
   dismissRingingAlarmByAlarmId,
+  getPendingNativeRingingAlarmId,
   isNativeAndroidAlarmAvailable,
 } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
@@ -62,10 +64,10 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     () => alarms.find(a => a.id === alarmId) ?? getAlarmsLocal().find(a => a.id === alarmId),
     [alarms, alarmId],
   );
-  const alarmSoundAsset = getAlarmSoundAsset(alarm?.soundUri ?? null);
   const shouldUseJsAudio = !isNativeAndroidAlarmAvailable();
+  const alarmSoundAsset = shouldUseJsAudio ? getAlarmSoundAsset(alarm?.soundUri ?? null) : null;
   const player = useAudioPlayer(alarmSoundAsset, {
-    keepAudioSessionActive: true,
+    keepAudioSessionActive: shouldUseJsAudio,
   });
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
 
@@ -157,22 +159,54 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     }, []),
   );
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!isNativeAndroidAlarmAvailable()) return undefined;
+
+      let mounted = true;
+      void getPendingNativeRingingAlarmId().then(pendingAlarmId => {
+        if (!mounted || pendingAlarmId === alarmId) return;
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
+      });
+
+      return () => {
+        mounted = false;
+      };
+    }, [alarmId, navigation]),
+  );
+
   const stopAlarm = React.useCallback(async () => {
+    const targetAlarmId = alarm?.id ?? alarmId;
+    await dismissRingingAlarmByAlarmId(targetAlarmId);
+
     if (!alarm) {
-      navigation.goBack();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      await closeNativeAlarmScreen();
       return;
     }
 
-    await dismissRingingAlarmByAlarmId(alarm.id);
-    player.pause();
-    await player.seekTo(0);
+    if (shouldUseJsAudio) {
+      player.pause();
+      await player.seekTo(0);
+    }
 
     if (alarm.repeatDays.length === 0) {
       updateAlarm(alarm.id, { enabled: false });
     }
 
-    navigation.goBack();
-  }, [alarm, navigation, player, updateAlarm]);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+    await closeNativeAlarmScreen();
+  }, [alarm, alarmId, navigation, player, shouldUseJsAudio, updateAlarm]);
 
   const completeMission = React.useCallback(() => {
     const nextMissionIndex = currentMissionIndex + 1;
@@ -190,6 +224,13 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         <View style={styles.centered}>
           <Text style={styles.title}>Alarma no encontrada</Text>
           <Text style={styles.subtitle}>Vuelve e intenta de nuevo.</Text>
+          <TouchableOpacity
+            style={styles.stopButton}
+            onPress={() => void stopAlarm()}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.stopButtonText}>Cerrar alarma</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
