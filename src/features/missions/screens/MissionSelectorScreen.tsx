@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,11 @@ import {
 // Colores
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
 import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
+
+// Objetos
+import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
+import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
+import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -74,6 +79,21 @@ export default function MissionSelectorScreen() {
     colorConfig.difficulty === 'easy'
       ? 'NORMAL'
       : colorStyle.label;
+
+  // Config de objetos
+  const { config: objectConfig } = useObjectRecognitionStore();
+  const [objectBank, setObjectBank] = useState<RecognizableObject[]>([]);
+
+  useEffect(() => {
+    setObjectBank(ObjectBankService.getEnabled());
+  }, []);
+
+  const selectedObject = useMemo(
+    () =>
+      objectBank.find(object => object.id === objectConfig.targetObjectId)
+      ?? objectBank[0],
+    [objectBank, objectConfig.targetObjectId],
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -250,6 +270,47 @@ export default function MissionSelectorScreen() {
               ]}
             >
               Ejecutar misión de colores
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Mision de objetos */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Mision de objetos</Text>
+
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('ConfigObjectRecognitionMission')}
+          >
+            <Text style={styles.btnText}>Configurar objeto</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.summary}>
+            {selectedObject?.label ?? 'Sin objeto seleccionado'}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.executeBtn,
+              {
+                backgroundColor: Colors.missionColors.photo + '18',
+                borderColor: Colors.missionColors.photo + '50',
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate('ObjectRecognitionMissionScreen', {
+                targetObjectId: selectedObject?.id,
+              })
+            }
+            disabled={!selectedObject}
+          >
+            <Text
+              style={[
+                styles.executeBtnText,
+                { color: Colors.missionColors.photo },
+              ]}
+            >
+              Ejecutar mision de objetos
             </Text>
           </TouchableOpacity>
         </View>

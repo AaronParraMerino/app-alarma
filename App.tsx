@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { initDB } from './src/shared/db/localDB';
 import { WordSeedService } from './src/shared/services/storage/WordSeedService';
 import { syncMissionHistory } from './src/shared/services/storage/missionHistorySync.service';
+import { ObjectBankService } from './src/features/missions/ObjectRecognition/services/objectBank.service';
 
 import {
   syncAlarms,
@@ -43,6 +44,7 @@ function AppContent() {
   useEffect(() => {
     initDB();
     WordSeedService.seedIfNeeded();
+    ObjectBankService.seedIfNeeded();
     void setupAlarmNotificationsAsync();
 
     let mounted = true;

@@ -65,6 +65,22 @@ export const initDB = () => {
 
     CREATE INDEX IF NOT EXISTS idx_mh_synced ON missions_history(synced);
 
+    CREATE TABLE IF NOT EXISTS object_recognition_objects (
+      id         TEXT PRIMARY KEY NOT NULL,
+      name       TEXT NOT NULL,
+      label      TEXT NOT NULL,
+      category   TEXT NOT NULL,
+      enabled    INTEGER DEFAULT 1,
+      created_at INTEGER DEFAULT (strftime('%s','now')),
+      updated_at INTEGER DEFAULT (strftime('%s','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_oro_enabled
+    ON object_recognition_objects(enabled);
+
+    CREATE INDEX IF NOT EXISTS idx_oro_category
+    ON object_recognition_objects(category);
+
 
     CREATE TABLE IF NOT EXISTS app_metadata (
       key TEXT PRIMARY KEY,
