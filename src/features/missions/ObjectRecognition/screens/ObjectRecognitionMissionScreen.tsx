@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Image,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { CameraCapturedPicture } from 'expo-camera/build/Camera.types';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +17,10 @@ import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ObjectBankService } from '../services/objectBank.service';
+import {
+  ObjectRecognitionResult,
+  ObjectRecognitionService,
+} from '../services/objectRecognition.service';
 import { useObjectRecognitionStore } from '../store/objectRecognitionStore';
 import { RecognizableObject } from '../types/objectRecognition.types';
 
@@ -27,14 +33,56 @@ export default function ObjectRecognitionMissionScreen({
   navigation,
   route,
 }: Props) {
+  const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { config } = useObjectRecognitionStore();
   const targetObjectId = route.params?.targetObjectId ?? config.targetObjectId;
   const [targetObject, setTargetObject] = useState<RecognizableObject | null>(null);
+  const [photo, setPhoto] = useState<CameraCapturedPicture | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [recognitionResult, setRecognitionResult] =
+    useState<ObjectRecognitionResult | null>(null);
 
   useEffect(() => {
     setTargetObject(ObjectBankService.getById(targetObjectId));
   }, [targetObjectId]);
+
+  const takePhoto = async () => {
+    if (!cameraRef.current || !cameraReady || capturing) return;
+
+    setCapturing(true);
+    try {
+      const picture = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        skipProcessing: false,
+      });
+      setPhoto(picture);
+      setRecognitionResult(null);
+    } catch (error) {
+      console.log('[ObjectRecognitionMission] No se pudo tomar la foto:', error);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  const validatePhoto = async () => {
+    if (!photo || !targetObject || validating) return;
+
+    setValidating(true);
+    try {
+      const result = await ObjectRecognitionService.validateObject({
+        photoUri: photo.uri,
+        targetObject,
+      });
+      setRecognitionResult(result);
+    } catch (error) {
+      console.log('[ObjectRecognitionMission] No se pudo validar el objeto:', error);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   if (!permission) {
     return <SafeAreaView style={styles.safe} />;
@@ -70,28 +118,84 @@ export default function ObjectRecognitionMissionScreen({
         <BackButton onPress={() => navigation.goBack()} />
 
         <View style={styles.cameraCard}>
-          <CameraView style={styles.camera} facing="back" />
-          <View style={styles.cameraOverlay}>
-            <View style={styles.scanFrame} />
-          </View>
+          {photo ? (
+            <Image source={{ uri: photo.uri }} style={styles.camera} resizeMode="cover" />
+          ) : (
+            <>
+              <CameraView
+                ref={cameraRef}
+                style={styles.camera}
+                facing="back"
+                onCameraReady={() => setCameraReady(true)}
+              />
+              <View style={styles.cameraOverlay}>
+                <View style={styles.scanFrame} />
+              </View>
+            </>
+          )}
         </View>
 
         <View style={styles.targetInfo}>
           <Text style={styles.title}>Busca este objeto</Text>
           <Text style={styles.objectName}>{targetObject?.label ?? 'Objeto'}</Text>
           <Text style={styles.note}>
-            Por ahora esta pantalla valida el flujo de camara. Luego conectamos
-            reconocimiento automatico.
+            {recognitionResult
+              ? `Detectado: ${recognitionResult.detectedLabel} (${Math.round(
+                  recognitionResult.confidence * 100,
+                )}%)`
+              : 'Toma una foto y valida el objeto antes de completar.'}
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.completeBtn}
-          onPress={() => navigation.navigate('MissionSelector')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.completeText}>Completar prueba</Text>
-        </TouchableOpacity>
+        {photo ? (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => {
+                setPhoto(null);
+                setRecognitionResult(null);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryText}>Repetir</Text>
+            </TouchableOpacity>
+            {recognitionResult?.matched ? (
+              <TouchableOpacity
+                style={[styles.completeBtn, styles.actionBtn]}
+                onPress={() => navigation.navigate('MissionSelector')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.completeText}>Completar</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.completeBtn,
+                  styles.actionBtn,
+                  validating && styles.disabledBtn,
+                ]}
+                onPress={validatePhoto}
+                activeOpacity={0.85}
+                disabled={validating}
+              >
+                <Text style={styles.completeText}>
+                  {validating ? 'Validando...' : 'Validar'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.completeBtn, (!cameraReady || capturing) && styles.disabledBtn]}
+            onPress={takePhoto}
+            activeOpacity={0.85}
+            disabled={!cameraReady || capturing}
+          >
+            <Text style={styles.completeText}>
+              {capturing ? 'Capturando...' : 'Tomar foto'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -179,8 +283,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  disabledBtn: {
+    opacity: 0.6,
+  },
   completeText: {
     color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtn: {
+    flex: 1,
+  },
+  secondaryBtn: {
+    flex: 1,
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.missionColors.photo,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bgCard,
+  },
+  secondaryText: {
+    color: Colors.missionColors.photo,
     fontSize: 16,
     fontWeight: '800',
   },
