@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
@@ -26,6 +27,7 @@ export default function ObjectRecognitionMissionScreen({
   navigation,
   route,
 }: Props) {
+  const [permission, requestPermission] = useCameraPermissions();
   const { config } = useObjectRecognitionStore();
   const targetObjectId = route.params?.targetObjectId ?? config.targetObjectId;
   const [targetObject, setTargetObject] = useState<RecognizableObject | null>(null);
@@ -34,19 +36,52 @@ export default function ObjectRecognitionMissionScreen({
     setTargetObject(ObjectBankService.getById(targetObjectId));
   }, [targetObjectId]);
 
+  if (!permission) {
+    return <SafeAreaView style={styles.safe} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+        <View style={styles.permissionContent}>
+          <Ionicons name="camera-outline" size={58} color={Colors.missionColors.photo} />
+          <Text style={styles.title}>Permiso de camara</Text>
+          <Text style={styles.note}>
+            Necesitamos usar la camara para iniciar la mision de objetos.
+          </Text>
+          <TouchableOpacity
+            style={styles.completeBtn}
+            onPress={requestPermission}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.completeText}>Permitir camara</Text>
+          </TouchableOpacity>
+          <BackButton onPress={() => navigation.goBack()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       <View style={styles.content}>
         <BackButton onPress={() => navigation.goBack()} />
 
-        <View style={styles.targetBox}>
-          <Ionicons name="scan-outline" size={68} color={Colors.missionColors.photo} />
+        <View style={styles.cameraCard}>
+          <CameraView style={styles.camera} facing="back" />
+          <View style={styles.cameraOverlay}>
+            <View style={styles.scanFrame} />
+          </View>
+        </View>
+
+        <View style={styles.targetInfo}>
           <Text style={styles.title}>Busca este objeto</Text>
           <Text style={styles.objectName}>{targetObject?.label ?? 'Objeto'}</Text>
           <Text style={styles.note}>
-            Esta es la base de la mision. En el siguiente paso conectamos camara o
-            reconocimiento real.
+            Por ahora esta pantalla valida el flujo de camara. Luego conectamos
+            reconocimiento automatico.
           </Text>
         </View>
 
@@ -67,6 +102,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg,
   },
+  permissionContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    gap: 16,
+  },
   content: {
     flex: 1,
     width: '100%',
@@ -76,16 +118,40 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     gap: 18,
   },
-  targetBox: {
+  cameraCard: {
     flex: 1,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.missionColors.photo + '55',
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.black,
+    overflow: 'hidden',
+    minHeight: 340,
+  },
+  camera: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 10,
+    padding: 36,
+  },
+  scanFrame: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: Colors.missionColors.photo,
+    backgroundColor: 'transparent',
+  },
+  targetInfo: {
+    borderRadius: Layout.cardRadius,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgCard,
+    padding: 16,
+    alignItems: 'center',
+    gap: 6,
   },
   title: {
     color: Colors.textSecondary,

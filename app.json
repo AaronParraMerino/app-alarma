@@ -16,7 +16,10 @@
       "backgroundColor": "#0D0F14"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Neuro Wake necesita acceso a la camara para usar misiones de objetos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -68,6 +71,7 @@
       ],
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.USE_EXACT_ALARM",
