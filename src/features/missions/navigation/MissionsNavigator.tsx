@@ -106,7 +106,9 @@ export type MissionsStackParamList = {
     alarmLabel?: string;
   };
 
-  ConfigObjectRecognitionMission: undefined;
+  ConfigObjectRecognitionMission: {
+    alarmConfigSessionId?: string;
+  } | undefined;
 
   ObjectRecognitionMissionScreen: {
     difficulty?: 'easy' | 'medium' | 'hard';

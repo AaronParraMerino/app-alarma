@@ -18,6 +18,7 @@ import { OperationType } from '../../missions/Math Exercises/types/mathExercises
 import { WordCompletionMission } from '../../missions/wordCompletion/components/WordCompletionMission';
 import { MovementMissionScreen } from '../../missions/MovementMission/screens/MovementMissionScreen';
 import { ColoredFiguresMission } from '../../missions/ColoredFigures/components/ColoredFigureMission';
+import { ObjectRecognitionMissionContent } from '../../missions/ObjectRecognition/screens/ObjectRecognitionMissionScreen';
 import {
   closeNativeAlarmScreen,
   dismissRingingAlarmByAlarmId,
@@ -35,6 +36,7 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
   'math',
   'wordCompletion',
   'color',
+  'photo',
 ];
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
@@ -93,7 +95,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         return resolveRandomMission(mission);
       }
 
-      if (mission.type === 'physical' || mission.type === 'color') {
+      if (mission.type === 'physical' || mission.type === 'color' || mission.type === 'photo') {
         return mission;
       }
 
@@ -293,6 +295,17 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+      />
+    );
+  }
+
+  if (activeMission.type === 'photo') {
+    return (
+      <ObjectRecognitionMissionContent
+        key={`object-${currentMissionIndex}`}
+        difficulty={toMissionDifficulty(activeMission.difficulty)}
+        targetObjectIds={activeMission.targetObjectIds}
+        onComplete={completeMission}
       />
     );
   }

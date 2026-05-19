@@ -50,6 +50,11 @@ const MISSION_META: Record<string, { label: string; icon: IconName; color: strin
     icon: 'color-palette-outline',
     color: Colors.missionColors.color ?? Colors.primaryLight,
   },
+  photo: {
+    label: 'Detectar Objetos',
+    icon: 'scan-outline',
+    color: Colors.missionColors.photo ?? Colors.primaryLight,
+  },
 };
 
 const RANDOM_META = {

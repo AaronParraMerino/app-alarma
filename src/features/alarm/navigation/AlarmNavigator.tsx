@@ -12,6 +12,7 @@ import { MathMissionConfigScreen } from '../../missions/Math Exercises/screens/M
 import { WordCompletionConfigScreen } from '../../missions/wordCompletion/screens/WordCompletionConfigScreen';
 import { MovementMissionConfigScreen } from '../../missions/MovementMission/screens/MovementMissionConfigScreen';
 import { ColoredMissionConfigScreen } from '../../missions/ColoredFigures/screens/ColoredMissionConfigScreen';
+import { ObjectRecognitionConfigScreen } from '../../missions/ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import { completeAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 
 export type AlarmStackParamList = {
@@ -38,6 +39,12 @@ export type AlarmStackParamList = {
   AlarmConfigColoredFiguresMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
+    alarmConfigSessionId: string;
+  };
+  AlarmConfigObjectRecognitionMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    targetObjectIds?: string[];
     alarmConfigSessionId: string;
   };
 };
@@ -100,6 +107,10 @@ export default function AlarmNavigator() {
       <Stack.Screen
         name="AlarmConfigColoredFiguresMission"
         component={ColoredMissionConfigScreen as any}
+      />
+      <Stack.Screen
+        name="AlarmConfigObjectRecognitionMission"
+        component={ObjectRecognitionConfigScreen as any}
       />
       <Stack.Screen
         name="AlarmRinging"

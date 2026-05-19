@@ -49,14 +49,14 @@ const DIFFICULTY_STYLES: Record<
   { accentColor: string; bgColor: string; textColor: string }
 > = {
   easy: {
-    accentColor: '#FBBF24',
-    bgColor: '#3D2E0A',
-    textColor: '#1A0E00',
-  },
-  medium: {
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
     textColor: '#052010',
+  },
+  medium: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
+    textColor: '#1A0E00',
   },
   hard: {
     accentColor: '#F87171',
@@ -83,15 +83,25 @@ function pickReplacementObject(
   return pool[Math.floor(Math.random() * pool.length)] ?? null;
 }
 
-export default function ObjectRecognitionMissionScreen({
-  navigation,
-  route,
-}: Props) {
+type ObjectRecognitionMissionContentProps = {
+  difficulty?: ObjectDifficulty;
+  targetObjectIds?: string[];
+  alarmLabel?: string;
+  onBack?: () => void;
+  onComplete?: () => void;
+};
+
+export function ObjectRecognitionMissionContent({
+  difficulty,
+  targetObjectIds: routeTargetObjectIds,
+  onBack,
+  onComplete,
+}: ObjectRecognitionMissionContentProps) {
   const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { config, detector } = useObjectRecognitionStore();
-  const initialDifficulty = route.params?.difficulty ?? config.difficulty;
-  const targetObjectIds = route.params?.targetObjectIds ?? config.targetObjectIds;
+  const initialDifficulty = difficulty ?? config.difficulty;
+  const targetObjectIds = routeTargetObjectIds ?? config.targetObjectIds;
   const [activeDifficulty, setActiveDifficulty] =
     useState<ObjectDifficulty>(initialDifficulty);
   const [objectPool, setObjectPool] = useState<RecognizableObject[]>([]);
@@ -107,6 +117,9 @@ export default function ObjectRecognitionMissionScreen({
   const targetObject = targetObjects[currentTargetIndex] ?? null;
   const isLastTarget = currentTargetIndex >= targetObjects.length - 1;
   const difficultyStyle = DIFFICULTY_STYLES[activeDifficulty];
+  const handleComplete = useCallback(() => {
+    onComplete?.();
+  }, [onComplete]);
 
   useEffect(() => {
     const objectPool = ObjectBankService.getEnabled();
@@ -238,7 +251,7 @@ export default function ObjectRecognitionMissionScreen({
               Permitir camara
             </Text>
           </TouchableOpacity>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={onBack ?? (() => {})} />
         </View>
       </SafeAreaView>
     );
@@ -251,7 +264,7 @@ export default function ObjectRecognitionMissionScreen({
         visible={Boolean(recognitionResult?.matched)}
         transparent
         animationType="fade"
-        onRequestClose={() => navigation.navigate('MissionSelector')}
+        onRequestClose={handleComplete}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.successModal}>
@@ -285,7 +298,7 @@ export default function ObjectRecognitionMissionScreen({
               ]}
               onPress={() => {
                 if (isLastTarget) {
-                  navigation.navigate('MissionSelector');
+                  handleComplete();
                   return;
                 }
 
@@ -309,7 +322,7 @@ export default function ObjectRecognitionMissionScreen({
         </View>
       </Modal>
       <View style={styles.content}>
-        <BackButton onPress={() => navigation.goBack()} />
+        <BackButton onPress={onBack ?? (() => {})} />
 
         <View
           style={[
@@ -452,6 +465,21 @@ export default function ObjectRecognitionMissionScreen({
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+export default function ObjectRecognitionMissionScreen({
+  navigation,
+  route,
+}: Props) {
+  return (
+    <ObjectRecognitionMissionContent
+      difficulty={route.params?.difficulty}
+      targetObjectIds={route.params?.targetObjectIds}
+      alarmLabel={route.params?.alarmLabel}
+      onBack={() => navigation.goBack()}
+      onComplete={() => navigation.navigate('MissionSelector')}
+    />
   );
 }
 

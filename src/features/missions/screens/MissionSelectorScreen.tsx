@@ -68,12 +68,12 @@ const OBJECT_DIFFICULTY_STYLES: Record<
   { accentColor: string; bgColor: string }
 > = {
   easy: {
-    accentColor: '#FBBF24',
-    bgColor: '#3D2E0A',
-  },
-  medium: {
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
+  },
+  medium: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
   },
   hard: {
     accentColor: '#F87171',

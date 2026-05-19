@@ -20,6 +20,7 @@ export interface AlarmMission {
   difficulty: Difficulty;
   quantity?: number;
   operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+  targetObjectIds?: string[];
 }
 
 export interface Alarm {

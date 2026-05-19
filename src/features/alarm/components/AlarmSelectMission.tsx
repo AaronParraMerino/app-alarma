@@ -15,7 +15,8 @@ export type AlarmMissionSelection =
   | 'math'
   | 'wordCompletion'
   | 'physical'
-  | 'color';
+  | 'color'
+  | 'photo';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -69,8 +70,9 @@ const MISSION_OPTIONS: MissionOption[] = [
     id: 'photo',
     label: 'Detectar Objetos',
     icon: 'scan-outline',
+    value: 'photo',
     missionType: 'photo',
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'memory',

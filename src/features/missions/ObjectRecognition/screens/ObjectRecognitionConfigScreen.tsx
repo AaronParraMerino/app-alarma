@@ -15,6 +15,7 @@ import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
+import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 import { ObjectBankService } from '../services/objectBank.service';
 import { useObjectRecognitionStore } from '../store/objectRecognitionStore';
 import { RecognizableObject } from '../types/objectRecognition.types';
@@ -46,14 +47,14 @@ const DIFFICULTY_STYLES: Record<
   { accentColor: string; bgColor: string; textColor: string }
 > = {
   easy: {
-    accentColor: '#FBBF24',
-    bgColor: '#3D2E0A',
-    textColor: '#1A0E00',
-  },
-  medium: {
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
     textColor: '#052010',
+  },
+  medium: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
+    textColor: '#1A0E00',
   },
   hard: {
     accentColor: '#F87171',
@@ -66,12 +67,20 @@ function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
 
-export function ObjectRecognitionConfigScreen({ navigation }: Props) {
+function toAlarmDifficulty(difficulty: ObjectDifficulty) {
+  return difficulty === 'medium' ? 'normal' : difficulty;
+}
+
+export function ObjectRecognitionConfigScreen({ navigation, route }: Props) {
   const { config, setConfig } = useObjectRecognitionStore();
   const [objects, setObjects] = useState<RecognizableObject[]>([]);
-  const [difficulty, setDifficulty] = useState<ObjectDifficulty>(config.difficulty);
+  const [difficulty, setDifficulty] = useState<ObjectDifficulty>(
+    ((route.params as any)?.difficulty as ObjectDifficulty | undefined) ??
+      config.difficulty,
+  );
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>(
-    config.targetObjectIds,
+    ((route.params as any)?.targetObjectIds as string[] | undefined) ??
+      config.targetObjectIds,
   );
 
   useEffect(() => {
@@ -98,6 +107,22 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
   const handleSave = () => {
     if (!canSave) return;
     setConfig({ difficulty, targetObjectIds: selectedObjectIds });
+    const alarmConfigSessionId = (route.params as any)?.alarmConfigSessionId as
+      | string
+      | undefined;
+
+    completeAlarmMissionConfigSession(alarmConfigSessionId, {
+      type: 'photo',
+      difficulty: toAlarmDifficulty(difficulty),
+      quantity: requiredQuantity,
+      targetObjectIds: selectedObjectIds,
+    });
+
+    if (alarmConfigSessionId) {
+      navigation.goBack();
+      return;
+    }
+
     navigation.navigate('MissionSelector');
   };
 

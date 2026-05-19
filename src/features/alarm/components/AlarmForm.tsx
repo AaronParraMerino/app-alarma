@@ -63,6 +63,12 @@ const DEFAULT_COLOR_MISSION: AlarmMission = {
   quantity: 3,
 };
 
+const DEFAULT_OBJECT_MISSION: AlarmMission = {
+  type: 'photo',
+  difficulty: 'normal',
+  quantity: 2,
+};
+
 const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   type: 'random',
   difficulty: 'normal',
@@ -437,7 +443,9 @@ export default function AlarmForm({
           ? 'physical'
           : mission.type === 'color'
             ? 'color'
-            : 'wordCompletion';
+            : mission.type === 'photo'
+              ? 'photo'
+              : 'wordCompletion';
 
     setEditingMissionIndex(index);
     setConfigSelection(selection);
@@ -470,7 +478,9 @@ export default function AlarmForm({
         ? DEFAULT_MOVEMENT_MISSION
         : selection === 'color'
           ? DEFAULT_COLOR_MISSION
-          : DEFAULT_WORD_MISSION;
+          : selection === 'photo'
+            ? DEFAULT_OBJECT_MISSION
+            : DEFAULT_WORD_MISSION;
     const existingMission = editingMissionIndex !== null
       ? configuredMissions[editingMissionIndex] ?? defaultMission
       : defaultMission;
@@ -527,6 +537,17 @@ export default function AlarmForm({
       navigation.navigate('AlarmConfigColoredFiguresMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
+        alarmConfigSessionId: sessionId,
+      });
+      return;
+    }
+
+    if (selection === 'photo') {
+      persistDraft();
+      navigation.navigate('AlarmConfigObjectRecognitionMission', {
+        difficulty: toRuntimeDifficulty(mission.difficulty),
+        quantity: mission.quantity ?? 2,
+        targetObjectIds: mission.targetObjectIds,
         alarmConfigSessionId: sessionId,
       });
       return;
