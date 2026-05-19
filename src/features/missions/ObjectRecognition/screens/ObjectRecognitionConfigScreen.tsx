@@ -41,6 +41,27 @@ const DIFFICULTY_OPTIONS = [
 
 type ObjectDifficulty = typeof DIFFICULTY_OPTIONS[number]['value'];
 
+const DIFFICULTY_STYLES: Record<
+  ObjectDifficulty,
+  { accentColor: string; bgColor: string; textColor: string }
+> = {
+  easy: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
+    textColor: '#1A0E00',
+  },
+  medium: {
+    accentColor: '#4ADE80',
+    bgColor: '#1A3D2B',
+    textColor: '#052010',
+  },
+  hard: {
+    accentColor: '#F87171',
+    bgColor: '#3D1010',
+    textColor: '#1A0000',
+  },
+};
+
 function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
@@ -63,6 +84,7 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
 
   const requiredQuantity =
     DIFFICULTY_OPTIONS.find(option => option.value === difficulty)?.quantity ?? 1;
+  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
   const canSave = selectedObjectIds.length >= requiredQuantity;
 
   const toggleObject = (objectId: string) => {
@@ -85,13 +107,26 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <BackButton onPress={() => navigation.goBack()} />
 
-        <View style={styles.headerPill}>
+        <View
+          style={[
+            styles.headerPill,
+            { backgroundColor: difficultyStyle.accentColor },
+          ]}
+        >
           <Ionicons name="scan-outline" size={22} color={Colors.white} />
           <Text style={styles.headerText}>MISION{'\n'}DE OBJETOS</Text>
         </View>
 
-        <View style={styles.previewBox}>
-          <Ionicons name="cube-outline" size={54} color={Colors.missionColors.photo} />
+        <View
+          style={[
+            styles.previewBox,
+            {
+              borderColor: difficultyStyle.accentColor + '55',
+              backgroundColor: difficultyStyle.bgColor,
+            },
+          ]}
+        >
+          <Ionicons name="cube-outline" size={54} color={difficultyStyle.accentColor} />
           <Text style={styles.previewLabel}>
             {requiredQuantity} objeto{requiredQuantity > 1 ? 's' : ''}
           </Text>
@@ -102,31 +137,67 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.sectionLabel}>Dificultad</Text>
-        <View style={styles.difficultyRow}>
-          {DIFFICULTY_OPTIONS.map(option => {
-            const active = option.value === difficulty;
+        <View style={styles.sliderWrapper}>
+          <View style={styles.trackBg}>
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  width: `${(DIFFICULTY_OPTIONS.findIndex(
+                    option => option.value === difficulty,
+                  ) / 2) * 100}%`,
+                  backgroundColor: difficultyStyle.accentColor,
+                },
+              ]}
+            />
+            {DIFFICULTY_OPTIONS.map((option, index) => {
+              const active = option.value === difficulty;
 
-            return (
-              <TouchableOpacity
-                key={option.value}
-                style={[styles.difficultyBtn, active && styles.difficultyBtnActive]}
-                onPress={() => setDifficulty(option.value)}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={[
-                    styles.difficultyText,
-                    active && styles.difficultyTextActive,
-                  ]}
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.thumbHit, { left: `${(index / 2) * 100}%` }]}
+                  onPress={() => setDifficulty(option.value)}
+                  activeOpacity={0.85}
                 >
-                  {option.label}
-                </Text>
-                <Text style={styles.difficultyMeta}>{option.quantity}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <View
+                    style={[
+                      styles.thumb,
+                      { borderColor: difficultyStyle.accentColor },
+                      active && { backgroundColor: difficultyStyle.accentColor },
+                    ]}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.sliderLabels}>
+            {DIFFICULTY_OPTIONS.map(option => {
+              const active = option.value === difficulty;
 
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={styles.labelBtn}
+                  onPress={() => setDifficulty(option.value)}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.labelText,
+                      active && {
+                        color: difficultyStyle.accentColor,
+                        fontWeight: '700',
+                      },
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
         <Text style={styles.sectionLabel}>Objetos posibles</Text>
 
         <View style={styles.objectList}>
@@ -136,14 +207,20 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
             return (
               <TouchableOpacity
                 key={object.id}
-                style={[styles.objectCard, active && styles.objectCardActive]}
+                style={[
+                  styles.objectCard,
+                  active && {
+                    borderColor: difficultyStyle.accentColor,
+                    backgroundColor: difficultyStyle.bgColor,
+                  },
+                ]}
                 onPress={() => toggleObject(object.id)}
                 activeOpacity={0.85}
               >
                 <Ionicons
                   name={active ? 'checkbox' : 'square-outline'}
                   size={18}
-                  color={active ? Colors.missionColors.photo : Colors.textMuted}
+                  color={active ? difficultyStyle.accentColor : Colors.textMuted}
                 />
                 <View style={styles.objectTextWrap}>
                   <Text style={[styles.objectLabel, active && styles.objectLabelActive]}>
@@ -159,12 +236,16 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.confirmBtn, !canSave && styles.confirmBtnDisabled]}
+          style={[
+            styles.confirmBtn,
+            { backgroundColor: difficultyStyle.accentColor },
+            !canSave && styles.confirmBtnDisabled,
+          ]}
           onPress={handleSave}
           activeOpacity={0.85}
           disabled={!canSave}
         >
-          <Text style={styles.confirmText}>
+          <Text style={[styles.confirmText, { color: difficultyStyle.textColor }]}>
             {canSave ? 'Guardar' : `Selecciona minimo ${requiredQuantity}`}
           </Text>
         </TouchableOpacity>
@@ -188,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   headerPill: {
-    backgroundColor: Colors.missionColors.photo,
+    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -210,8 +291,8 @@ const styles = StyleSheet.create({
     minHeight: 150,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.missionColors.photo + '55',
-    backgroundColor: Colors.missionColors.photo + '18',
+    borderColor: Colors.primary + '55',
+    backgroundColor: Colors.primary + '18',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -232,36 +313,60 @@ const styles = StyleSheet.create({
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
   },
-  difficultyRow: {
-    flexDirection: 'row',
-    gap: 10,
+  sliderWrapper: {
+    marginBottom: 4,
   },
-  difficultyBtn: {
-    flex: 1,
-    minHeight: 58,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
+  trackBg: {
+    height: 4,
+    backgroundColor: Colors.bgElevated,
+    borderRadius: 2,
+    marginHorizontal: 10,
+    position: 'relative',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  trackFill: {
+    position: 'absolute',
+    left: 0,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+  },
+  thumbHit: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    marginLeft: -15,
+    top: -13,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
-  difficultyBtnActive: {
-    borderColor: Colors.missionColors.photo,
-    backgroundColor: Colors.missionColors.photo + '18',
+  thumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.bgElevated,
   },
-  difficultyText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '800',
+  thumbActive: {
+    backgroundColor: Colors.primary,
   },
-  difficultyTextActive: {
-    color: Colors.white,
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
-  difficultyMeta: {
+  labelBtn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  labelText: {
     color: Colors.textMuted,
-    fontSize: 12,
+    fontSize: 13,
+  },
+  labelTextActive: {
+    color: Colors.primary,
     fontWeight: '700',
   },
   objectList: {
@@ -279,8 +384,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   objectCardActive: {
-    borderColor: Colors.missionColors.photo,
-    backgroundColor: Colors.missionColors.photo + '14',
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '14',
   },
   objectTextWrap: {
     flex: 1,
@@ -299,7 +404,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   confirmBtn: {
-    backgroundColor: Colors.missionColors.photo,
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     height: 52,
     alignItems: 'center',

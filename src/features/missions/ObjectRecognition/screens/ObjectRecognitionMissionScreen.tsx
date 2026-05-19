@@ -38,6 +38,33 @@ const DIFFICULTY_QUANTITY: Record<ObjectDifficulty, number> = {
   hard: 3,
 };
 
+const LOWER_DIFFICULTY: Record<ObjectDifficulty, ObjectDifficulty> = {
+  easy: 'easy',
+  medium: 'easy',
+  hard: 'medium',
+};
+
+const DIFFICULTY_STYLES: Record<
+  ObjectDifficulty,
+  { accentColor: string; bgColor: string; textColor: string }
+> = {
+  easy: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
+    textColor: '#1A0E00',
+  },
+  medium: {
+    accentColor: '#4ADE80',
+    bgColor: '#1A3D2B',
+    textColor: '#052010',
+  },
+  hard: {
+    accentColor: '#F87171',
+    bgColor: '#3D1010',
+    textColor: '#1A0000',
+  },
+};
+
 function pickRandomObjects(
   objects: RecognizableObject[],
   quantity: number,
@@ -47,6 +74,15 @@ function pickRandomObjects(
     .slice(0, Math.min(quantity, objects.length));
 }
 
+function pickReplacementObject(
+  objects: RecognizableObject[],
+  currentObjectId?: string,
+): RecognizableObject | null {
+  const candidates = objects.filter(object => object.id !== currentObjectId);
+  const pool = candidates.length > 0 ? candidates : objects;
+  return pool[Math.floor(Math.random() * pool.length)] ?? null;
+}
+
 export default function ObjectRecognitionMissionScreen({
   navigation,
   route,
@@ -54,10 +90,14 @@ export default function ObjectRecognitionMissionScreen({
   const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { config, detector } = useObjectRecognitionStore();
-  const difficulty = route.params?.difficulty ?? config.difficulty;
+  const initialDifficulty = route.params?.difficulty ?? config.difficulty;
   const targetObjectIds = route.params?.targetObjectIds ?? config.targetObjectIds;
+  const [activeDifficulty, setActiveDifficulty] =
+    useState<ObjectDifficulty>(initialDifficulty);
+  const [objectPool, setObjectPool] = useState<RecognizableObject[]>([]);
   const [targetObjects, setTargetObjects] = useState<RecognizableObject[]>([]);
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [photo, setPhoto] = useState<CameraCapturedPicture | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
@@ -66,18 +106,44 @@ export default function ObjectRecognitionMissionScreen({
     useState<ObjectRecognitionResult | null>(null);
   const targetObject = targetObjects[currentTargetIndex] ?? null;
   const isLastTarget = currentTargetIndex >= targetObjects.length - 1;
+  const difficultyStyle = DIFFICULTY_STYLES[activeDifficulty];
 
   useEffect(() => {
     const objectPool = ObjectBankService.getEnabled();
     const selectedPool = objectPool.filter(object => targetObjectIds.includes(object.id));
     const pool = selectedPool.length > 0 ? selectedPool : objectPool;
-    const quantity = DIFFICULTY_QUANTITY[difficulty];
+    const quantity = DIFFICULTY_QUANTITY[initialDifficulty];
 
+    setActiveDifficulty(initialDifficulty);
+    setObjectPool(pool);
     setTargetObjects(pickRandomObjects(pool, quantity));
     setCurrentTargetIndex(0);
+    setFailedAttempts(0);
     setPhoto(null);
     setRecognitionResult(null);
-  }, [difficulty, targetObjectIds]);
+  }, [initialDifficulty, targetObjectIds]);
+
+  const changeTargetAfterFailures = useCallback(() => {
+    const nextDifficulty = LOWER_DIFFICULTY[activeDifficulty];
+    const replacement = pickReplacementObject(objectPool, targetObject?.id);
+
+    setActiveDifficulty(nextDifficulty);
+    setFailedAttempts(0);
+    setPhoto(null);
+    setRecognitionResult(null);
+
+    if (!replacement) return;
+
+    setTargetObjects(current => {
+      const desiredTotal = Math.max(
+        DIFFICULTY_QUANTITY[nextDifficulty],
+        currentTargetIndex + 1,
+      );
+      const nextObjects = [...current];
+      nextObjects[currentTargetIndex] = replacement;
+      return nextObjects.slice(0, desiredTotal);
+    });
+  }, [activeDifficulty, currentTargetIndex, objectPool, targetObject?.id]);
 
   const validatePhoto = useCallback(
     async (picture: CameraCapturedPicture) => {
@@ -94,6 +160,19 @@ export default function ObjectRecognitionMissionScreen({
           detections,
           targetObject,
         });
+
+        if (!result.matched) {
+          const nextFailedAttempts = failedAttempts + 1;
+          if (nextFailedAttempts >= 3) {
+            changeTargetAfterFailures();
+            return;
+          }
+
+          setFailedAttempts(nextFailedAttempts);
+        } else {
+          setFailedAttempts(0);
+        }
+
         setRecognitionResult(result);
       } catch (error) {
         console.log('[ObjectRecognitionMission] No se pudo validar el objeto:', error);
@@ -101,7 +180,7 @@ export default function ObjectRecognitionMissionScreen({
         setValidating(false);
       }
     },
-    [detector, targetObject, validating],
+    [changeTargetAfterFailures, detector, failedAttempts, targetObject, validating],
   );
 
   useEffect(() => {
@@ -137,17 +216,27 @@ export default function ObjectRecognitionMissionScreen({
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
         <View style={styles.permissionContent}>
-          <Ionicons name="camera-outline" size={58} color={Colors.missionColors.photo} />
+          <Ionicons name="camera-outline" size={58} color={difficultyStyle.accentColor} />
           <Text style={styles.title}>Permiso de camara</Text>
           <Text style={styles.note}>
             Necesitamos usar la camara para iniciar la mision de objetos.
           </Text>
           <TouchableOpacity
-            style={styles.completeBtn}
+            style={[
+              styles.completeBtn,
+              { backgroundColor: difficultyStyle.accentColor },
+            ]}
             onPress={requestPermission}
             activeOpacity={0.85}
           >
-            <Text style={styles.completeText}>Permitir camara</Text>
+            <Text
+              style={[
+                styles.completeText,
+                { color: difficultyStyle.textColor },
+              ]}
+            >
+              Permitir camara
+            </Text>
           </TouchableOpacity>
           <BackButton onPress={() => navigation.goBack()} />
         </View>
@@ -166,19 +255,34 @@ export default function ObjectRecognitionMissionScreen({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.successModal}>
-            <View style={styles.successIcon}>
+            <View
+              style={[
+                styles.successIcon,
+                { backgroundColor: difficultyStyle.accentColor },
+              ]}
+            >
               <Ionicons name="checkmark" size={38} color={Colors.white} />
             </View>
             <Text style={styles.modalTitle}>
               {isLastTarget ? 'Mision completada' : 'Objeto reconocido'}
             </Text>
-            <Text style={styles.modalObject}>{targetObject?.label ?? 'Objeto'}</Text>
+            <Text
+              style={[
+                styles.modalObject,
+                { color: difficultyStyle.accentColor },
+              ]}
+            >
+              {targetObject?.label ?? 'Objeto'}
+            </Text>
             <Text style={styles.modalNote}>
               {currentTargetIndex + 1} de {targetObjects.length} - Confianza{' '}
               {Math.round((recognitionResult?.confidence ?? 0) * 100)}%
             </Text>
             <TouchableOpacity
-              style={styles.modalBtn}
+              style={[
+                styles.modalBtn,
+                { backgroundColor: difficultyStyle.accentColor },
+              ]}
               onPress={() => {
                 if (isLastTarget) {
                   navigation.navigate('MissionSelector');
@@ -186,12 +290,18 @@ export default function ObjectRecognitionMissionScreen({
                 }
 
                 setCurrentTargetIndex(index => index + 1);
+                setFailedAttempts(0);
                 setPhoto(null);
                 setRecognitionResult(null);
               }}
               activeOpacity={0.85}
             >
-              <Text style={styles.modalBtnText}>
+              <Text
+                style={[
+                  styles.modalBtnText,
+                  { color: difficultyStyle.textColor },
+                ]}
+              >
                 {isLastTarget ? 'Aceptar' : 'Siguiente objeto'}
               </Text>
             </TouchableOpacity>
@@ -201,7 +311,12 @@ export default function ObjectRecognitionMissionScreen({
       <View style={styles.content}>
         <BackButton onPress={() => navigation.goBack()} />
 
-        <View style={styles.cameraCard}>
+        <View
+          style={[
+            styles.cameraCard,
+            { borderColor: difficultyStyle.accentColor + '55' },
+          ]}
+        >
           {photo ? (
             <Image source={{ uri: photo.uri }} style={styles.camera} resizeMode="cover" />
           ) : (
@@ -213,18 +328,36 @@ export default function ObjectRecognitionMissionScreen({
                 onCameraReady={() => setCameraReady(true)}
               />
               <View style={styles.cameraOverlay}>
-                <View style={styles.scanFrame} />
+                <View
+                  style={[
+                    styles.scanFrame,
+                    { borderColor: difficultyStyle.accentColor },
+                  ]}
+                />
               </View>
             </>
           )}
         </View>
 
-        <View style={styles.targetInfo}>
+        <View
+          style={[
+            styles.targetInfo,
+            {
+              borderColor: difficultyStyle.accentColor + '55',
+              backgroundColor: difficultyStyle.bgColor,
+            },
+          ]}
+        >
           <Text style={styles.title}>Busca este objeto</Text>
           <Text style={styles.objectName}>{targetObject?.label ?? 'Objeto'}</Text>
-          <Text style={styles.progressText}>
+          <Text
+            style={[
+              styles.progressText,
+              { color: difficultyStyle.accentColor },
+            ]}
+          >
             {targetObjects.length > 0
-              ? `${currentTargetIndex + 1} de ${targetObjects.length}`
+              ? `${currentTargetIndex + 1} de ${targetObjects.length} - ${activeDifficulty.toUpperCase()}`
               : 'Sin objetos'}
           </Text>
           <Text style={styles.note}>
@@ -240,26 +373,39 @@ export default function ObjectRecognitionMissionScreen({
                   ? `Preparando IA local ${Math.round(
                       detector.downloadProgress * 100,
                     )}%`
-                  : 'Toma una foto y valida el objeto antes de completar.'}
+                  : failedAttempts > 0
+                    ? `Intentos fallidos ${failedAttempts}/3. Toma otra foto.`
+                    : 'Toma una foto y valida el objeto antes de completar.'}
           </Text>
         </View>
 
         {photo ? (
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.secondaryBtn}
+              style={[
+                styles.secondaryBtn,
+                { borderColor: difficultyStyle.accentColor },
+              ]}
               onPress={() => {
                 setPhoto(null);
                 setRecognitionResult(null);
               }}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryText}>Repetir</Text>
+              <Text
+                style={[
+                  styles.secondaryText,
+                  { color: difficultyStyle.accentColor },
+                ]}
+              >
+                Repetir
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.completeBtn,
                 styles.actionBtn,
+                { backgroundColor: difficultyStyle.accentColor },
                 (validating || !detector.isReady || recognitionResult?.matched) &&
                   styles.disabledBtn,
               ]}
@@ -269,7 +415,12 @@ export default function ObjectRecognitionMissionScreen({
               activeOpacity={0.85}
               disabled={validating || !detector.isReady || recognitionResult?.matched}
             >
-              <Text style={styles.completeText}>
+              <Text
+                style={[
+                  styles.completeText,
+                  { color: difficultyStyle.textColor },
+                ]}
+              >
                 {validating
                   ? 'Analizando...'
                   : detector.isReady
@@ -282,13 +433,19 @@ export default function ObjectRecognitionMissionScreen({
           <TouchableOpacity
             style={[
               styles.completeBtn,
+              { backgroundColor: difficultyStyle.accentColor },
               (!cameraReady || capturing || !targetObject) && styles.disabledBtn,
             ]}
             onPress={takePhoto}
             activeOpacity={0.85}
             disabled={!cameraReady || capturing || !targetObject}
           >
-            <Text style={styles.completeText}>
+            <Text
+              style={[
+                styles.completeText,
+                { color: difficultyStyle.textColor },
+              ]}
+            >
               {capturing ? 'Capturando...' : 'Tomar foto'}
             </Text>
           </TouchableOpacity>
@@ -323,7 +480,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.missionColors.photo + '55',
+    borderColor: Colors.primary + '55',
     backgroundColor: Colors.black,
     overflow: 'hidden',
     minHeight: 340,
@@ -342,7 +499,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 24,
     borderWidth: 3,
-    borderColor: Colors.missionColors.photo,
+    borderColor: Colors.primary,
     backgroundColor: 'transparent',
   },
   targetInfo: {
@@ -367,7 +524,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   progressText: {
-    color: Colors.missionColors.photo,
+    color: Colors.primary,
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
@@ -382,7 +539,7 @@ const styles = StyleSheet.create({
   completeBtn: {
     height: 54,
     borderRadius: 16,
-    backgroundColor: Colors.missionColors.photo,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -406,13 +563,13 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.missionColors.photo,
+    borderColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.bgCard,
   },
   secondaryText: {
-    color: Colors.missionColors.photo,
+    color: Colors.primary,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -428,7 +585,7 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.missionColors.photo + '66',
+    borderColor: Colors.primary + '66',
     backgroundColor: Colors.bgCard,
     padding: 24,
     alignItems: 'center',
@@ -438,7 +595,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: Colors.missionColors.photo,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -450,7 +607,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalObject: {
-    color: Colors.missionColors.photo,
+    color: Colors.primary,
     fontSize: 28,
     fontWeight: '900',
     textAlign: 'center',
@@ -465,7 +622,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 16,
-    backgroundColor: Colors.missionColors.photo,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

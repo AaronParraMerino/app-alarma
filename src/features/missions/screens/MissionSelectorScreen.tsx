@@ -63,6 +63,24 @@ const OBJECT_DIFFICULTY_QUANTITY: Record<Difficulty, number> = {
   hard: 3,
 };
 
+const OBJECT_DIFFICULTY_STYLES: Record<
+  Difficulty,
+  { accentColor: string; bgColor: string }
+> = {
+  easy: {
+    accentColor: '#FBBF24',
+    bgColor: '#3D2E0A',
+  },
+  medium: {
+    accentColor: '#4ADE80',
+    bgColor: '#1A3D2B',
+  },
+  hard: {
+    accentColor: '#F87171',
+    bgColor: '#3D1010',
+  },
+};
+
 export default function MissionSelectorScreen() {
   const navigation = useNavigation<NavigationProp>();
 
@@ -106,6 +124,7 @@ export default function MissionSelectorScreen() {
     [objectBank, objectConfig.targetObjectIds],
   );
   const objectPoolCount = selectedObjects.length || objectBank.length;
+  const objectStyle = OBJECT_DIFFICULTY_STYLES[objectConfig.difficulty];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -307,8 +326,8 @@ export default function MissionSelectorScreen() {
             style={[
               styles.executeBtn,
               {
-                backgroundColor: Colors.missionColors.photo + '18',
-                borderColor: Colors.missionColors.photo + '50',
+                backgroundColor: objectStyle.bgColor,
+                borderColor: objectStyle.accentColor + '50',
               },
             ]}
             onPress={() =>
@@ -325,7 +344,7 @@ export default function MissionSelectorScreen() {
             <Text
               style={[
                 styles.executeBtnText,
-                { color: Colors.missionColors.photo },
+                { color: objectStyle.accentColor },
               ]}
             >
               Ejecutar mision de objetos
