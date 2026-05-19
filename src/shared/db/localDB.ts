@@ -70,6 +70,7 @@ export const initDB = () => {
       name       TEXT NOT NULL,
       label      TEXT NOT NULL,
       model_label TEXT NOT NULL DEFAULT '',
+      min_confidence REAL DEFAULT 0.5,
       category   TEXT NOT NULL,
       enabled    INTEGER DEFAULT 1,
       created_at INTEGER DEFAULT (strftime('%s','now')),
@@ -100,6 +101,7 @@ export const initDB = () => {
   ensureColumn('alarms', 'created_at', 'INTEGER');
   ensureColumn('alarms', 'updated_at', 'INTEGER');
   ensureColumn('object_recognition_objects', 'model_label', "TEXT DEFAULT ''");
+  ensureColumn('object_recognition_objects', 'min_confidence', 'REAL DEFAULT 0.5');
 };
 
 export default db;

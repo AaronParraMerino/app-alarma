@@ -5,13 +5,14 @@ import {
   RecognizableObjectCategory,
 } from '../types/objectRecognition.types';
 
-const OBJECT_BANK_SEED_KEY = 'object_recognition_bank_seed_v2';
+const OBJECT_BANK_SEED_KEY = 'object_recognition_bank_seed_v3';
 
 type ObjectBankRow = {
   id: string;
   name: string;
   label: string;
   model_label: string;
+  min_confidence: number;
   category: RecognizableObjectCategory;
   enabled: number;
 };
@@ -22,6 +23,7 @@ function mapRowToObject(row: ObjectBankRow): RecognizableObject {
     name: row.name,
     label: row.label,
     modelLabel: row.model_label,
+    minConfidence: Number(row.min_confidence) || 0.5,
     category: row.category,
     enabled: Number(row.enabled) === 1,
   };
@@ -37,14 +39,15 @@ export class ObjectBankService {
       db.runSync(
         `
         INSERT OR REPLACE INTO object_recognition_objects (
-          id, name, label, model_label, category, enabled, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          id, name, label, model_label, min_confidence, category, enabled, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           object.id,
           object.name,
           object.label,
           object.modelLabel,
+          object.minConfidence,
           object.category,
           object.enabled === false ? 0 : 1,
           Date.now(),
@@ -58,7 +61,7 @@ export class ObjectBankService {
   static getAll(): RecognizableObject[] {
     const rows = db.getAllSync<ObjectBankRow>(
       `
-      SELECT id, name, label, model_label, category, enabled
+      SELECT id, name, label, model_label, min_confidence, category, enabled
       FROM object_recognition_objects
       ORDER BY category ASC, label ASC
       `,
@@ -70,7 +73,7 @@ export class ObjectBankService {
   static getEnabled(): RecognizableObject[] {
     const rows = db.getAllSync<ObjectBankRow>(
       `
-      SELECT id, name, label, model_label, category, enabled
+      SELECT id, name, label, model_label, min_confidence, category, enabled
       FROM object_recognition_objects
       WHERE enabled = 1
       AND model_label != ''
@@ -84,7 +87,7 @@ export class ObjectBankService {
   static getById(id: string): RecognizableObject | null {
     const row = db.getFirstSync<ObjectBankRow>(
       `
-      SELECT id, name, label, model_label, category, enabled
+      SELECT id, name, label, model_label, min_confidence, category, enabled
       FROM object_recognition_objects
       WHERE id = ?
       `,

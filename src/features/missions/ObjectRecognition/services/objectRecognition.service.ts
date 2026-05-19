@@ -11,7 +11,7 @@ export interface ObjectRecognitionResult {
 }
 
 interface ValidateObjectParams {
-  detections: Detection[];
+  detections: Detection<any>[];
   targetObject: RecognizableObject;
 }
 
@@ -23,13 +23,16 @@ export class ObjectRecognitionService {
     const bestMatch = detections
       .filter(detection => String(detection.label) === targetObject.modelLabel)
       .sort((a, b) => b.score - a.score)[0];
+    const matched = Boolean(
+      bestMatch && bestMatch.score >= targetObject.minConfidence,
+    );
 
     return Promise.resolve({
       expectedObjectId: targetObject.id,
       expectedLabel: targetObject.label,
       detectedLabel: bestMatch ? targetObject.label : 'No detectado',
       confidence: bestMatch?.score ?? 0,
-      matched: Boolean(bestMatch),
+      matched,
     });
   }
 }

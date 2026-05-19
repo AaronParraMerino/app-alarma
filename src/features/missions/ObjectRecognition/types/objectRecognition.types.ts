@@ -11,6 +11,7 @@ export interface RecognizableObject {
   name: string;
   label: string;
   modelLabel: string;
+  minConfidence: number;
   category: RecognizableObjectCategory;
   enabled: boolean;
 }

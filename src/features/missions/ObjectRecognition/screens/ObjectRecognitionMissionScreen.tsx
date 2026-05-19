@@ -13,8 +13,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
-  SSDLITE_320_MOBILENET_V3_LARGE,
   useObjectDetection,
+  YOLO26X,
 } from 'react-native-executorch';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Colors } from '../../../../shared/theme/colors';
@@ -38,7 +38,7 @@ export default function ObjectRecognitionMissionScreen({
   route,
 }: Props) {
   const detector = useObjectDetection({
-    model: SSDLITE_320_MOBILENET_V3_LARGE,
+    model: YOLO26X,
   });
   const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -80,7 +80,8 @@ export default function ObjectRecognitionMissionScreen({
     setValidating(true);
     try {
       const detections = await detector.forward(photo.uri, {
-        detectionThreshold: 0.45,
+        detectionThreshold: Math.max(targetObject.minConfidence - 0.15, 0.25),
+        inputSize: 640,
         classesOfInterest: [targetObject.modelLabel as never],
       });
       const result = await ObjectRecognitionService.validateObject({
