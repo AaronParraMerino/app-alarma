@@ -26,7 +26,6 @@ import ColoredMissionScreen from '../ColoredFigures/screens/ColoredMissionScreen
 import { ColoredFiguresProvider } from '../ColoredFigures/store/ColoredFiguresStore';
 import { ObjectRecognitionConfigScreen } from '../ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import ObjectRecognitionMissionScreen from '../ObjectRecognition/screens/ObjectRecognitionMissionScreen';
-import { ObjectRecognitionProvider } from '../ObjectRecognition/store/objectRecognitionStore';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -110,7 +109,8 @@ export type MissionsStackParamList = {
   ConfigObjectRecognitionMission: undefined;
 
   ObjectRecognitionMissionScreen: {
-    targetObjectId?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    targetObjectIds?: string[];
     alarmLabel?: string;
   } | undefined;
 };
@@ -166,64 +166,62 @@ export default function MissionsNavigator() {
       <MathExercisesProvider>
         <MovementMissionProvider>
           <ColoredFiguresProvider>
-            <ObjectRecognitionProvider>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen
-                  name="MissionSelector"
-                  component={MissionSelectorScreen}
-                />
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen
+                name="MissionSelector"
+                component={MissionSelectorScreen}
+              />
 
-                <Stack.Screen
-                  name="ConfigWordCompletionMission"
-                  component={WordCompletionConfigScreen}
-                />
+              <Stack.Screen
+                name="ConfigWordCompletionMission"
+                component={WordCompletionConfigScreen}
+              />
 
-                <Stack.Screen
-                  name="WordCompletionMissionScreen"
-                  component={WordCompletionMissionScreen}
-                />
+              <Stack.Screen
+                name="WordCompletionMissionScreen"
+                component={WordCompletionMissionScreen}
+              />
 
-                <Stack.Screen
-                  name="ConfigMathMission"
-                  component={MathMissionConfigScreen}
-                />
+              <Stack.Screen
+                name="ConfigMathMission"
+                component={MathMissionConfigScreen}
+              />
 
-                <Stack.Screen
-                  name="MathMissionScreen"
-                  component={MathMissionScreen}
-                />
+              <Stack.Screen
+                name="MathMissionScreen"
+                component={MathMissionScreen}
+              />
 
-                <Stack.Screen
-                  name="ConfigMovementMission"
-                  component={ConfigMovementMissionRoute}
-                />
+              <Stack.Screen
+                name="ConfigMovementMission"
+                component={ConfigMovementMissionRoute}
+              />
 
-                <Stack.Screen
-                  name="MovementMissionScreen"
-                  component={MovementMissionRoute}
-                />
+              <Stack.Screen
+                name="MovementMissionScreen"
+                component={MovementMissionRoute}
+              />
 
-                <Stack.Screen
-                  name="ConfigColoredFiguresMission"
-                  component={ColoredMissionConfigScreen}
-                />
+              <Stack.Screen
+                name="ConfigColoredFiguresMission"
+                component={ColoredMissionConfigScreen}
+              />
 
-                <Stack.Screen
-                  name="ColoredFiguresMissionScreen"
-                  component={ColoredMissionScreen}
-                />
+              <Stack.Screen
+                name="ColoredFiguresMissionScreen"
+                component={ColoredMissionScreen}
+              />
 
-                <Stack.Screen
-                  name="ConfigObjectRecognitionMission"
-                  component={ObjectRecognitionConfigScreen}
-                />
+              <Stack.Screen
+                name="ConfigObjectRecognitionMission"
+                component={ObjectRecognitionConfigScreen}
+              />
 
-                <Stack.Screen
-                  name="ObjectRecognitionMissionScreen"
-                  component={ObjectRecognitionMissionScreen}
-                />
-              </Stack.Navigator>
-            </ObjectRecognitionProvider>
+              <Stack.Screen
+                name="ObjectRecognitionMissionScreen"
+                component={ObjectRecognitionMissionScreen}
+              />
+            </Stack.Navigator>
           </ColoredFiguresProvider>
         </MovementMissionProvider>
       </MathExercisesProvider>

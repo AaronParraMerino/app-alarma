@@ -51,6 +51,18 @@ const MOVEMENT_BG_COLORS: Record<Difficulty, string> = {
   hard: Colors.dangerDim,
 };
 
+const OBJECT_DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'FACIL',
+  medium: 'MEDIO',
+  hard: 'DIFICIL',
+};
+
+const OBJECT_DIFFICULTY_QUANTITY: Record<Difficulty, number> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
+};
+
 export default function MissionSelectorScreen() {
   const navigation = useNavigation<NavigationProp>();
 
@@ -88,12 +100,12 @@ export default function MissionSelectorScreen() {
     setObjectBank(ObjectBankService.getEnabled());
   }, []);
 
-  const selectedObject = useMemo(
+  const selectedObjects = useMemo(
     () =>
-      objectBank.find(object => object.id === objectConfig.targetObjectId)
-      ?? objectBank[0],
-    [objectBank, objectConfig.targetObjectId],
+      objectBank.filter(object => objectConfig.targetObjectIds.includes(object.id)),
+    [objectBank, objectConfig.targetObjectIds],
   );
+  const objectPoolCount = selectedObjects.length || objectBank.length;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -286,7 +298,9 @@ export default function MissionSelectorScreen() {
           </TouchableOpacity>
 
           <Text style={styles.summary}>
-            {selectedObject?.label ?? 'Sin objeto seleccionado'}
+            {OBJECT_DIFFICULTY_LABELS[objectConfig.difficulty]} -{' '}
+            {OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} de{' '}
+            {objectPoolCount} al azar
           </Text>
 
           <TouchableOpacity
@@ -299,10 +313,14 @@ export default function MissionSelectorScreen() {
             ]}
             onPress={() =>
               navigation.navigate('ObjectRecognitionMissionScreen', {
-                targetObjectId: selectedObject?.id,
+                difficulty: objectConfig.difficulty,
+                targetObjectIds:
+                  selectedObjects.length > 0
+                    ? selectedObjects.map(object => object.id)
+                    : objectBank.map(object => object.id),
               })
             }
-            disabled={!selectedObject}
+            disabled={objectPoolCount === 0}
           >
             <Text
               style={[

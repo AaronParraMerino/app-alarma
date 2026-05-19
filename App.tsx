@@ -20,6 +20,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AlarmProvider } from './src/features/alarm/store/alarmStore';
 import { AuthProvider } from './src/features/auth/store/authStore';
 import { MissionsProvider } from './src/features/missions/store/missionsStore';
+import { ObjectRecognitionProvider } from './src/features/missions/ObjectRecognition/store/objectRecognitionStore';
 import {
   extractAlarmIdFromUrl,
   getPendingNativeRingingAlarmId,
@@ -133,7 +134,9 @@ export default function App() {
       <AuthProvider>
         <AlarmProvider>
           <MissionsProvider>
-            <AppContent />
+            <ObjectRecognitionProvider>
+              <AppContent />
+            </ObjectRecognitionProvider>
           </MissionsProvider>
         </AlarmProvider>
       </AuthProvider>

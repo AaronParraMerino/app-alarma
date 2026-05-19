@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -33,6 +33,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   school: 'Estudio',
 };
 
+const DIFFICULTY_OPTIONS = [
+  { value: 'easy', label: 'Facil', quantity: 1 },
+  { value: 'medium', label: 'Medio', quantity: 2 },
+  { value: 'hard', label: 'Dificil', quantity: 3 },
+] as const;
+
+type ObjectDifficulty = typeof DIFFICULTY_OPTIONS[number]['value'];
+
 function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
@@ -40,20 +48,34 @@ function categoryLabel(category: string): string {
 export function ObjectRecognitionConfigScreen({ navigation }: Props) {
   const { config, setConfig } = useObjectRecognitionStore();
   const [objects, setObjects] = useState<RecognizableObject[]>([]);
-  const [selectedObjectId, setSelectedObjectId] = useState(config.targetObjectId);
-
-  useEffect(() => {
-    setObjects(ObjectBankService.getEnabled());
-  }, []);
-
-  const selectedObject = useMemo(
-    () => objects.find(object => object.id === selectedObjectId) ?? objects[0],
-    [objects, selectedObjectId],
+  const [difficulty, setDifficulty] = useState<ObjectDifficulty>(config.difficulty);
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>(
+    config.targetObjectIds,
   );
 
+  useEffect(() => {
+    const enabledObjects = ObjectBankService.getEnabled();
+    setObjects(enabledObjects);
+    setSelectedObjectIds(current =>
+      current.length > 0 ? current : enabledObjects.slice(0, 3).map(object => object.id),
+    );
+  }, []);
+
+  const requiredQuantity =
+    DIFFICULTY_OPTIONS.find(option => option.value === difficulty)?.quantity ?? 1;
+  const canSave = selectedObjectIds.length >= requiredQuantity;
+
+  const toggleObject = (objectId: string) => {
+    setSelectedObjectIds(current =>
+      current.includes(objectId)
+        ? current.filter(id => id !== objectId)
+        : [...current, objectId],
+    );
+  };
+
   const handleSave = () => {
-    if (!selectedObject) return;
-    setConfig({ targetObjectId: selectedObject.id });
+    if (!canSave) return;
+    setConfig({ difficulty, targetObjectIds: selectedObjectIds });
     navigation.navigate('MissionSelector');
   };
 
@@ -68,31 +90,58 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
           <Text style={styles.headerText}>MISION{'\n'}DE OBJETOS</Text>
         </View>
 
-        {selectedObject && (
-          <View style={styles.previewBox}>
-            <Ionicons name="cube-outline" size={54} color={Colors.missionColors.photo} />
-            <Text style={styles.previewLabel}>{selectedObject.label}</Text>
-            <Text style={styles.previewCategory}>
-              {categoryLabel(selectedObject.category)}
-            </Text>
-          </View>
-        )}
+        <View style={styles.previewBox}>
+          <Ionicons name="cube-outline" size={54} color={Colors.missionColors.photo} />
+          <Text style={styles.previewLabel}>
+            {requiredQuantity} objeto{requiredQuantity > 1 ? 's' : ''}
+          </Text>
+          <Text style={styles.previewCategory}>
+            Se elegiran al azar entre {selectedObjectIds.length} seleccionado
+            {selectedObjectIds.length === 1 ? '' : 's'}
+          </Text>
+        </View>
 
-        <Text style={styles.sectionLabel}>Objeto objetivo</Text>
+        <Text style={styles.sectionLabel}>Dificultad</Text>
+        <View style={styles.difficultyRow}>
+          {DIFFICULTY_OPTIONS.map(option => {
+            const active = option.value === difficulty;
+
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.difficultyBtn, active && styles.difficultyBtnActive]}
+                onPress={() => setDifficulty(option.value)}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.difficultyText,
+                    active && styles.difficultyTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                <Text style={styles.difficultyMeta}>{option.quantity}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={styles.sectionLabel}>Objetos posibles</Text>
 
         <View style={styles.objectList}>
           {objects.map(object => {
-            const active = object.id === selectedObjectId;
+            const active = selectedObjectIds.includes(object.id);
 
             return (
               <TouchableOpacity
                 key={object.id}
                 style={[styles.objectCard, active && styles.objectCardActive]}
-                onPress={() => setSelectedObjectId(object.id)}
+                onPress={() => toggleObject(object.id)}
                 activeOpacity={0.85}
               >
                 <Ionicons
-                  name={active ? 'radio-button-on' : 'radio-button-off'}
+                  name={active ? 'checkbox' : 'square-outline'}
                   size={18}
                   color={active ? Colors.missionColors.photo : Colors.textMuted}
                 />
@@ -110,12 +159,14 @@ export function ObjectRecognitionConfigScreen({ navigation }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.confirmBtn, !selectedObject && styles.confirmBtnDisabled]}
+          style={[styles.confirmBtn, !canSave && styles.confirmBtnDisabled]}
           onPress={handleSave}
           activeOpacity={0.85}
-          disabled={!selectedObject}
+          disabled={!canSave}
         >
-          <Text style={styles.confirmText}>Guardar</Text>
+          <Text style={styles.confirmText}>
+            {canSave ? 'Guardar' : `Selecciona minimo ${requiredQuantity}`}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -180,6 +231,38 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
+  },
+  difficultyRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  difficultyBtn: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  difficultyBtnActive: {
+    borderColor: Colors.missionColors.photo,
+    backgroundColor: Colors.missionColors.photo + '18',
+  },
+  difficultyText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  difficultyTextActive: {
+    color: Colors.white,
+  },
+  difficultyMeta: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
   },
   objectList: {
     gap: 10,
