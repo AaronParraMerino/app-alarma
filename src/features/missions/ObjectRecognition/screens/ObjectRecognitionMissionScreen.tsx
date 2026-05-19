@@ -12,6 +12,10 @@ import { CameraCapturedPicture } from 'expo-camera/build/Camera.types';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import {
+  SSDLITE_320_MOBILENET_V3_LARGE,
+  useObjectDetection,
+} from 'react-native-executorch';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
@@ -33,6 +37,9 @@ export default function ObjectRecognitionMissionScreen({
   navigation,
   route,
 }: Props) {
+  const detector = useObjectDetection({
+    model: SSDLITE_320_MOBILENET_V3_LARGE,
+  });
   const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { config } = useObjectRecognitionStore();
@@ -68,12 +75,16 @@ export default function ObjectRecognitionMissionScreen({
   };
 
   const validatePhoto = async () => {
-    if (!photo || !targetObject || validating) return;
+    if (!photo || !targetObject || validating || !detector.isReady) return;
 
     setValidating(true);
     try {
+      const detections = await detector.forward(photo.uri, {
+        detectionThreshold: 0.45,
+        classesOfInterest: [targetObject.modelLabel as never],
+      });
       const result = await ObjectRecognitionService.validateObject({
-        photoUri: photo.uri,
+        detections,
         targetObject,
       });
       setRecognitionResult(result);
@@ -143,7 +154,13 @@ export default function ObjectRecognitionMissionScreen({
               ? `Detectado: ${recognitionResult.detectedLabel} (${Math.round(
                   recognitionResult.confidence * 100,
                 )}%)`
-              : 'Toma una foto y valida el objeto antes de completar.'}
+              : detector.error
+                ? 'No se pudo cargar el modelo local de reconocimiento.'
+                : !detector.isReady
+                  ? `Preparando IA local ${Math.round(
+                      detector.downloadProgress * 100,
+                    )}%`
+                  : 'Toma una foto y valida el objeto antes de completar.'}
           </Text>
         </View>
 
@@ -172,14 +189,18 @@ export default function ObjectRecognitionMissionScreen({
                 style={[
                   styles.completeBtn,
                   styles.actionBtn,
-                  validating && styles.disabledBtn,
+                  (validating || !detector.isReady) && styles.disabledBtn,
                 ]}
                 onPress={validatePhoto}
                 activeOpacity={0.85}
-                disabled={validating}
+                disabled={validating || !detector.isReady}
               >
                 <Text style={styles.completeText}>
-                  {validating ? 'Validando...' : 'Validar'}
+                  {validating
+                    ? 'Validando...'
+                    : detector.isReady
+                      ? 'Validar'
+                      : 'Cargando IA'}
                 </Text>
               </TouchableOpacity>
             )}

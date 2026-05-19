@@ -3,6 +3,8 @@ import 'react-native-gesture-handler';
 import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Image, Linking } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { initExecutorch } from 'react-native-executorch';
+import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
 
 import { initDB } from './src/shared/db/localDB';
 import { WordSeedService } from './src/shared/services/storage/WordSeedService';
@@ -30,6 +32,10 @@ import { Colors } from './src/shared/theme/colors';
 
 // Mantiene el splash nativo hasta que nosotros lo ocultemos
 void SplashScreen.preventAutoHideAsync();
+
+initExecutorch({
+  resourceFetcher: ExpoResourceFetcher,
+});
 
 const SPLASH_DURATION_MS = 3000;
 

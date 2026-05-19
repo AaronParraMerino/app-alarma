@@ -1,3 +1,5 @@
+import { Detection } from 'react-native-executorch';
+
 import { RecognizableObject } from '../types/objectRecognition.types';
 
 export interface ObjectRecognitionResult {
@@ -9,25 +11,25 @@ export interface ObjectRecognitionResult {
 }
 
 interface ValidateObjectParams {
-  photoUri: string;
+  detections: Detection[];
   targetObject: RecognizableObject;
 }
 
 export class ObjectRecognitionService {
-  static async validateObject({
-    photoUri,
+  static validateObject({
+    detections,
     targetObject,
   }: ValidateObjectParams): Promise<ObjectRecognitionResult> {
-    // Placeholder para la futura integracion con IA real.
-    // Se mantiene async para conservar el contrato cuando conectemos el modelo/API.
-    await new Promise(resolve => setTimeout(resolve, 700));
+    const bestMatch = detections
+      .filter(detection => String(detection.label) === targetObject.modelLabel)
+      .sort((a, b) => b.score - a.score)[0];
 
-    return {
+    return Promise.resolve({
       expectedObjectId: targetObject.id,
       expectedLabel: targetObject.label,
-      detectedLabel: targetObject.label,
-      confidence: photoUri ? 0.92 : 0,
-      matched: Boolean(photoUri),
-    };
+      detectedLabel: bestMatch ? targetObject.label : 'No detectado',
+      confidence: bestMatch?.score ?? 0,
+      matched: Boolean(bestMatch),
+    });
   }
 }

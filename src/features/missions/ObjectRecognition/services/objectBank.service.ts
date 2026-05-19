@@ -5,12 +5,13 @@ import {
   RecognizableObjectCategory,
 } from '../types/objectRecognition.types';
 
-const OBJECT_BANK_SEED_KEY = 'object_recognition_bank_seed_v1';
+const OBJECT_BANK_SEED_KEY = 'object_recognition_bank_seed_v2';
 
 type ObjectBankRow = {
   id: string;
   name: string;
   label: string;
+  model_label: string;
   category: RecognizableObjectCategory;
   enabled: number;
 };
@@ -20,6 +21,7 @@ function mapRowToObject(row: ObjectBankRow): RecognizableObject {
     id: row.id,
     name: row.name,
     label: row.label,
+    modelLabel: row.model_label,
     category: row.category,
     enabled: Number(row.enabled) === 1,
   };
@@ -35,13 +37,14 @@ export class ObjectBankService {
       db.runSync(
         `
         INSERT OR REPLACE INTO object_recognition_objects (
-          id, name, label, category, enabled, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
+          id, name, label, model_label, category, enabled, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
         [
           object.id,
           object.name,
           object.label,
+          object.modelLabel,
           object.category,
           object.enabled === false ? 0 : 1,
           Date.now(),
@@ -55,7 +58,7 @@ export class ObjectBankService {
   static getAll(): RecognizableObject[] {
     const rows = db.getAllSync<ObjectBankRow>(
       `
-      SELECT id, name, label, category, enabled
+      SELECT id, name, label, model_label, category, enabled
       FROM object_recognition_objects
       ORDER BY category ASC, label ASC
       `,
@@ -67,9 +70,10 @@ export class ObjectBankService {
   static getEnabled(): RecognizableObject[] {
     const rows = db.getAllSync<ObjectBankRow>(
       `
-      SELECT id, name, label, category, enabled
+      SELECT id, name, label, model_label, category, enabled
       FROM object_recognition_objects
       WHERE enabled = 1
+      AND model_label != ''
       ORDER BY category ASC, label ASC
       `,
     );
@@ -80,7 +84,7 @@ export class ObjectBankService {
   static getById(id: string): RecognizableObject | null {
     const row = db.getFirstSync<ObjectBankRow>(
       `
-      SELECT id, name, label, category, enabled
+      SELECT id, name, label, model_label, category, enabled
       FROM object_recognition_objects
       WHERE id = ?
       `,

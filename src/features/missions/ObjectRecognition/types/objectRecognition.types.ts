@@ -10,6 +10,7 @@ export interface RecognizableObject {
   id: string;
   name: string;
   label: string;
+  modelLabel: string;
   category: RecognizableObjectCategory;
   enabled: boolean;
 }
