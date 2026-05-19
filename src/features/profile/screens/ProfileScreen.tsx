@@ -1,5 +1,5 @@
 // src/features/profile/screens/ProfileScreen.tsx
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
@@ -26,12 +28,11 @@ type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 };
 
-// ─── Avatar grande ────────────────────────────────────────────────────────────
-
 function AvatarLarge({ name }: { name: string }) {
   const initials = name
     .split(' ')
-    .map(w => w[0])
+    .filter(Boolean)
+    .map((w) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -40,14 +41,12 @@ function AvatarLarge({ name }: { name: string }) {
     <View style={styles.avatarWrap}>
       <View style={styles.avatarRing}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+          <Text style={styles.avatarText}>{initials || 'U'}</Text>
         </View>
       </View>
     </View>
   );
 }
-
-// ─── Tarjeta de estadística ───────────────────────────────────────────────────
 
 function StatCard({
   icon,
@@ -65,13 +64,12 @@ function StatCard({
       <View style={[styles.statIconWrap, { backgroundColor: color + '1A' }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
+
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
-
-// ─── Fila de acción ───────────────────────────────────────────────────────────
 
 function ActionRow({
   icon,
@@ -90,7 +88,7 @@ function ActionRow({
 }) {
   return (
     <TouchableOpacity
-      style={[styles.actionRow, disabled && { opacity: 0.4 }]}
+      style={[styles.actionRow, disabled && styles.actionRowDisabled]}
       onPress={onPress}
       activeOpacity={0.65}
       disabled={disabled}
@@ -98,22 +96,62 @@ function ActionRow({
       <View style={[styles.actionIconWrap, { backgroundColor: color + '18' }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
+
       <View style={styles.actionText}>
         <Text style={[styles.actionLabel, { color }]}>{label}</Text>
-        {sublabel ? <Text style={styles.actionSublabel}>{sublabel}</Text> : null}
+
+        {sublabel ? (
+          <Text style={styles.actionSublabel}>{sublabel}</Text>
+        ) : null}
       </View>
-      {!disabled && <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />}
+
+      {!disabled && (
+        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+      )}
     </TouchableOpacity>
   );
 }
 
-// ─── ProfileScreen ────────────────────────────────────────────────────────────
-
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
-  const { profile, loading, error, refetch } = useProfile();
+
+  const {
+    profile,
+    loading,
+    error,
+    totalMissionsResolved,
+    refetch,
+  } = useProfile();
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [activeModal, setActiveModal] = useState<'logout' | 'delete-account' | null>(null);
+  const [activeModal, setActiveModal] = useState<
+    'logout' | 'delete-account' | null
+  >(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  if (!user) return null;
+
+  const currentUser = user as any;
+
+  const userId: string =
+    currentUser.id ??
+    currentUser.user_id ??
+    currentUser.id_usuario ??
+    currentUser.uid ??
+    '';
+
+  const email = currentUser.email ?? '';
+  const displayName =
+    currentUser.username ??
+    currentUser.full_name ??
+    currentUser.name ??
+    email.split('@')[0] ??
+    'Usuario';
 
   const handleLogout = () => {
     setActiveModal('logout');
@@ -134,35 +172,45 @@ export default function ProfileScreen({ navigation }: Props) {
     setActiveModal('delete-account');
   };
 
-  if (!user) return null;
+  const handleOpenAlarmHistory = () => {
+    if (!userId) return;
 
-  const displayName = user.username || user.email.split('@')[0];
+    navigation.navigate('MissionHistory', {
+      userId,
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
 
-      {/* Cabecera con botón de regreso */}
       <View style={styles.topBar}>
         <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
+
         <Text style={styles.topBarTitle}>Mi perfil</Text>
-        <View style={{ width: 76 }} />
+
+        <View style={styles.topBarRightSpace} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* ── HERO DEL PERFIL ─────────────────────────────────────────────── */}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.hero}>
           <AvatarLarge name={displayName} />
+
           <Text style={styles.heroName}>{displayName}</Text>
-          <Text style={styles.heroEmail}>{user.email}</Text>
+          <Text style={styles.heroEmail}>{email}</Text>
 
           {loading && (
-            <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 8 }} />
+            <ActivityIndicator
+              size="small"
+              color={Colors.primary}
+              style={styles.profileLoader}
+            />
           )}
         </View>
 
-        {/* ── ESTADÍSTICAS ────────────────────────────────────────────────── */}
         {error ? (
           <Menssage
             type="error"
@@ -174,6 +222,7 @@ export default function ProfileScreen({ navigation }: Props) {
         ) : null}
 
         <Text style={styles.sectionLabel}>Estadísticas</Text>
+
         <View style={styles.statsRow}>
           <StatCard
             icon="alarm-outline"
@@ -181,12 +230,14 @@ export default function ProfileScreen({ navigation }: Props) {
             label="Alarmas"
             color={Colors.primary}
           />
+
           <StatCard
             icon="trophy-outline"
-            value={profile?.total_missions_completed ?? 0}
+            value={totalMissionsResolved}
             label="Misiones"
             color={Colors.warning}
           />
+
           <StatCard
             icon="flame-outline"
             value={profile?.streak_days ?? 0}
@@ -195,8 +246,8 @@ export default function ProfileScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* ── CUENTA ──────────────────────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>Cuenta</Text>
+
         <View style={styles.section}>
           <ActionRow
             icon="create-outline"
@@ -204,14 +255,19 @@ export default function ProfileScreen({ navigation }: Props) {
             sublabel="Próximamente"
             disabled
           />
+
           <View style={styles.divider} />
+
           <ActionRow
             icon="time-outline"
             label="Historial de alarmas"
-            sublabel="Próximamente"
-            disabled
+            sublabel="Ver historial de misiones realizadas"
+            onPress={handleOpenAlarmHistory}
+            disabled={!userId}
           />
+
           <View style={styles.divider} />
+
           <ActionRow
             icon="bar-chart-outline"
             label="Ver estadísticas completas"
@@ -220,8 +276,8 @@ export default function ProfileScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* ── ZONA PELIGROSA ───────────────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>Sesión</Text>
+
         <View style={styles.section}>
           <ActionRow
             icon="log-out-outline"
@@ -230,7 +286,9 @@ export default function ProfileScreen({ navigation }: Props) {
             onPress={handleLogout}
             disabled={isLoggingOut}
           />
+
           <View style={styles.divider} />
+
           <ActionRow
             icon="trash-outline"
             label="Eliminar cuenta"
@@ -239,24 +297,24 @@ export default function ProfileScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Miembro desde */}
-        {user.createdAt && (
+        {currentUser.createdAt && (
           <Text style={styles.memberSince}>
-            Miembro desde {new Date(user.createdAt).toLocaleDateString('es-ES', {
+            Miembro desde{' '}
+            {new Date(currentUser.createdAt).toLocaleDateString('es-ES', {
               month: 'long',
               year: 'numeric',
             })}
           </Text>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={styles.bottomSpace} />
       </ScrollView>
 
       <Modal
         visible={activeModal === 'logout'}
         type="warning"
-        title="Cerrar sesion"
-        message="Tu sesion se cerrara en este dispositivo. Podras volver a entrar desde la pantalla de autenticacion."
+        title="Cerrar sesión"
+        message="Tu sesión se cerrará en este dispositivo. Podrás volver a entrar desde la pantalla de autenticación."
         onClose={closeModal}
         closeOnBackdropPress={!isLoggingOut}
         cancelAction={{
@@ -265,7 +323,7 @@ export default function ProfileScreen({ navigation }: Props) {
           disabled: isLoggingOut,
         }}
         confirmAction={{
-          label: 'Cerrar sesion',
+          label: 'Cerrar sesión',
           onPress: confirmLogout,
           loading: isLoggingOut,
         }}
@@ -275,7 +333,7 @@ export default function ProfileScreen({ navigation }: Props) {
         visible={activeModal === 'delete-account'}
         type="error"
         title="Eliminar cuenta"
-        message="Esta opcion estara disponible cuando integremos el borrado seguro de datos."
+        message="Esta opción estará disponible cuando integremos el borrado seguro de datos."
         onClose={() => setActiveModal(null)}
         cancelAction={{
           label: 'Entendido',
@@ -286,10 +344,12 @@ export default function ProfileScreen({ navigation }: Props) {
   );
 }
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+  },
+
   scroll: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -297,7 +357,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  // Top bar
   topBar: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -308,22 +367,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     paddingVertical: 12,
   },
+
   backBtn: {
     minWidth: 76,
   },
+
   topBarTitle: {
     fontSize: Typography.action.fontSize,
     fontWeight: Typography.action.fontWeight,
     color: Colors.text,
   },
 
-  // Hero
+  topBarRightSpace: {
+    width: 76,
+  },
+
   hero: {
     alignItems: 'center',
     paddingVertical: 24,
     paddingHorizontal: Layout.screenPadding,
   },
-  avatarWrap: { marginBottom: 16 },
+
+  avatarWrap: {
+    marginBottom: 16,
+  },
+
   avatarRing: {
     width: 100,
     height: 100,
@@ -335,6 +403,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   avatar: {
     width: 86,
     height: 86,
@@ -343,34 +412,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   avatarText: {
     fontSize: 34,
     fontWeight: '800',
     color: Colors.primary,
     letterSpacing: 1,
   },
+
   heroName: {
     fontSize: 22,
     fontWeight: '800',
     color: Colors.text,
     marginBottom: 4,
     letterSpacing: -0.3,
+    textAlign: 'center',
   },
+
   heroEmail: {
     fontSize: 13,
     color: Colors.textSecondary,
   },
+
+  profileLoader: {
+    marginTop: 8,
+  },
+
   message: {
     marginHorizontal: 16,
   },
 
-  // Stats
   statsRow: {
     flexDirection: 'row',
-    gap: 10,
     marginHorizontal: Layout.screenPadding,
     marginBottom: 24,
   },
+
   statCard: {
     flex: 1,
     backgroundColor: Colors.bgCard,
@@ -378,20 +455,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     alignItems: 'center',
-    gap: 6,
+    marginHorizontal: 5,
   },
+
   statIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
   },
+
   statValue: {
     fontSize: 20,
     fontWeight: '800',
     color: Colors.text,
+    marginBottom: 4,
   },
+
   statLabel: {
     fontSize: 10,
     color: Colors.textMuted,
@@ -399,7 +481,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Secciones
   sectionLabel: {
     fontSize: 11,
     fontWeight: Typography.label.fontWeight,
@@ -409,6 +490,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     marginBottom: 8,
   },
+
   section: {
     marginHorizontal: Layout.screenPadding,
     marginBottom: 20,
@@ -418,35 +500,46 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     overflow: 'hidden',
   },
+
   divider: {
     height: 1,
     backgroundColor: Colors.borderMuted,
     marginLeft: 52,
   },
 
-  // Filas de acción
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 13,
-    gap: 12,
   },
+
+  actionRowDisabled: {
+    opacity: 0.4,
+  },
+
   actionIconWrap: {
     width: 34,
     height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  actionText: { flex: 1, gap: 1 },
+
+  actionText: {
+    flex: 1,
+  },
+
   actionLabel: {
     fontSize: 14,
     fontWeight: '500',
   },
+
   actionSublabel: {
     fontSize: 11,
     color: Colors.textMuted,
+    marginTop: 1,
   },
 
   memberSince: {
@@ -455,5 +548,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+
+  bottomSpace: {
+    height: 40,
   },
 });
