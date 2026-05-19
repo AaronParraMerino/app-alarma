@@ -50,9 +50,7 @@ function resolveRandomMission(config: AlarmMission): AlarmMission {
 }
 
 function formatTime(hour: number, minute: number): string {
-  const hh = hour % 12 === 0 ? 12 : hour % 12;
-  const ampm = hour < 12 ? 'AM' : 'PM';
-  return `${hh.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${ampm}`;
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }
 
 function toMissionDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {

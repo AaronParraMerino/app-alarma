@@ -1,5 +1,5 @@
 // src/features/alarm/screens/HomeScreen.tsx
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -81,9 +81,7 @@ function padZero(n: number): string {
 }
 
 function formatTime(hour: number, minute: number): string {
-  const h = hour % 12 === 0 ? 12 : hour % 12;
-  const ampm = hour < 12 ? 'AM' : 'PM';
-  return `${padZero(h)}:${padZero(minute)} ${ampm}`;
+  return `${padZero(hour)}:${padZero(minute)}`;
 }
 
 function formatRepeat(repeatDays: number[]): string {
@@ -227,7 +225,30 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
 // ─── Banner próxima alarma ────────────────────────────────────────────────────
 
 function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
-  const minutes = useMemo(() => minutesUntilNextAlarm(alarms), [alarms]);
+  const [minutes, setMinutes] = useState<number | null>(() => minutesUntilNextAlarm(alarms));
+
+  useEffect(() => {
+    const updateMinutes = () => {
+      setMinutes(minutesUntilNextAlarm(alarms));
+    };
+
+    updateMinutes();
+
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const timeoutId = setTimeout(() => {
+      updateMinutes();
+      intervalId = setInterval(updateMinutes, 60 * 1000);
+    }, msUntilNextMinute);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [alarms]);
+
   if (minutes === null) return null;
 
   return (
