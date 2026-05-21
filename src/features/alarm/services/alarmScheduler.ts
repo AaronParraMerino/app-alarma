@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
 import { Alarm, RepeatDay } from '../types/alarm.types';
 import { DEFAULT_ALARM_SOUND_URI } from './alarmService';
+import { normalizeRepeatDays } from '../utils/repeatSchedule';
 
 type NotificationLike = {
   notification?: {
@@ -52,7 +53,7 @@ const NativeAlarmScheduler = NativeModules.NeuroWakeAlarmScheduler as
 let nativeAlarmAvailabilityLogged = false;
 let fullScreenSettingsOpenedThisSession = false;
 const RESOLVED_ALARM_STORAGE_KEY = 'neuroWake.resolvedRingingAlarms.v1';
-const RESOLVED_ALARM_SUPPRESSION_MS = 4 * 60 * 60 * 1000;
+const RESOLVED_ALARM_SUPPRESSION_MS = 20 * 60 * 60 * 1000;
 const recentlyResolvedAlarmIds = new Map<string, number>();
 let resolvedAlarmCacheLoaded = false;
 let resolvedAlarmCachePromise: Promise<void> | null = null;
@@ -172,10 +173,20 @@ async function loadResolvedAlarmCacheAsync(): Promise<void> {
 }
 
 async function markRingingAlarmResolved(alarmId: string): Promise<void> {
+  recentlyResolvedAlarmIds.set(alarmId, Date.now());
   await loadResolvedAlarmCacheAsync();
   recentlyResolvedAlarmIds.set(alarmId, Date.now());
   pruneResolvedAlarmCache();
   await persistResolvedAlarmCacheAsync();
+}
+
+export async function clearResolvedRingingAlarmByAlarmId(alarmId: string): Promise<void> {
+  await loadResolvedAlarmCacheAsync();
+  const deleted = recentlyResolvedAlarmIds.delete(alarmId);
+
+  if (deleted) {
+    await persistResolvedAlarmCacheAsync();
+  }
 }
 
 async function isRingingAlarmRecentlyResolved(alarmId: string): Promise<boolean> {
@@ -286,7 +297,12 @@ export async function getPendingNativeRingingAlarmId(): Promise<string | null> {
     const alarmId = await NativeAlarmScheduler.getPendingAlarmId();
     if (!alarmId) return null;
 
-    return String(alarmId);
+    const normalizedAlarmId = String(alarmId);
+    if (await isRingingAlarmRecentlyResolved(normalizedAlarmId)) {
+      return null;
+    }
+
+    return normalizedAlarmId;
   } catch (error) {
     console.log('[AlarmScheduler] Pending native alarm check skipped:', error);
     return null;
@@ -305,12 +321,17 @@ export function extractAlarmIdFromUrl(url: string): string | null {
 }
 
 export async function shouldOpenRingingAlarmId(alarmId: string): Promise<boolean> {
+  if (await isRingingAlarmRecentlyResolved(alarmId)) {
+    return false;
+  }
+
   if (isNativeAndroidAlarmAvailable()) {
     const pendingAlarmId = await getPendingNativeRingingAlarmId();
+    if (!pendingAlarmId) return true;
     return pendingAlarmId === alarmId;
   }
 
-  return !(await isRingingAlarmRecentlyResolved(alarmId));
+  return true;
 }
 
 function getAppScheme(): string {
@@ -414,7 +435,9 @@ async function scheduleNativeAlarmTrigger(
 }
 
 async function scheduleNativeAlarm(alarm: Alarm): Promise<void> {
-  if (alarm.repeatDays.length === 0) {
+  const repeatDays = normalizeRepeatDays(alarm.repeatDays);
+
+  if (repeatDays.length === 0) {
     const triggerDate = nextDate(alarm.hour, alarm.minute);
     await scheduleNativeAlarmTrigger(alarm, `alarm-${alarm.id}-once`, triggerDate, 0);
     console.log(
@@ -423,7 +446,7 @@ async function scheduleNativeAlarm(alarm: Alarm): Promise<void> {
     return;
   }
 
-  for (const day of alarm.repeatDays) {
+  for (const day of repeatDays) {
     const triggerDate = nextWeeklyDate(day, alarm.hour, alarm.minute);
     await scheduleNativeAlarmTrigger(
       alarm,
@@ -483,10 +506,13 @@ async function scheduleRepeatAlarm(alarm: Alarm, repeatDays: RepeatDay[]): Promi
   const Notifications = await getNotificationsModule();
   if (!Notifications) return;
 
+  const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
+  if (normalizedRepeatDays.length === 0) return;
+
   const useCustomSound = isNativeAndroidAlarmAvailable();
   const channelId = await ensureAlarmChannelAsync(Notifications, alarm.soundUri, useCustomSound);
 
-  for (const day of repeatDays) {
+  for (const day of normalizedRepeatDays) {
     const identifier = await Notifications.scheduleNotificationAsync({
       identifier: `alarm-${alarm.id}-day-${day}`,
       content: buildAlarmContent(Notifications, alarm, useCustomSound),
@@ -592,8 +618,13 @@ export async function cancelAlarmNotificationsByAlarmId(alarmId: string): Promis
 export async function dismissRingingAlarmByAlarmId(alarmId: string): Promise<void> {
   try {
     await markRingingAlarmResolved(alarmId);
-    await stopNativeRingingAlarm(alarmId);
+  } catch (error) {
+    console.log('[AlarmScheduler] Resolved alarm mark skipped:', error);
+  }
 
+  await stopNativeRingingAlarm(alarmId);
+
+  try {
     const Notifications = await getNotificationsModule();
     if (!Notifications) return;
 
@@ -627,12 +658,14 @@ export async function scheduleAlarmNotifications(alarm: Alarm): Promise<void> {
       }
     }
 
-    if (alarm.repeatDays.length === 0) {
+    const repeatDays = normalizeRepeatDays(alarm.repeatDays);
+
+    if (repeatDays.length === 0) {
       await scheduleOneTimeAlarm(alarm);
       return;
     }
 
-    await scheduleRepeatAlarm(alarm, alarm.repeatDays);
+    await scheduleRepeatAlarm(alarm, repeatDays);
   } catch (error) {
     console.log('[AlarmScheduler] Schedule skipped:', error);
   }

@@ -103,6 +103,24 @@ function mapSupabaseUser(u: any, fallbackEmail?: string): User {
   };
 }
 
+function getAuthErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? '');
+}
+
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  return getAuthErrorMessage(error).toLowerCase().includes('invalid refresh token');
+}
+
+async function clearInvalidLocalSession(): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (error) {
+    if (!isInvalidRefreshTokenError(error)) {
+      console.log('[Auth] No se pudo limpiar la sesion local:', getAuthErrorMessage(error));
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -122,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.log('[Auth] Sesion local invalida, se limpia:', error.message);
-          await supabase.auth.signOut({ scope: 'local' });
+          await clearInvalidLocalSession();
 
           if (await authService.isGuestSessionSaved()) {
             dispatch({
@@ -180,7 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         dispatch({ type: 'SET_READY' });
       } catch (error: any) {
-        console.log('[Auth] Error cargando sesión inicial:', error);
+        if (isInvalidRefreshTokenError(error)) {
+          await clearInvalidLocalSession();
+          console.log('[Auth] Sesion local expirada, se limpio el token guardado.');
+        } else {
+          console.log('[Auth] Error cargando sesión inicial:', getAuthErrorMessage(error));
+        }
         dispatch({ type: 'SET_READY' });
       }
     };

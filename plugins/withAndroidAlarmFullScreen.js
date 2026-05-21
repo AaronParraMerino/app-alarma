@@ -1045,16 +1045,28 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void getPendingAlarmId(Promise promise) {
     try {
-      Activity activity = getCurrentActivity();
-      String alarmId = activity == null ? null : extractAlarmIdFromIntent(activity.getIntent());
-      if (alarmId == null || alarmId.trim().isEmpty()) {
-        Context context = getReactApplicationContext().getApplicationContext();
-        alarmId = context
-          .getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
-          .getString(AlarmConstants.KEY_ACTIVE_ALARM_ID, null);
+      Context context = getReactApplicationContext().getApplicationContext();
+      String activeAlarmId = context
+        .getSharedPreferences(AlarmConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(AlarmConstants.KEY_ACTIVE_ALARM_ID, null);
+
+      if (activeAlarmId == null || activeAlarmId.trim().isEmpty()) {
+        promise.resolve(null);
+        return;
       }
 
-      promise.resolve(alarmId);
+      Activity activity = getCurrentActivity();
+      String intentAlarmId = activity == null ? null : extractAlarmIdFromIntent(activity.getIntent());
+      if (
+        intentAlarmId != null
+        && !intentAlarmId.trim().isEmpty()
+        && !activeAlarmId.equals(intentAlarmId)
+      ) {
+        promise.resolve(null);
+        return;
+      }
+
+      promise.resolve(activeAlarmId);
     } catch (Exception error) {
       promise.reject("ERR_PENDING_ALARM_ID", error);
     }
@@ -1083,6 +1095,8 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
               activity.setShowWhenLocked(false);
               activity.setTurnScreenOn(false);
             }
+
+            activity.setIntent(new Intent(activity, activity.getClass()));
 
             if (activity.getClass().getName().endsWith(".alarm.AlarmActivity")) {
               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

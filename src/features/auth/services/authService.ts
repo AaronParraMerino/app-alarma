@@ -14,6 +14,24 @@ const mapSupabaseUser = (u: any): User => ({
   createdAt: u.created_at,
 });
 
+function getAuthErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? '');
+}
+
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  return getAuthErrorMessage(error).toLowerCase().includes('invalid refresh token');
+}
+
+async function signOutSafely(options?: { scope?: 'global' | 'local' | 'others' }): Promise<void> {
+  try {
+    await supabase.auth.signOut(options);
+  } catch (error) {
+    if (!isInvalidRefreshTokenError(error)) {
+      throw error;
+    }
+  }
+}
+
 export const authService = {
   async login(email: string, password: string): Promise<User> {
     passwordRecoveryMode = false;
@@ -90,7 +108,7 @@ export const authService = {
   async logout(): Promise<void> {
     passwordRecoveryMode = false;
 
-    await supabase.auth.signOut();
+    await signOutSafely();
     await AsyncStorage.removeItem(GUEST_MODE_KEY);
   },
 
@@ -143,12 +161,12 @@ export const authService = {
 
     passwordRecoveryMode = false;
 
-    await supabase.auth.signOut();
+    await signOutSafely();
   },
 
   async cancelPasswordRecovery(): Promise<void> {
     passwordRecoveryMode = false;
-    await supabase.auth.signOut();
+    await signOutSafely();
   },
 
   clearPasswordRecoveryMode(): void {

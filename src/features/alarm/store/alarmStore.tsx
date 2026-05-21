@@ -18,6 +18,7 @@ import { deleteAlarmCloud } from '../../../shared/services/storage/cloudDB.servi
 import { initDB } from '../../../shared/db/localDB';
 import {
   cancelAlarmNotificationsByAlarmId,
+  clearResolvedRingingAlarmByAlarmId,
   scheduleAlarmNotifications,
 } from '../services/alarmScheduler';
 import { useAuth } from '../../auth/hooks/useAuth';
@@ -70,14 +71,22 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
 
   const updateAlarm = useCallback((id: string, data: Partial<Alarm>) => {
     setAlarms(prev => {
-      const oldAlarm = prev.find(a => a.id === id);
-      const next = prev.map(a =>
-        a.id === id ? { ...a, ...data, updatedAt: Date.now() } : a,
-      );
-      const updated = next.find(a => a.id === id);
-      if (updated) insertAlarmLocal(updated);
-      if (oldAlarm) void cancelAlarmNotificationsByAlarmId(oldAlarm.id);
-      if (updated) void scheduleAlarmNotifications(updated);
+      const oldAlarm = prev.find(a => a.id === id) ?? getAlarmsLocal().find(a => a.id === id);
+      if (!oldAlarm) return prev;
+
+      const updated: Alarm = { ...oldAlarm, ...data, updatedAt: Date.now() };
+      const next = prev.some(a => a.id === id)
+        ? prev.map(a => (a.id === id ? updated : a))
+        : [...prev, updated];
+
+      insertAlarmLocal(updated);
+      void cancelAlarmNotificationsByAlarmId(oldAlarm.id);
+      void (async () => {
+        if (updated.enabled && data.enabled !== false) {
+          await clearResolvedRingingAlarmByAlarmId(updated.id);
+        }
+        await scheduleAlarmNotifications(updated);
+      })();
       return next;
     });
   }, []);
@@ -105,7 +114,14 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
       );
       const updated = next.find(a => a.id === id);
       if (updated) insertAlarmLocal(updated);
-      if (updated) void scheduleAlarmNotifications(updated);
+      if (updated) {
+        void (async () => {
+          if (updated.enabled) {
+            await clearResolvedRingingAlarmByAlarmId(updated.id);
+          }
+          await scheduleAlarmNotifications(updated);
+        })();
+      }
       return next;
     });
   }, []);
