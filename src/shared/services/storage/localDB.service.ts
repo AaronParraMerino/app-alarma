@@ -1,5 +1,6 @@
 import db from '../../db/localDB';
 import { Alarm, AlarmMission, RepeatDay } from '../../../features/alarm/types/alarm.types';
+import { normalizeRepeatDays } from '../../../features/alarm/utils/repeatSchedule';
 
 interface InsertAlarmLocalOptions {
   synced?: boolean;
@@ -28,7 +29,7 @@ const mapRowToAlarm = (row: any): Alarm => {
     minute: Number.parseInt(mm, 10) || 0,
     label: String(row.label ?? ''),
     enabled: Number(row.active) === 1,
-    repeatDays: parseJson<RepeatDay[]>(row.repeat_days, []),
+    repeatDays: normalizeRepeatDays(parseJson<RepeatDay[]>(row.repeat_days, [])),
     missions: parseJson<AlarmMission[]>(row.missions, []),
     randomMissions: Number(row.random_missions) === 1,
     soundUri: row.sound_uri ?? null,
@@ -43,7 +44,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
       ...alarm,
       label: alarm.label ?? '',
       enabled: Boolean(alarm.enabled),
-      repeatDays: alarm.repeatDays ?? [],
+      repeatDays: normalizeRepeatDays(alarm.repeatDays ?? []),
       missions: alarm.missions ?? [],
       randomMissions: Boolean(alarm.randomMissions),
       soundUri: alarm.soundUri ?? null,
@@ -59,7 +60,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
     minute: Number.parseInt(mm, 10) || 0,
     label: String(alarm.label ?? ''),
     enabled: Number(alarm.active) === 1 || Boolean(alarm.enabled),
-    repeatDays: parseJson<RepeatDay[]>(alarm.repeat_days, alarm.repeatDays ?? []),
+    repeatDays: normalizeRepeatDays(parseJson<RepeatDay[]>(alarm.repeat_days, alarm.repeatDays ?? [])),
     missions: parseJson<AlarmMission[]>(alarm.missions, alarm.missions ?? []),
     randomMissions:
       Number(alarm.random_missions) === 1 || Boolean(alarm.randomMissions),

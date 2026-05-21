@@ -64,8 +64,11 @@ function AppContent() {
       const shouldOpenFromUrl = urlAlarmId
         ? await shouldOpenRingingAlarmId(urlAlarmId)
         : false;
+      const shouldOpenPendingAlarm = pendingAlarmId
+        ? await shouldOpenRingingAlarmId(pendingAlarmId)
+        : false;
 
-      if (mounted && (pendingAlarmId || shouldOpenFromUrl)) {
+      if (mounted && (shouldOpenPendingAlarm || shouldOpenFromUrl)) {
         setShowIntro(false);
       }
     };

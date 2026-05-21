@@ -24,6 +24,7 @@ import AlarmChooseMission from './AlarmChooseMission';
 import AlarmSelectMission, { AlarmMissionSelection } from './AlarmSelectMission';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import { AlarmCreate, AlarmMission, Difficulty, RepeatDay } from '../types/alarm.types';
+import { ALL_REPEAT_DAYS, normalizeRepeatDays } from '../utils/repeatSchedule';
 
 interface AlarmFormProps {
   title: string;
@@ -381,13 +382,20 @@ export default function AlarmForm({
     onDelete?.();
   };
 
+  const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
+  const allDaysSelected = normalizedRepeatDays.length === ALL_REPEAT_DAYS.length;
+
+  const toggleAllDays = () => {
+    setRepeatDays(allDaysSelected ? [] : [...ALL_REPEAT_DAYS]);
+  };
+
   const toggleDay = (day: RepeatDay) => {
     setRepeatDays(prev => {
       if (prev.includes(day)) {
         return prev.filter(d => d !== day);
       }
 
-      return [...prev, day].sort((a, b) => a - b);
+      return normalizeRepeatDays([...prev, day]);
     });
   };
 
@@ -641,14 +649,15 @@ export default function AlarmForm({
 
   const saveAlarm = () => {
     const hasConfiguredMissions = missionEnabled && configuredMissions.length > 0;
+    const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
 
     clearSavedDraft();
     onSubmit({
       hour,
       minute,
       label: label.trim(),
-      enabled: initialData?.enabled ?? true,
-      repeatDays,
+      enabled: true,
+      repeatDays: normalizedRepeatDays,
       missions: hasConfiguredMissions ? configuredMissions : [],
       randomMissions: false,
       soundUri,
@@ -756,6 +765,20 @@ export default function AlarmForm({
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Repeticion</Text>
+          <TouchableOpacity
+            style={styles.allDaysToggle}
+            onPress={toggleAllDays}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name={allDaysSelected ? 'checkbox' : 'square-outline'}
+              size={22}
+              color={allDaysSelected ? Colors.primary : Colors.textSecondary}
+            />
+            <Text style={[styles.allDaysText, allDaysSelected && styles.allDaysTextActive]}>
+              Todos los dias
+            </Text>
+          </TouchableOpacity>
           <View style={styles.daysRow}>
             {DAY_LABELS_SHORT.map((day, index) => {
               const dayValue = index as RepeatDay;
@@ -992,6 +1015,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  allDaysToggle: {
+    minHeight: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  allDaysText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  allDaysTextActive: {
+    color: Colors.text,
   },
   daysRow: {
     flexDirection: 'row',

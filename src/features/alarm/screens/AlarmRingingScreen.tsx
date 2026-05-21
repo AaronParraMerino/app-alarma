@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   BackHandler,
   StyleSheet,
   Text,
@@ -22,13 +23,14 @@ import { ObjectRecognitionMissionContent } from '../../missions/ObjectRecognitio
 import {
   closeNativeAlarmScreen,
   dismissRingingAlarmByAlarmId,
-  getPendingNativeRingingAlarmId,
   isNativeAndroidAlarmAvailable,
+  shouldOpenRingingAlarmId,
 } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import { AlarmMission, Difficulty, MissionType } from '../types/alarm.types';
+import { shouldDisableAfterAlarmResolution } from '../utils/repeatSchedule';
 
 type Props = NativeStackScreenProps<AlarmStackParamList, 'AlarmRinging'>;
 
@@ -70,6 +72,10 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     keepAudioSessionActive: shouldUseJsAudio,
   });
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
+  const [canRenderAlarm, setCanRenderAlarm] = useState(false);
+  const [isStoppingAlarm, setIsStoppingAlarm] = useState(false);
+  const stoppingAlarmRef = React.useRef(false);
+  const mountedRef = React.useRef(true);
 
   const missionSequence = useMemo<AlarmMission[]>(() => {
     if (!alarm) {
@@ -113,8 +119,18 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   const activeMission = missionSequence[currentMissionIndex] ?? null;
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     setCurrentMissionIndex(0);
-  }, [alarm?.id]);
+    setCanRenderAlarm(false);
+    setIsStoppingAlarm(false);
+    stoppingAlarmRef.current = false;
+  }, [alarm?.id, alarmId]);
 
   useEffect(() => {
     if (!alarm || !alarmSoundAsset || !shouldUseJsAudio) return;
@@ -159,36 +175,65 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     }, []),
   );
 
+  const resetToHome = React.useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+  }, [navigation]);
+
+  const validateAlarmStillActive = React.useCallback(async () => {
+    if (!mountedRef.current) return false;
+
+    setCanRenderAlarm(false);
+
+    const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
+    if (!mountedRef.current) return false;
+
+    if (!shouldOpen) {
+      setCanRenderAlarm(false);
+      resetToHome();
+      void closeNativeAlarmScreen();
+      return false;
+    }
+
+    setCanRenderAlarm(true);
+    return true;
+  }, [alarmId, resetToHome]);
+
   useFocusEffect(
     React.useCallback(() => {
-      if (!isNativeAndroidAlarmAvailable()) return undefined;
-
-      let mounted = true;
-      void getPendingNativeRingingAlarmId().then(pendingAlarmId => {
-        if (!mounted || pendingAlarmId === alarmId) return;
-
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
-      });
-
-      return () => {
-        mounted = false;
-      };
-    }, [alarmId, navigation]),
+      void validateAlarmStillActive();
+      return undefined;
+    }, [validateAlarmStillActive]),
   );
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        void validateAlarmStillActive();
+        return;
+      }
+
+      setCanRenderAlarm(false);
+    });
+
+    return () => subscription.remove();
+  }, [validateAlarmStillActive]);
+
   const stopAlarm = React.useCallback(async () => {
+    if (stoppingAlarmRef.current) return;
+
+    stoppingAlarmRef.current = true;
+    setIsStoppingAlarm(true);
+    setCanRenderAlarm(false);
+
     const targetAlarmId = alarm?.id ?? alarmId;
     await dismissRingingAlarmByAlarmId(targetAlarmId);
 
     if (!alarm) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Home' }],
-      });
       await closeNativeAlarmScreen();
+      resetToHome();
       return;
     }
 
@@ -197,16 +242,14 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       await player.seekTo(0);
     }
 
-    if (alarm.repeatDays.length === 0) {
-      updateAlarm(alarm.id, { enabled: false });
+    const shouldRemainEnabled = !shouldDisableAfterAlarmResolution(alarm);
+    if (alarm.enabled !== shouldRemainEnabled) {
+      updateAlarm(alarm.id, { enabled: shouldRemainEnabled });
     }
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
     await closeNativeAlarmScreen();
-  }, [alarm, alarmId, navigation, player, shouldUseJsAudio, updateAlarm]);
+    resetToHome();
+  }, [alarm, alarmId, player, resetToHome, shouldUseJsAudio, updateAlarm]);
 
   const completeMission = React.useCallback(() => {
     const nextMissionIndex = currentMissionIndex + 1;
@@ -217,6 +260,10 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
     void stopAlarm();
   }, [currentMissionIndex, missionSequence.length, stopAlarm]);
+
+  if (isStoppingAlarm || !canRenderAlarm) {
+    return <SafeAreaView style={styles.safe} />;
+  }
 
   if (!alarm) {
     return (

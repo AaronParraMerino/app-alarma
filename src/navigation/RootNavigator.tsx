@@ -1,11 +1,15 @@
 // src/navigation/RootNavigator.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AppState, View, StyleSheet, Linking } from 'react-native';
 import {
+  CommonActions,
   NavigationContainer,
   createNavigationContainerRef,
   NavigatorScreenParams,
   DefaultTheme,
+  PartialState,
+  NavigationState,
+  InitialState,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -31,6 +35,8 @@ export type RootParamList = {
 const Root = createNativeStackNavigator<RootParamList>();
 const navigationRef = createNavigationContainerRef<RootParamList>();
 let pendingAlarmId: string | null = null;
+let openingAlarmId: string | null = null;
+let openingAlarmTimer: ReturnType<typeof setTimeout> | null = null;
 
 const navigationTheme = {
   ...DefaultTheme,
@@ -46,50 +52,180 @@ const navigationTheme = {
   },
 };
 
-function navigateToRingingAlarm(alarmId: string) {
+type AnyRoute = NavigationState['routes'][number] & {
+  state?: NavigationState | PartialState<NavigationState>;
+};
+
+function getDeepestRouteName(state: NavigationState | PartialState<NavigationState> | undefined): {
+  name?: string;
+  params?: object;
+} {
+  if (!state?.routes?.length) return {};
+
+  const index = typeof state.index === 'number' ? state.index : state.routes.length - 1;
+  const route = state.routes[index] as AnyRoute | undefined;
+  if (!route) return {};
+
+  if (route.state) {
+    return getDeepestRouteName(route.state);
+  }
+
+  return {
+    name: route.name,
+    params: route.params as object | undefined,
+  };
+}
+
+function releaseOpeningAlarm(alarmId: string) {
+  if (openingAlarmId !== alarmId) return;
+  openingAlarmId = null;
+}
+
+function scheduleOpeningRelease(alarmId: string) {
+  if (openingAlarmTimer) {
+    clearTimeout(openingAlarmTimer);
+  }
+
+  openingAlarmTimer = setTimeout(() => {
+    openingAlarmTimer = null;
+    releaseOpeningAlarm(alarmId);
+  }, 1200);
+}
+
+function buildRingingRootState(alarmId: string): InitialState {
+  return {
+    index: 0,
+    routes: [
+      {
+        name: 'Main',
+        state: {
+          index: 0,
+          routes: [
+            {
+              name: 'AlarmTab',
+              state: {
+                index: 0,
+                routes: [
+                  {
+                    name: 'AlarmRinging',
+                    params: { alarmId },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    ],
+  };
+}
+
+function resetToRingingAlarm(alarmId: string) {
+  navigationRef.dispatch(CommonActions.reset(buildRingingRootState(alarmId)));
+}
+
+async function navigateToRingingAlarm(alarmId: string) {
   if (!navigationRef.isReady()) {
     pendingAlarmId = alarmId;
     return;
   }
 
-  const currentRoute = navigationRef.getCurrentRoute();
-  if (
-    currentRoute?.name === 'AlarmRinging'
-    && (currentRoute.params as { alarmId?: string } | undefined)?.alarmId === alarmId
-  ) {
+  if (openingAlarmId === alarmId) {
     return;
   }
 
-  navigationRef.navigate('Main', {
-    screen: 'AlarmTab',
-    params: {
-      screen: 'AlarmRinging',
-      params: { alarmId },
-    },
-  });
+  openingAlarmId = alarmId;
+
+  const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
+  if (!shouldOpen) {
+    releaseOpeningAlarm(alarmId);
+    return;
+  }
+
+  const currentRoute = getDeepestRouteName(navigationRef.getRootState());
+  if (
+    currentRoute.name === 'AlarmRinging'
+    && (currentRoute.params as { alarmId?: string } | undefined)?.alarmId === alarmId
+  ) {
+    scheduleOpeningRelease(alarmId);
+    return;
+  }
+
+  resetToRingingAlarm(alarmId);
+  scheduleOpeningRelease(alarmId);
 }
 
-function flushPendingAlarmNavigation() {
+async function flushPendingAlarmNavigation() {
   if (!pendingAlarmId) return;
 
   const alarmId = pendingAlarmId;
   pendingAlarmId = null;
-  navigateToRingingAlarm(alarmId);
+  await navigateToRingingAlarm(alarmId);
 }
 
 export default function RootNavigator() {
   const { isAuthenticated, isGuest, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated || isGuest;
+  const [initialAlarmId, setInitialAlarmId] = useState<string | null>(null);
+  const [initialRouteReady, setInitialRouteReady] = useState(false);
 
   useEffect(() => {
+    if (isLoading) return undefined;
+
+    if (!isLoggedIn) {
+      setInitialAlarmId(null);
+      setInitialRouteReady(true);
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const resolveInitialAlarmRoute = async () => {
+      const [url, pendingNativeAlarmId] = await Promise.all([
+        Linking.getInitialURL(),
+        getPendingNativeRingingAlarmId(),
+      ]);
+      const urlAlarmId = url ? extractAlarmIdFromUrl(url) : null;
+      let alarmIdToOpen: string | null = null;
+
+      if (urlAlarmId && await shouldOpenRingingAlarmId(urlAlarmId)) {
+        alarmIdToOpen = urlAlarmId;
+      } else if (
+        pendingNativeAlarmId
+        && await shouldOpenRingingAlarmId(pendingNativeAlarmId)
+      ) {
+        alarmIdToOpen = pendingNativeAlarmId;
+      }
+
+      if (!mounted) return;
+
+      if (alarmIdToOpen) {
+        pendingAlarmId = null;
+        openingAlarmId = alarmIdToOpen;
+        scheduleOpeningRelease(alarmIdToOpen);
+      }
+
+      setInitialAlarmId(alarmIdToOpen);
+      setInitialRouteReady(true);
+    };
+
+    void resolveInitialAlarmRoute();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isLoading, isLoggedIn]);
+
+  useEffect(() => {
+    if (!initialRouteReady || !isLoggedIn) return undefined;
+
     let receivedSub: { remove: () => void } | null = null;
     let responseSub: { remove: () => void } | null = null;
     let linkingSub: { remove: () => void } | null = null;
     let appStateSub: { remove: () => void } | null = null;
 
     const handleRingingAlarmId = async (alarmId: string) => {
-      const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
-      if (shouldOpen) navigateToRingingAlarm(alarmId);
+      await navigateToRingingAlarm(alarmId);
     };
 
     const setupListeners = async () => {
@@ -122,18 +258,10 @@ export default function RootNavigator() {
 
     const handlePendingNativeAlarm = async () => {
       const alarmId = await getPendingNativeRingingAlarmId();
-      if (alarmId) navigateToRingingAlarm(alarmId);
+      if (alarmId) void handleRingingAlarmId(alarmId);
     };
 
     void setupListeners();
-    void Linking.getInitialURL().then(url => {
-      if (url) {
-        handleUrl({ url });
-        return;
-      }
-
-      void handlePendingNativeAlarm();
-    });
     linkingSub = Linking.addEventListener('url', handleUrl);
     appStateSub = AppState.addEventListener('change', state => {
       if (state === 'active') {
@@ -147,15 +275,20 @@ export default function RootNavigator() {
       linkingSub?.remove();
       appStateSub?.remove();
     };
-  }, []);
+  }, [initialRouteReady, isLoggedIn]);
 
   useEffect(() => {
     if (!isLoading && isLoggedIn) {
-      flushPendingAlarmNavigation();
+      void flushPendingAlarmNavigation();
     }
   }, [isLoading, isLoggedIn]);
 
-  if (isLoading) {
+  const initialNavigationState = useMemo(
+    () => (initialAlarmId ? buildRingingRootState(initialAlarmId) : undefined),
+    [initialAlarmId],
+  );
+
+  if (isLoading || !initialRouteReady) {
     return <View style={styles.loadingContainer} />;
   }
 
@@ -163,7 +296,10 @@ export default function RootNavigator() {
     <NavigationContainer
       ref={navigationRef}
       theme={navigationTheme}
-      onReady={flushPendingAlarmNavigation}
+      initialState={initialNavigationState}
+      onReady={() => {
+        void flushPendingAlarmNavigation();
+      }}
     >
       <Root.Navigator
         screenOptions={{

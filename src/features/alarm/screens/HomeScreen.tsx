@@ -24,6 +24,10 @@ import { useAlarmStore } from '../store/alarmStore';
 import { Alarm, MissionType } from '../types/alarm.types';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import { getAlarmSoundLabel } from '../services/alarmService';
+import {
+  getNextAlarmOccurrence,
+  shouldShowAlarmSwitchOn,
+} from '../utils/repeatSchedule';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -102,14 +106,12 @@ function formatSound(soundUri: string | null): string {
 
 function minutesUntilNextAlarm(alarms: Alarm[]): number | null {
   const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const enabled = alarms.filter(a => a.enabled);
-  if (enabled.length === 0) return null;
   let min = Infinity;
-  for (const alarm of enabled) {
-    const alarmMin = alarm.hour * 60 + alarm.minute;
-    let diff = alarmMin - nowMin;
-    if (diff <= 0) diff += 24 * 60;
+  for (const alarm of alarms) {
+    const nextOccurrence = getNextAlarmOccurrence(alarm, now);
+    if (!nextOccurrence) continue;
+
+    const diff = Math.ceil((nextOccurrence.getTime() - now.getTime()) / 60_000);
     if (diff < min) min = diff;
   }
   return min === Infinity ? null : min;
@@ -134,6 +136,7 @@ interface AlarmCardProps {
 
 const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCardProps) => {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const switchOn = shouldShowAlarmSwitchOn(alarm);
 
   const handlePressIn = () =>
     Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
@@ -145,22 +148,22 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
     <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
         activeOpacity={1}
-        style={[styles.card, alarm.enabled ? styles.cardEnabled : styles.cardDisabled]}
+        style={[styles.card, switchOn ? styles.cardEnabled : styles.cardDisabled]}
         onPress={() => onPress(alarm)}
         onLongPress={() => onLongPress(alarm)}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        {alarm.enabled && <View style={styles.cardAccentBar} />}
+        {switchOn && <View style={styles.cardAccentBar} />}
 
         <View style={styles.cardTop}>
           <View>
-            <Text style={[styles.alarmTime, !alarm.enabled && styles.textDisabled]}>
+            <Text style={[styles.alarmTime, !switchOn && styles.textDisabled]}>
               {formatTime(alarm.hour, alarm.minute)}
             </Text>
             {alarm.label.length > 0 && (
               <Text
-                style={[styles.alarmLabel, !alarm.enabled && styles.textMutedDisabled]}
+                style={[styles.alarmLabel, !switchOn && styles.textMutedDisabled]}
                 numberOfLines={1}
               >
                 {alarm.label}
@@ -169,13 +172,13 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
           </View>
 
           <Switch
-            value={alarm.enabled}
+            value={switchOn}
             onValueChange={() => onToggle(alarm.id)}
             trackColor={{
               false: Colors.borderFocus + '33',
               true: Colors.primary,
             }}
-            thumbColor={alarm.enabled ? Colors.primaryLight : Colors.textMuted}
+            thumbColor={switchOn ? Colors.primaryLight : Colors.textMuted}
             ios_backgroundColor={Colors.border}
           />
         </View>
@@ -183,10 +186,10 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
         <View style={styles.cardBottom}>
           <View style={styles.repeatRow}>
             <Text style={styles.repeatDot}>◈</Text>
-            <Text style={[styles.repeatText, !alarm.enabled && styles.textMutedDisabled]}>
+            <Text style={[styles.repeatText, !switchOn && styles.textMutedDisabled]}>
               {formatRepeat(alarm.repeatDays)}
             </Text>
-            <Text style={[styles.soundText, !alarm.enabled && styles.textMutedDisabled]}>
+            <Text style={[styles.soundText, !switchOn && styles.textMutedDisabled]}>
               {formatSound(alarm.soundUri)}
             </Text>
           </View>
@@ -206,7 +209,7 @@ const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCa
                 const meta = MISSION_ICON_META[m.type] ?? MISSION_ICON_META.random;
 
                 return (
-                  <View key={i} style={[styles.missionBadge, !alarm.enabled && { opacity: 0.4 }]}>
+                  <View key={i} style={[styles.missionBadge, !switchOn && { opacity: 0.4 }]}>
                     <Ionicons name={meta.icon} size={16} color={meta.color} />
                   </View>
                 );
@@ -336,7 +339,9 @@ export default function HomeScreen() {
   const sortedAlarms = useMemo(
     () =>
       [...alarms].sort((a, b) => {
-        if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+        const aEnabled = shouldShowAlarmSwitchOn(a);
+        const bEnabled = shouldShowAlarmSwitchOn(b);
+        if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
         return a.hour * 60 + a.minute - (b.hour * 60 + b.minute);
       }),
     [alarms],
@@ -360,7 +365,7 @@ export default function HomeScreen() {
       {/* Contador */}
       {sortedAlarms.length > 0 && (
         <Text style={styles.alarmCount}>
-          {sortedAlarms.filter(a => a.enabled).length} de {sortedAlarms.length} activas
+          {sortedAlarms.filter(shouldShowAlarmSwitchOn).length} de {sortedAlarms.length} activas
         </Text>
       )}
 
