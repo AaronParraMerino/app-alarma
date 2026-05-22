@@ -7,6 +7,7 @@ export type MissionType =
   | 'trivia'
   | 'writing'
   | 'color'
+  | 'colorFind'
   | 'shapes'
   | 'sequence'
   | 'wordCompletion';

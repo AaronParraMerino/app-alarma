@@ -12,6 +12,7 @@ import { MathMissionConfigScreen } from '../../missions/Math Exercises/screens/M
 import { WordCompletionConfigScreen } from '../../missions/wordCompletion/screens/WordCompletionConfigScreen';
 import { MovementMissionConfigScreen } from '../../missions/MovementMission/screens/MovementMissionConfigScreen';
 import { ColoredMissionConfigScreen } from '../../missions/ColoredFigures/screens/ColoredMissionConfigScreen';
+import { ColorFindConfigScreen } from '../../missions/ColorFind/screens/ColorFindConfigScreen';
 import { ObjectRecognitionConfigScreen } from '../../missions/ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import { completeAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 
@@ -37,6 +38,11 @@ export type AlarmStackParamList = {
     alarmConfigSessionId: string;
   };
   AlarmConfigColoredFiguresMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId: string;
+  };
+  AlarmConfigColorFindMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId: string;
@@ -107,6 +113,10 @@ export default function AlarmNavigator() {
       <Stack.Screen
         name="AlarmConfigColoredFiguresMission"
         component={ColoredMissionConfigScreen as any}
+      />
+      <Stack.Screen
+        name="AlarmConfigColorFindMission"
+        component={ColorFindConfigScreen as any}
       />
       <Stack.Screen
         name="AlarmConfigObjectRecognitionMission"

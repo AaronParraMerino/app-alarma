@@ -33,6 +33,10 @@ import {
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
 import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
 
+// Color diferente
+import { useColorFindStore } from '../ColorFind/store/colorFindStore';
+import { DIFFICULTY_STYLES as COLOR_FIND_DIFFICULTY_STYLES } from '../ColorFind/constants/colorFind.config';
+
 // Objetos
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
@@ -109,6 +113,10 @@ export default function MissionSelectorScreen() {
     colorConfig.difficulty === 'easy'
       ? 'NORMAL'
       : colorStyle.label;
+
+  // Config de color diferente
+  const { config: colorFindConfig } = useColorFindStore();
+  const colorFindStyle = COLOR_FIND_DIFFICULTY_STYLES[colorFindConfig.difficulty];
 
   // Config de objetos
   const { config: objectConfig } = useObjectRecognitionStore();
@@ -301,6 +309,50 @@ export default function MissionSelectorScreen() {
               ]}
             >
               Ejecutar misión de colores
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Mision de color diferente */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Mision de color diferente</Text>
+
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() =>
+              navigation.navigate('ConfigColorFindMission', {})
+            }
+          >
+            <Text style={styles.btnText}>Configurar mision de color diferente</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.summary}>
+            {colorFindStyle.label} - {colorFindConfig.quantity} vec
+            {colorFindConfig.quantity > 1 ? 'es' : ''}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.executeBtn,
+              {
+                backgroundColor: colorFindStyle.bgColor,
+                borderColor: colorFindStyle.accentColor + '50',
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate('ColorFindMissionScreen', {
+                difficulty: colorFindConfig.difficulty,
+                quantity: colorFindConfig.quantity,
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.executeBtnText,
+                { color: colorFindStyle.accentColor },
+              ]}
+            >
+              Ejecutar mision de color diferente
             </Text>
           </TouchableOpacity>
         </View>
