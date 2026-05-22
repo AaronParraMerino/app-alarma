@@ -39,52 +39,58 @@ type ColorPair = {
 
 const COLOR_PAIRS: Record<Difficulty, ColorPair[]> = {
   easy: [
-    { baseColor: '#33B98F', oddColor: '#4ECC9F' },
-    { baseColor: '#4B8FE8', oddColor: '#66A4F0' },
-    { baseColor: '#D96D8D', oddColor: '#E8849D' },
-    { baseColor: '#F05F57', oddColor: '#F6766D' },
-    { baseColor: '#20A6C7', oddColor: '#37B8D5' },
-    { baseColor: '#7B61D8', oddColor: '#8D75E2' },
-    { baseColor: '#D18435', oddColor: '#DC994C' },
-    { baseColor: '#77B255', oddColor: '#8AC367' },
-    { baseColor: '#E35BA8', oddColor: '#EA73B7' },
-    { baseColor: '#5A9BE7', oddColor: '#73ADEC' },
-    { baseColor: '#26B36A', oddColor: '#3DC47C' },
-    { baseColor: '#B85FD6', oddColor: '#C475DE' },
+    { baseColor: '#E53935', oddColor: '#F25C54' },
+    { baseColor: '#1E88E5', oddColor: '#4BA3F2' },
+    { baseColor: '#43A047', oddColor: '#66BB6A' },
+    { baseColor: '#FDD835', oddColor: '#FFE766' },
+    { baseColor: '#8E24AA', oddColor: '#AB47BC' },
+    { baseColor: '#00ACC1', oddColor: '#26C6DA' },
+    { baseColor: '#FB8C00', oddColor: '#FFA726' },
+    { baseColor: '#D81B60', oddColor: '#EC407A' },
+    { baseColor: '#7CB342', oddColor: '#9CCC65' },
+    { baseColor: '#3949AB', oddColor: '#5C6BC0' },
+    { baseColor: '#6D4C41', oddColor: '#8D6E63' },
+    { baseColor: '#546E7A', oddColor: '#78909C' },
+    { baseColor: '#00897B', oddColor: '#26A69A' },
+    { baseColor: '#C0CA33', oddColor: '#D4E157' },
+    { baseColor: '#5E35B1', oddColor: '#7E57C2' },
+    { baseColor: '#F4511E', oddColor: '#FF7043' },
   ],
   medium: [
-    { baseColor: '#D9A441', oddColor: '#E2B65A' },
-    { baseColor: '#6BA6C9', oddColor: '#7CB4D2' },
-    { baseColor: '#A67BD8', oddColor: '#B38BE0' },
-    { baseColor: '#D66B72', oddColor: '#DD7B81' },
-    { baseColor: '#45A887', oddColor: '#55B393' },
-    { baseColor: '#C88F3A', oddColor: '#D19C4C' },
-    { baseColor: '#4F90D0', oddColor: '#609CD8' },
-    { baseColor: '#B768B8', oddColor: '#C176C1' },
-    { baseColor: '#8AAE44', oddColor: '#96B854' },
-    { baseColor: '#CE6D43', oddColor: '#D77C54' },
-    { baseColor: '#58A0A7', oddColor: '#66ABB1' },
-    { baseColor: '#9A79C9', oddColor: '#A586D1' },
-    { baseColor: '#D05B99', oddColor: '#D96CA5' },
-    { baseColor: '#6A9CDE', oddColor: '#78A7E4' },
+    { baseColor: '#D32F2F', oddColor: '#DE4444' },
+    { baseColor: '#1976D2', oddColor: '#2D86DA' },
+    { baseColor: '#388E3C', oddColor: '#4B9C4F' },
+    { baseColor: '#FBC02D', oddColor: '#FFD047' },
+    { baseColor: '#7B1FA2', oddColor: '#8B35AD' },
+    { baseColor: '#0097A7', oddColor: '#14A9B8' },
+    { baseColor: '#F57C00', oddColor: '#FA8D1C' },
+    { baseColor: '#C2185B', oddColor: '#CF2D6A' },
+    { baseColor: '#689F38', oddColor: '#79AD4A' },
+    { baseColor: '#303F9F', oddColor: '#4553AB' },
+    { baseColor: '#5D4037', oddColor: '#6F5046' },
+    { baseColor: '#455A64', oddColor: '#586A73' },
+    { baseColor: '#00796B', oddColor: '#14897C' },
+    { baseColor: '#AFB42B', oddColor: '#BDC139' },
+    { baseColor: '#512DA8', oddColor: '#6441B5' },
+    { baseColor: '#E64A19', oddColor: '#EE5E31' },
   ],
   hard: [
-    { baseColor: '#C95F79', oddColor: '#D06A82' },
-    { baseColor: '#56A98E', oddColor: '#60B196' },
-    { baseColor: '#7D8DD5', oddColor: '#8897DC' },
-    { baseColor: '#C27A3F', oddColor: '#C9844A' },
-    { baseColor: '#6FA5BF', oddColor: '#79ADC6' },
-    { baseColor: '#A66FC2', oddColor: '#AE79C9' },
-    { baseColor: '#D07068', oddColor: '#D77A72' },
-    { baseColor: '#7DAF62', oddColor: '#86B86C' },
-    { baseColor: '#C65E9D', oddColor: '#CC68A5' },
-    { baseColor: '#668BCB', oddColor: '#7094D1' },
-    { baseColor: '#45A276', oddColor: '#4FAB80' },
-    { baseColor: '#B66C6C', oddColor: '#BD7575' },
-    { baseColor: '#8D83C8', oddColor: '#968CCE' },
-    { baseColor: '#B29A45', oddColor: '#BBA250' },
-    { baseColor: '#5CA8A1', oddColor: '#66B0A9' },
-    { baseColor: '#B55D82', oddColor: '#BC668A' },
+    { baseColor: '#C62828', oddColor: '#CF3535' },
+    { baseColor: '#1565C0', oddColor: '#2372C9' },
+    { baseColor: '#2E7D32', oddColor: '#3B893F' },
+    { baseColor: '#F9A825', oddColor: '#FBB638' },
+    { baseColor: '#6A1B9A', oddColor: '#7629A4' },
+    { baseColor: '#00838F', oddColor: '#0E909C' },
+    { baseColor: '#EF6C00', oddColor: '#F47A12' },
+    { baseColor: '#AD1457', oddColor: '#B82363' },
+    { baseColor: '#558B2F', oddColor: '#62973C' },
+    { baseColor: '#283593', oddColor: '#35429D' },
+    { baseColor: '#4E342E', oddColor: '#5A4039' },
+    { baseColor: '#37474F', oddColor: '#44545C' },
+    { baseColor: '#00695C', oddColor: '#0D7668' },
+    { baseColor: '#9E9D24', oddColor: '#AAA82F' },
+    { baseColor: '#4527A0', oddColor: '#5234AA' },
+    { baseColor: '#D84315', oddColor: '#E14F23' },
   ],
 };
 
@@ -94,8 +100,136 @@ export const EXAMPLE_PREVIEWS: Record<Difficulty, ColorFindChallenge> = {
   hard: buildChallenge('hard', 10, COLOR_PAIRS.hard[0]),
 };
 
-function randomItem<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+const pairQueues: Record<Difficulty, ColorPair[]> = {
+  easy: [],
+  medium: [],
+  hard: [],
+};
+
+const oddIndexQueues: Record<Difficulty, number[]> = {
+  easy: [],
+  medium: [],
+  hard: [],
+};
+
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+
+  for (let index = result.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const current = result[index];
+    result[index] = result[swapIndex];
+    result[swapIndex] = current;
+  }
+
+  return result;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace('#', '');
+  const value = Number.parseInt(normalized, 16);
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function getColorProfile(hex: string): { hue: number; saturation: number; lightness: number } {
+  const { r, g, b } = hexToRgb(hex);
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (max === red) {
+      hue = 60 * (((green - blue) / delta) % 6);
+    } else if (max === green) {
+      hue = 60 * ((blue - red) / delta + 2);
+    } else {
+      hue = 60 * ((red - green) / delta + 4);
+    }
+  }
+
+  return {
+    hue: hue < 0 ? hue + 360 : hue,
+    saturation,
+    lightness,
+  };
+}
+
+function areColorFamiliesSimilar(color: string, otherColor: string): boolean {
+  if (!otherColor) {
+    return false;
+  }
+
+  const current = getColorProfile(color);
+  const previous = getColorProfile(otherColor);
+  const hueDistance = Math.abs(current.hue - previous.hue);
+  const shortestHueDistance = Math.min(hueDistance, 360 - hueDistance);
+  const saturationDistance = Math.abs(current.saturation - previous.saturation);
+  const lightnessDistance = Math.abs(current.lightness - previous.lightness);
+
+  return shortestHueDistance < 55 && saturationDistance < 0.26 && lightnessDistance < 0.24;
+}
+
+function getNextColorPair(difficulty: Difficulty, lastBaseColor = ''): ColorPair {
+  if (pairQueues[difficulty].length === 0) {
+    pairQueues[difficulty] = shuffle(COLOR_PAIRS[difficulty]);
+  }
+
+  if (
+    pairQueues[difficulty].length > 1 &&
+    areColorFamiliesSimilar(pairQueues[difficulty][0].baseColor, lastBaseColor)
+  ) {
+    const swapIndex = pairQueues[difficulty].findIndex(
+      pair => !areColorFamiliesSimilar(pair.baseColor, lastBaseColor),
+    );
+
+    if (swapIndex > 0) {
+      const nextPair = pairQueues[difficulty][0];
+      pairQueues[difficulty][0] = pairQueues[difficulty][swapIndex];
+      pairQueues[difficulty][swapIndex] = nextPair;
+    }
+  }
+
+  return pairQueues[difficulty].shift() ?? COLOR_PAIRS[difficulty][0];
+}
+
+function getNextOddIndex(
+  difficulty: Difficulty,
+  totalTiles: number,
+  lastOddIndex: number,
+): number {
+  if (oddIndexQueues[difficulty].length === 0) {
+    oddIndexQueues[difficulty] = shuffle(
+      Array.from({ length: totalTiles }, (_, index) => index),
+    );
+  }
+
+  if (
+    oddIndexQueues[difficulty].length > 1 &&
+    oddIndexQueues[difficulty][0] === lastOddIndex
+  ) {
+    const swapIndex = oddIndexQueues[difficulty].findIndex(
+      index => index !== lastOddIndex,
+    );
+
+    if (swapIndex > 0) {
+      const nextIndex = oddIndexQueues[difficulty][0];
+      oddIndexQueues[difficulty][0] = oddIndexQueues[difficulty][swapIndex];
+      oddIndexQueues[difficulty][swapIndex] = nextIndex;
+    }
+  }
+
+  return oddIndexQueues[difficulty].shift() ?? Math.floor(Math.random() * totalTiles);
 }
 
 function buildChallenge(
@@ -123,25 +257,20 @@ function buildChallenge(
 export function generateColorFindChallenge(
   difficulty: Difficulty,
   lastOddIndex = -1,
+  lastBaseColor = '',
 ): ColorFindChallenge {
   const gridSize = DIFFICULTY_STYLES[difficulty].gridSize;
   const totalTiles = gridSize * gridSize;
-  const pair = randomItem(COLOR_PAIRS[difficulty]);
-  let oddIndex = Math.floor(Math.random() * totalTiles);
-  let attempts = 0;
-
-  while (oddIndex === lastOddIndex && totalTiles > 1 && attempts < 10) {
-    oddIndex = Math.floor(Math.random() * totalTiles);
-    attempts++;
-  }
+  const pair = getNextColorPair(difficulty, lastBaseColor);
+  const oddIndex = getNextOddIndex(difficulty, totalTiles, lastOddIndex);
 
   return buildChallenge(difficulty, oddIndex, pair);
 }
 
 export const MIN_QUANTITY = 1;
-export const MAX_QUANTITY = 9;
+export const MAX_QUANTITY = 20;
 
 export const DEFAULT_CONFIG: ColorFindConfig = {
   difficulty: 'easy',
-  quantity: 3,
+  quantity: 5,
 };

@@ -356,7 +356,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       <ColorFindMission
         key={`color-find-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
-        quantity={activeMission.quantity ?? 3}
+        quantity={activeMission.quantity ?? 5}
         onComplete={completeMission}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />

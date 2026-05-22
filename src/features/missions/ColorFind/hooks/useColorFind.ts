@@ -13,7 +13,7 @@ export function useColorFind(difficulty: Difficulty) {
 
   const reset = useCallback(() => {
     setCurrent(previous =>
-      generateColorFindChallenge(difficulty, previous.oddIndex),
+      generateColorFindChallenge(difficulty, previous.oddIndex, previous.baseColor),
     );
   }, [difficulty]);
 

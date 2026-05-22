@@ -181,13 +181,13 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
                 onPress={() => setQuantity(q => Math.min(MAX_QUANTITY, q + 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>^</Text>
+                <Text style={styles.arrowText}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setQuantity(q => Math.max(MIN_QUANTITY, q - 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>v</Text>
+                <Text style={styles.arrowText}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -575,7 +575,7 @@ export default function AlarmForm({
       persistDraft();
       navigation.navigate('AlarmConfigColorFindMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
-        quantity: mission.quantity ?? 3,
+        quantity: mission.quantity ?? 5,
         alarmConfigSessionId: sessionId,
       });
       return;
