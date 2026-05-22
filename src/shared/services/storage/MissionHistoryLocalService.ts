@@ -4,7 +4,8 @@ export type MissionType =
   | 'word_completion'
   | 'movement'
   | 'math_exercises'
-  | 'colored_figures';
+  | 'colored_figures'
+  | 'color_find';
 
 export interface SaveMissionHistoryDTO {
   userId: string;

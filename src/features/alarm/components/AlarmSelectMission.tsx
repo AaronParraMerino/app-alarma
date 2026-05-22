@@ -16,6 +16,7 @@ export type AlarmMissionSelection =
   | 'wordCompletion'
   | 'physical'
   | 'color'
+  | 'colorFind'
   | 'photo';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -90,11 +91,12 @@ const MISSION_OPTIONS: MissionOption[] = [
     enabled: true,
   },
   {
-    id: 'shake',
+    id: 'colorFind',
     label: 'Encuentra el color diferente',
     icon: 'grid-outline',
-    missionType: 'color',
-    enabled: false,
+    value: 'colorFind',
+    missionType: 'colorFind',
+    enabled: true,
   },
   {
     id: 'wordCompletion',

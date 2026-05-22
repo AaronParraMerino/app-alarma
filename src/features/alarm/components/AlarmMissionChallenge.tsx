@@ -12,6 +12,7 @@ import { MISSION_LABELS } from '../../missions/constants/missions';
 import { generateChallenges } from '../../missions/wordCompletion/constants/wordCompletion.config';
 import { WordCompletionService } from '../../missions/wordCompletion/services/WordCompletionService';
 import { WordChallenge } from '../../missions/wordCompletion/types/wordCompletion.types';
+import { generateColorFindChallenge } from '../../missions/ColorFind/constants/colorFind.config';
 import { Difficulty, MissionType } from '../types/alarm.types';
 
 interface AlarmMissionChallengeProps {
@@ -40,6 +41,10 @@ const WRITING_PHRASES: Record<Difficulty, string> = {
 };
 
 function toWordDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {
+  return difficulty === 'normal' ? 'medium' : difficulty;
+}
+
+function toColorFindDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {
   return difficulty === 'normal' ? 'medium' : difficulty;
 }
 
@@ -92,6 +97,10 @@ export default function AlarmMissionChallenge({
   );
   const colorTarget = useMemo(
     () => COLOR_OPTIONS[randomInt(0, COLOR_OPTIONS.length - 1)],
+    [difficulty, type],
+  );
+  const colorFindChallenge = useMemo(
+    () => generateColorFindChallenge(toColorFindDifficulty(difficulty)),
     [difficulty, type],
   );
   const writingPhrase = WRITING_PHRASES[difficulty];
@@ -244,12 +253,39 @@ export default function AlarmMissionChallenge({
     </>
   );
 
+  const renderColorFindMission = () => (
+    <>
+      <Text style={styles.prompt}>Toca el cuadro diferente</Text>
+      <View style={styles.kubeGrid}>
+        {colorFindChallenge.tiles.map(tile => (
+          <TouchableOpacity
+            key={tile.id}
+            style={[
+              styles.kubeTile,
+              {
+                backgroundColor: tile.color,
+                flexBasis: `${100 / colorFindChallenge.gridSize - 2}%` as any,
+              },
+            ]}
+            onPress={() => tile.isOdd ? onComplete() : fail()}
+            activeOpacity={0.85}
+          />
+        ))}
+      </View>
+      <Text style={styles.progressText}>
+        {colorFindChallenge.gridSize * colorFindChallenge.gridSize} cuadros
+      </Text>
+    </>
+  );
+
   const content = type === 'math'
     ? renderMathMission()
     : type === 'writing'
       ? renderWritingMission()
     : type === 'color'
       ? renderColorMission()
+      : type === 'colorFind'
+        ? renderColorFindMission()
       : type === 'wordCompletion'
         ? renderWordMission()
         : renderSequenceMission();
@@ -340,6 +376,24 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 15,
     fontWeight: '800',
+  },
+  kubeGrid: {
+    width: '100%',
+    aspectRatio: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    padding: 8,
+    borderRadius: 16,
+    backgroundColor: Colors.bg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  kubeTile: {
+    flexGrow: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.white + '24',
   },
   sequencePreview: {
     color: Colors.text,

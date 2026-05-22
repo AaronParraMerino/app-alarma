@@ -64,6 +64,10 @@ const MISSION_ICON_META: Record<MissionType, { icon: IconName; color: string }> 
     icon: 'color-palette-outline',
     color: Colors.missionColors.color,
   },
+  colorFind: {
+    icon: 'grid-outline',
+    color: Colors.missionColors.colorFind ?? Colors.primaryLight,
+  },
   shapes: {
     icon: 'grid-outline',
     color: Colors.missionColors.shapes,

@@ -50,6 +50,11 @@ const MISSION_META: Record<string, { label: string; icon: IconName; color: strin
     icon: 'color-palette-outline',
     color: Colors.missionColors.color ?? Colors.primaryLight,
   },
+  colorFind: {
+    label: 'Color diferente',
+    icon: 'grid-outline',
+    color: Colors.missionColors.colorFind ?? Colors.primaryLight,
+  },
   photo: {
     label: 'Detectar Objetos',
     icon: 'scan-outline',
