@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Colors } from '../../../shared/theme/colors';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { Layout } from '../../../shared/theme/layout';
 import { MISSION_LABELS } from '../../missions/constants/missions';
 import { generateChallenges } from '../../missions/wordCompletion/constants/wordCompletion.config';
@@ -88,12 +89,14 @@ export default function AlarmMissionChallenge({
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+  const { language } = useTranslation();
+  const isSpanish = language === 'es';
 
   const mathProblem = useMemo(() => buildMathProblem(difficulty), [difficulty, type]);
   const sequence = useMemo(() => buildSequence(difficulty), [difficulty, type]);
   const wordChallenge = useMemo(
-    () => generateChallenges(toWordDifficulty(difficulty))[0],
-    [difficulty, type],
+    () => generateChallenges(toWordDifficulty(difficulty), language)[0],
+    [difficulty, language, type],
   );
   const colorTarget = useMemo(
     () => COLOR_OPTIONS[randomInt(0, COLOR_OPTIONS.length - 1)],
@@ -106,7 +109,7 @@ export default function AlarmMissionChallenge({
   const writingPhrase = WRITING_PHRASES[difficulty];
 
   const fail = () => {
-    setError('Intenta otra vez');
+    setError(isSpanish ? 'Intenta otra vez' : 'Try again');
     setAnswer('');
   };
 
@@ -221,12 +224,18 @@ export default function AlarmMissionChallenge({
 
   const renderWordMission = () => (
     <>
-      <Text style={styles.prompt}>Completa las letras faltantes</Text>
+      <Text style={styles.prompt}>
+        {isSpanish ? 'Completa las letras faltantes' : 'Complete the missing letters'}
+      </Text>
       <Text style={styles.wordPreview}>{renderMaskedWord(wordChallenge)}</Text>
       <Text style={styles.progressText}>
-        {wordChallenge.missingIndexes.length} letra
-        {wordChallenge.missingIndexes.length > 1 ? 's' : ''} faltante
-        {wordChallenge.missingIndexes.length > 1 ? 's' : ''}
+        {isSpanish
+          ? `${wordChallenge.missingIndexes.length} letra${
+              wordChallenge.missingIndexes.length > 1 ? 's' : ''
+            } faltante${wordChallenge.missingIndexes.length > 1 ? 's' : ''}`
+          : `${wordChallenge.missingIndexes.length} missing letter${
+              wordChallenge.missingIndexes.length > 1 ? 's' : ''
+            }`}
       </Text>
       <TextInput
         value={answer}
@@ -248,7 +257,9 @@ export default function AlarmMissionChallenge({
         }}
         activeOpacity={0.85}
       >
-        <Text style={styles.primaryButtonText}>Confirmar</Text>
+        <Text style={styles.primaryButtonText}>
+          {isSpanish ? 'Confirmar' : 'Confirm'}
+        </Text>
       </TouchableOpacity>
     </>
   );
@@ -290,9 +301,14 @@ export default function AlarmMissionChallenge({
         ? renderWordMission()
         : renderSequenceMission();
 
+  const badgeLabel =
+    type === 'wordCompletion' && !isSpanish
+      ? 'Complete words'
+      : MISSION_LABELS[type];
+
   return (
     <View style={styles.card}>
-      <Text style={styles.badge}>{MISSION_LABELS[type]}</Text>
+      <Text style={styles.badge}>{badgeLabel}</Text>
       {content}
       {error.length > 0 && <Text style={styles.error}>{error}</Text>}
     </View>

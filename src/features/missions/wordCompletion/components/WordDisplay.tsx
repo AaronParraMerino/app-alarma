@@ -19,9 +19,11 @@ export function WordDisplay({ challenge, accentColor, accentBg, letterSize = 24,
     <View style={styles.row}>
       {challenge.word.split('').map((letter, idx) => {
         const isMissing = challenge.missingIndexes.includes(idx);
+        const key = `${challenge.word}-${idx}-${isMissing ? 'gap' : 'letter'}`;
+
         return isMissing ? (
           <View
-            key={idx}
+            key={key}
             style={[
               styles.gap,
               {
@@ -34,7 +36,7 @@ export function WordDisplay({ challenge, accentColor, accentBg, letterSize = 24,
           />
         ) : (
           <Text
-            key={idx}
+            key={key}
             style={[styles.letter, { fontSize: cellSize, width: cellSize + 4, color: textColor }]}
           >
             {letter}

@@ -2,29 +2,28 @@ import db from '../../db/localDB';
 
 export class WordLocalService {
 
-  static getRandom(difficulty: string, limit: number): string[] {
+  static getRandom(difficulty: string, limit: number, language = 'es'): string[] {
     const rows = db.getAllSync<{ word: string }>(
       `SELECT word FROM word_completion_words
-       WHERE difficulty = ?
+       WHERE difficulty = ? AND language = ?
+       ORDER BY RANDOM()
+       LIMIT ?`,
+      [difficulty, language, limit]
+    );
+
+    if (rows.length > 0) {
+      return rows.map(r => r.word.toUpperCase());
+    }
+
+    const fallbackRows = db.getAllSync<{ word: string }>(
+      `SELECT word FROM word_completion_words
+       WHERE difficulty = ? AND language = 'es'
        ORDER BY RANDOM()
        LIMIT ?`,
       [difficulty, limit]
     );
 
-    return rows.map(r => r.word.toUpperCase());
+    return fallbackRows.map(r => r.word.toUpperCase());
   }
 
-  static clear() {
-    db.execSync(`DELETE FROM word_completion_words`);
-  }
-
-  static bulkInsert(words: { word: string; difficulty?: string }[]) {
-    for (const w of words) {
-      db.runSync(
-        `INSERT INTO word_completion_words (word, difficulty)
-         VALUES (?, ?)`,
-        [w.word, w.difficulty ?? null]
-      );
-    }
-  }
 }

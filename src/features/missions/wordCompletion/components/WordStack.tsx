@@ -10,9 +10,17 @@ interface Props {
   completedIndexes: number[];
   accentColor: string;
   accentBg: string;
+  isSpanish: boolean;
 }
 // Componente que renderiza una pila/lista de palabras con estado visual
-export function WordStack({ challenges, currentIndex, completedIndexes, accentColor, accentBg }: Props) {
+export function WordStack({
+  challenges,
+  currentIndex,
+  completedIndexes,
+  accentColor,
+  accentBg,
+  isSpanish,
+}: Props) {
   return (
     <View style={styles.container}>
       {challenges.map((challenge, idx) => {
@@ -22,7 +30,7 @@ export function WordStack({ challenges, currentIndex, completedIndexes, accentCo
 
         return (
           <View
-            key={idx}
+            key={`${challenge.word}-${idx}`}
             style={[
               styles.card,
               isActive && { borderColor: accentColor + '50', borderWidth: 0.5 },
@@ -31,10 +39,10 @@ export function WordStack({ challenges, currentIndex, completedIndexes, accentCo
           >
             <Text style={[styles.label, isActive && { color: accentColor }]}>
               {isCompleted
-                ? `${idx + 1} — completada`
+                ? `${idx + 1} - ${isSpanish ? 'completada' : 'completed'}`
                 : isActive
-                ? `${idx + 1} — en curso`
-                : `${idx + 1} — pendiente`}
+                ? `${idx + 1} - ${isSpanish ? 'en curso' : 'in progress'}`
+                : `${idx + 1} - ${isSpanish ? 'pendiente' : 'pending'}`}
             </Text>
             <WordDisplay
               challenge={challenge}

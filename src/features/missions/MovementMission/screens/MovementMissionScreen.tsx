@@ -26,7 +26,7 @@ import { DIFFICULTY_STYLES } from '../constants/movementConstants';
 import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 import { SensorBar } from '../components/SensorBar';
 import { StepRing } from '../components/StepRing';
-import { useCurrentTime } from '../hooks/useCurrentTime';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
@@ -108,12 +108,20 @@ function getDifficultyPillLabel(
     : 'HARD';
 }
 
+function capitalizeFirst(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function translateDay(
   day: string,
   isSpanish: boolean,
 ): string {
   if (isSpanish) {
-    return day;
+    return capitalizeFirst(day);
   }
 
   const normalized = day
@@ -152,24 +160,7 @@ function translateDay(
     return 'Sunday';
   }
 
-  return day;
-}
-
-function translateAlarmLabel(
-  alarmLabel: string | undefined,
-  isSpanish: boolean,
-): string {
-  if (
-    !alarmLabel ||
-    alarmLabel === 'Alarma' ||
-    alarmLabel === 'Hora de levantarse'
-  ) {
-    return isSpanish
-      ? 'Hora de levantarse'
-      : 'Time to wake up';
-  }
-
-  return alarmLabel;
+  return capitalizeFirst(day);
 }
 
 function translateMovementText(
@@ -298,7 +289,7 @@ export function MovementMissionScreen({
   const {
     time,
     day,
-  } = useCurrentTime();
+  } = useCurrentTime(language);
 
   const {
     user,
@@ -569,9 +560,11 @@ export function MovementMissionScreen({
         : 154;
 
   const displayAlarmLabel =
-    translateAlarmLabel(
-      alarmLabel,
-      isSpanish,
+    alarmLabel ??
+    (
+      isSpanish
+        ? 'Hora de levantarse'
+        : 'Time to wake up'
     );
 
   const handleStart =
@@ -893,6 +886,8 @@ export function MovementMissionScreen({
                 color={
                   difficultyStyle.accentColor
                 }
+                backgroundColor={colors.bgCard}
+                trackColor={colors.border}
                 imageSource={
                   MOVEMENT_IMAGES[
                     currentStep.type
@@ -936,6 +931,7 @@ export function MovementMissionScreen({
                   color={
                     difficultyStyle.accentColor
                   }
+                  trackColor={colors.border}
                   maxMagnitude={30}
                 />
 

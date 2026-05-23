@@ -1,5 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Difficulty, WordChallenge, WordCompletionState } from '../types/wordCompletion.types';
+import {
+  Difficulty,
+  WordChallenge,
+  WordCompletionState,
+  WordLanguage,
+} from '../types/wordCompletion.types';
 import { WordCompletionService } from '../services/WordCompletionService';
 
 const INITIAL_STATE: WordCompletionState = {
@@ -18,9 +23,12 @@ const INITIAL_STATE: WordCompletionState = {
  * validación de respuestas
  * progreso del flujo
  */
-export function useWordCompletion(difficulty: Difficulty) {
+export function useWordCompletion(
+  difficulty: Difficulty,
+  language: WordLanguage = 'es',
+) {
   const [challenges, setChallenges] = useState<WordChallenge[]>(() =>
-    WordCompletionService.generateChallenges(difficulty)
+    WordCompletionService.generateChallenges(difficulty, language)
   );
 
   const [state, setState] = useState<WordCompletionState>(INITIAL_STATE);
@@ -30,14 +38,14 @@ export function useWordCompletion(difficulty: Difficulty) {
    * regenera las palabras del banco correcto y resetea el estado
    */
   useEffect(() => {
-    setChallenges(WordCompletionService.generateChallenges(difficulty));
+    setChallenges(WordCompletionService.generateChallenges(difficulty, language));
     setState(INITIAL_STATE);
-  }, [difficulty]);
+  }, [difficulty, language]);
 
   const current = challenges[state.currentChallengeIndex];
 
   const expectedAnswer = current
-    ? current.missingIndexes.map(i => current.word[i]).join('')
+    ? WordCompletionService.getExpectedAnswer(current)
     : '';
 
   /**
@@ -50,7 +58,10 @@ export function useWordCompletion(difficulty: Difficulty) {
   }, []);
 
   const handleConfirm = useCallback(() => {
-    if (state.userInput.trim() !== expectedAnswer) {
+    if (
+      WordCompletionService.normalizeAnswer(state.userInput) !==
+      WordCompletionService.normalizeAnswer(expectedAnswer)
+    ) {
       setState(prev => ({ ...prev, hasError: true }));
       return;
     }
@@ -65,9 +76,9 @@ export function useWordCompletion(difficulty: Difficulty) {
   }, [state, expectedAnswer, challenges.length]);
 
   const handleReplace = useCallback(() => {
-    setChallenges(WordCompletionService.generateChallenges(difficulty));
+    setChallenges(WordCompletionService.generateChallenges(difficulty, language));
     setState(INITIAL_STATE);
-  }, [difficulty]);
+  }, [difficulty, language]);
 
   return { challenges, state, current, expectedAnswer, handleInputChange, handleConfirm, handleReplace };
 }

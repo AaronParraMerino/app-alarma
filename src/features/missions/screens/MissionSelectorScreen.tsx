@@ -16,7 +16,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
@@ -31,8 +30,7 @@ import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/c
 
 import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
 import {
-  DIFFICULTY_COLORS as MOVEMENT_DIFFICULTY_COLORS,
-  DIFFICULTY_LABELS as MOVEMENT_DIFFICULTY_LABELS,
+  DIFFICULTY_STYLES as MOVEMENT_DIFFICULTY_STYLES,
 } from '../MovementMission/constants/movementConstants';
 
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
@@ -42,18 +40,15 @@ import { ObjectBankService } from '../ObjectRecognition/services/objectBank.serv
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
 
+import { usePairsMissionStore } from '../ParesMission/store/paresMissionStore';
+import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/constants/paresMission.config';
+
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 type NavigationProp = NativeStackNavigationProp<
   MissionsStackParamList,
   'MissionSelector'
 >;
-
-const MOVEMENT_BG_COLORS: Record<Difficulty, string> = {
-  easy: Colors.successDim,
-  medium: Colors.warningDim,
-  hard: Colors.dangerDim,
-};
 
 const OBJECT_DIFFICULTY_LABELS_ES: Record<Difficulty, string> = {
   easy: 'FÁCIL',
@@ -270,6 +265,13 @@ export default function MissionSelectorScreen() {
   const isSpanish = language === 'es';
 
   const {
+    config: pairsConfig,
+  } = usePairsMissionStore();
+
+  const pairsStyle =
+    PAIRS_DIFFICULTY_STYLES[pairsConfig.difficulty];
+
+  const {
     config: wordConfig,
   } = useWordCompletionStore();
 
@@ -287,22 +289,10 @@ export default function MissionSelectorScreen() {
     userConfig: movementConfig,
   } = useMovementMissionStore();
 
-  const movementStyle = {
-    label: translateDifficultyLabel(
-      MOVEMENT_DIFFICULTY_LABELS[
-        movementConfig.difficulty
-      ].toUpperCase(),
-      isSpanish,
-    ),
-    accentColor:
-      MOVEMENT_DIFFICULTY_COLORS[
-        movementConfig.difficulty
-      ],
-    bgColor:
-      MOVEMENT_BG_COLORS[
-        movementConfig.difficulty
-      ],
-  };
+  const movementStyle =
+    MOVEMENT_DIFFICULTY_STYLES[
+      movementConfig.difficulty
+    ];
 
   const {
     config: colorConfig,
@@ -367,13 +357,24 @@ export default function MissionSelectorScreen() {
     isSpanish,
   )}`;
 
-  const movementSummary = `${movementStyle.label} · ${formatQuantity(
+  const movementSummary = `${translateDifficultyLabel(
+    movementStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
     movementConfig.quantity,
     isSpanish,
   )}`;
 
   const colorSummary = `${colorLevelLabel} · ${formatQuantity(
     colorConfig.quantity,
+    isSpanish,
+  )}`;
+
+  const pairsSummary = `${translateDifficultyLabel(
+    pairsStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
+    pairsConfig.quantity,
     isSpanish,
   )}`;
 
@@ -626,6 +627,46 @@ export default function MissionSelectorScreen() {
                     : objectBank.map(
                         (object) => object.id,
                       ),
+              },
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de pares'
+              : 'Pairs mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar encontrar pares'
+              : 'Configure find pairs'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar encontrar pares'
+              : 'Run find pairs'
+          }
+          summary={pairsSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={pairsStyle.bgColor}
+          executeBorderColor={pairsStyle.accentColor + '50'}
+          executeTextColor={pairsStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigParesMission',
+              {},
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'ParesMissionScreen',
+              {
+                difficulty: pairsConfig.difficulty,
+                quantity: pairsConfig.quantity,
               },
             )
           }

@@ -1,5 +1,0 @@
-CREATE TABLE word_completion_words (
-  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  word TEXT NOT NULL,
-  difficulty TEXT
-);
