@@ -1,3 +1,4 @@
+// src/features/missions/screens/MissionSelectorScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -6,12 +7,15 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 
 // Palabras
@@ -32,10 +36,6 @@ import {
 // Colores
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
 import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
-
-// Color diferente
-import { useColorFindStore } from '../ColorFind/store/colorFindStore';
-import { DIFFICULTY_STYLES as COLOR_FIND_DIFFICULTY_STYLES } from '../ColorFind/constants/colorFind.config';
 
 // Objetos
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
@@ -87,6 +87,7 @@ const OBJECT_DIFFICULTY_STYLES: Record<
 
 export default function MissionSelectorScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, statusBarStyle } = useAppTheme();
 
   // Config de palabras
   const { config: wordConfig } = useWordCompletionStore();
@@ -114,10 +115,6 @@ export default function MissionSelectorScreen() {
       ? 'NORMAL'
       : colorStyle.label;
 
-  // Config de color diferente
-  const { config: colorFindConfig } = useColorFindStore();
-  const colorFindStyle = COLOR_FIND_DIFFICULTY_STYLES[colorFindConfig.difficulty];
-
   // Config de objetos
   const { config: objectConfig } = useObjectRecognitionStore();
   const [objectBank, setObjectBank] = useState<RecognizableObject[]>([]);
@@ -128,32 +125,51 @@ export default function MissionSelectorScreen() {
 
   const selectedObjects = useMemo(
     () =>
-      objectBank.filter(object => objectConfig.targetObjectIds.includes(object.id)),
+      objectBank.filter((object) =>
+        objectConfig.targetObjectIds.includes(object.id),
+      ),
     [objectBank, objectConfig.targetObjectIds],
   );
+
   const objectPoolCount = selectedObjects.length || objectBank.length;
   const objectStyle = OBJECT_DIFFICULTY_STYLES[objectConfig.difficulty];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Selecciona una misión</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Selecciona una misión
+        </Text>
 
         {/* ── Misión de palabras ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Misión de palabras</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Misión de palabras
+          </Text>
 
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('ConfigWordCompletionMission', {})}
           >
-            <Text style={styles.btnText}>Configurar misión de palabras</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar misión de palabras
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {wordStyle.label} · {wordConfig.quantity} vec
             {wordConfig.quantity > 1 ? 'es' : ''}
           </Text>
@@ -185,17 +201,29 @@ export default function MissionSelectorScreen() {
         </View>
 
         {/* ── Misión de matemáticas ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Misión de matemáticas</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Misión de matemáticas
+          </Text>
 
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('ConfigMathMission', {})}
           >
-            <Text style={styles.btnText}>Configurar misión de matemáticas</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar misión de matemáticas
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {mathStyle.label} · {mathConfig.quantity} vec
             {mathConfig.quantity > 1 ? 'es' : ''}
           </Text>
@@ -228,17 +256,29 @@ export default function MissionSelectorScreen() {
         </View>
 
         {/* ── Misión de movimientos ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Misión de movimientos</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Misión de movimientos
+          </Text>
 
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('ConfigMovementMission')}
           >
-            <Text style={styles.btnText}>Configurar misión de movimientos</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar misión de movimientos
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {movementStyle.label} · {movementConfig.quantity} vec
             {movementConfig.quantity > 1 ? 'es' : ''}
           </Text>
@@ -270,19 +310,31 @@ export default function MissionSelectorScreen() {
         </View>
 
         {/* ── Misión de colores ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Misión de colores</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Misión de colores
+          </Text>
 
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() =>
               navigation.navigate('ConfigColoredFiguresMission', {})
             }
           >
-            <Text style={styles.btnText}>Configurar misión de colores</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar misión de colores
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {colorLevelLabel} · {colorConfig.quantity} vec
             {colorConfig.quantity > 1 ? 'es' : ''}
           </Text>
@@ -313,62 +365,30 @@ export default function MissionSelectorScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Mision de color diferente */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Mision de color diferente</Text>
-
-          <TouchableOpacity
-            style={styles.btn}
-            onPress={() =>
-              navigation.navigate('ConfigColorFindMission', {})
-            }
-          >
-            <Text style={styles.btnText}>Configurar mision de color diferente</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.summary}>
-            {colorFindStyle.label} - {colorFindConfig.quantity} vec
-            {colorFindConfig.quantity > 1 ? 'es' : ''}
+        {/* ── Misión de objetos ── */}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Misión de objetos
           </Text>
 
           <TouchableOpacity
-            style={[
-              styles.executeBtn,
-              {
-                backgroundColor: colorFindStyle.bgColor,
-                borderColor: colorFindStyle.accentColor + '50',
-              },
-            ]}
-            onPress={() =>
-              navigation.navigate('ColorFindMissionScreen', {
-                difficulty: colorFindConfig.difficulty,
-                quantity: colorFindConfig.quantity,
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: colorFindStyle.accentColor },
-              ]}
-            >
-              Ejecutar mision de color diferente
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Mision de objetos */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Mision de objetos</Text>
-
-          <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('ConfigObjectRecognitionMission')}
           >
-            <Text style={styles.btnText}>Configurar objeto</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar objeto
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {OBJECT_DIFFICULTY_LABELS[objectConfig.difficulty]} -{' '}
             {OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} de{' '}
             {objectPoolCount} al azar
@@ -380,6 +400,7 @@ export default function MissionSelectorScreen() {
               {
                 backgroundColor: objectStyle.bgColor,
                 borderColor: objectStyle.accentColor + '50',
+                opacity: objectPoolCount === 0 ? 0.45 : 1,
               },
             ]}
             onPress={() =>
@@ -387,8 +408,8 @@ export default function MissionSelectorScreen() {
                 difficulty: objectConfig.difficulty,
                 targetObjectIds:
                   selectedObjects.length > 0
-                    ? selectedObjects.map(object => object.id)
-                    : objectBank.map(object => object.id),
+                    ? selectedObjects.map((object) => object.id)
+                    : objectBank.map((object) => object.id),
               })
             }
             disabled={objectPoolCount === 0}
@@ -399,7 +420,7 @@ export default function MissionSelectorScreen() {
                 { color: objectStyle.accentColor },
               ]}
             >
-              Ejecutar mision de objetos
+              Ejecutar misión de objetos
             </Text>
           </TouchableOpacity>
         </View>
@@ -411,7 +432,6 @@ export default function MissionSelectorScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   scroll: {
@@ -427,22 +447,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Typography.title.fontSize,
     fontWeight: Typography.title.fontWeight,
-    color: Colors.text,
     marginBottom: 6,
     textAlign: 'center',
   },
 
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     padding: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
 
   cardTitle: {
-    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -450,7 +466,6 @@ const styles = StyleSheet.create({
   },
 
   btn: {
-    backgroundColor: Colors.primary,
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
@@ -458,7 +473,6 @@ const styles = StyleSheet.create({
   },
 
   btnText: {
-    color: Colors.white,
     fontSize: 15,
     fontWeight: '500',
   },
@@ -478,7 +492,6 @@ const styles = StyleSheet.create({
 
   summary: {
     fontSize: 12,
-    color: Colors.textSecondary,
     textAlign: 'center',
   },
 });

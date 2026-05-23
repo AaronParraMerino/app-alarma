@@ -2,9 +2,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 import { MissionHistoryRecord } from '../types/missionHistory.types';
 import {
@@ -18,27 +18,46 @@ interface Props {
   item: MissionHistoryRecord;
 }
 
-const DEFAULT_DIFFICULTY_CONFIG = {
-  label: 'Sin nivel',
-  color: Colors.textSecondary,
-  bg: Colors.bgElevated,
-  barColor: Colors.textMuted,
-};
-
 export function MissionHistoryCard({ item }: Props) {
-  const mc = MISSION_CONFIG[item.mission_type];
+  const { colors } = useAppTheme();
+
+  const fallbackMissionConfig = {
+    label: 'Misión',
+    sublabel: 'Sin descripción',
+    iconName: '',
+    bgColor: colors.bgElevated,
+    iconColor: colors.primary,
+  };
+
+  const fallbackDifficultyConfig = {
+    label: 'Sin nivel',
+    color: colors.textSecondary,
+    bg: colors.bgElevated,
+    barColor: colors.textMuted,
+  };
+
+  const mc = MISSION_CONFIG[item.mission_type] ?? fallbackMissionConfig;
 
   const dc = item.difficulty
-    ? DIFFICULTY_CONFIG[item.difficulty]
-    : DEFAULT_DIFFICULTY_CONFIG;
+    ? DIFFICULTY_CONFIG[item.difficulty] ?? fallbackDifficultyConfig
+    : fallbackDifficultyConfig;
 
-  const iconBg = item.success ? mc.bgColor : Colors.dangerDim;
-  const iconColor = item.success ? mc.iconColor : Colors.danger;
+  const iconBg = item.success ? mc.bgColor : colors.dangerDim;
+  const iconColor = item.success ? mc.iconColor : colors.danger;
   const detalle = formatContenido(item.mission_type, item.content);
   const iconText = getMissionIconText(item.mission_type, mc.iconName);
 
   return (
-    <View style={[styles.card, !item.success && styles.cardFailed]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+        !item.success && styles.cardFailed,
+      ]}
+    >
       <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
         <Text style={[styles.iconText, { color: iconColor }]}>
           {iconText}
@@ -46,12 +65,15 @@ export function MissionHistoryCard({ item }: Props) {
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {mc.label}
         </Text>
 
         {!!detalle && (
-          <Text style={styles.detalle} numberOfLines={1}>
+          <Text
+            style={[styles.detalle, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
             {detalle}
           </Text>
         )}
@@ -66,7 +88,9 @@ export function MissionHistoryCard({ item }: Props) {
           <Text
             style={[
               styles.estado,
-              item.success ? styles.estadoOk : styles.estadoFail,
+              {
+                color: item.success ? colors.textSecondary : colors.danger,
+              },
             ]}
             numberOfLines={1}
           >
@@ -74,7 +98,10 @@ export function MissionHistoryCard({ item }: Props) {
           </Text>
 
           {item.error_count > 0 && (
-            <Text style={styles.errores} numberOfLines={1}>
+            <Text
+              style={[styles.errores, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
               {item.error_count} error{item.error_count > 1 ? 'es' : ''}
             </Text>
           )}
@@ -82,24 +109,34 @@ export function MissionHistoryCard({ item }: Props) {
       </View>
 
       <View style={styles.right}>
-        <Text style={styles.fecha} numberOfLines={1}>
+        <Text
+          style={[styles.fecha, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
           {formatFecha(item.created_at)}
         </Text>
 
         {item.duration_seconds != null && (
-          <Text style={styles.duracion} numberOfLines={1}>
+          <Text
+            style={[styles.duracion, { color: colors.textMuted }]}
+            numberOfLines={1}
+          >
             {item.duration_seconds}s
           </Text>
         )}
 
         {item.user_answer != null && (
           <View style={styles.respuestaRow}>
-            <Text style={styles.respuestaLabel}>R: </Text>
+            <Text style={[styles.respuestaLabel, { color: colors.textMuted }]}>
+              R:{' '}
+            </Text>
 
             <Text
               style={[
                 styles.respuesta,
-                item.success ? styles.estadoOk : styles.estadoFail,
+                {
+                  color: item.success ? colors.textSecondary : colors.danger,
+                },
               ]}
               numberOfLines={1}
             >
@@ -157,10 +194,8 @@ function getMissionIconText(missionType: string, iconName?: string): string {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.border,
     paddingVertical: 14,
     paddingHorizontal: 14,
     marginHorizontal: Layout.screenPadding,
@@ -195,12 +230,10 @@ const styles = StyleSheet.create({
   name: {
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
-    color: Colors.text,
   },
 
   detalle: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 3,
   },
 
@@ -229,17 +262,8 @@ const styles = StyleSheet.create({
     marginRight: 7,
   },
 
-  estadoOk: {
-    color: Colors.textSecondary,
-  },
-
-  estadoFail: {
-    color: Colors.danger,
-  },
-
   errores: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
 
   right: {
@@ -251,13 +275,11 @@ const styles = StyleSheet.create({
 
   fecha: {
     fontSize: 12,
-    color: Colors.textSecondary,
     fontWeight: '500',
   },
 
   duracion: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 4,
   },
 
@@ -270,7 +292,6 @@ const styles = StyleSheet.create({
 
   respuestaLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
   },
 
   respuesta: {

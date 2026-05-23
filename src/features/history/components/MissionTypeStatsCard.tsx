@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { MissionTypeStat } from '../types/missionHistory.types';
 import { MISSION_CONFIG } from '../constants/missionHistory.config';
 
@@ -8,15 +9,26 @@ interface Props {
 }
 
 export function MissionTypeStatsCard({ porTipo }: Props) {
+  const { colors } = useAppTheme();
   const conDatos = porTipo.filter((t) => t.total > 0);
 
   if (conDatos.length === 0) return null;
 
   return (
     <>
-      <Text style={styles.sectionLabel}>POR TIPO DE MISIÓN</Text>
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+        POR TIPO DE MISIÓN
+      </Text>
 
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         {conDatos.map((t, i) => {
           const mc = MISSION_CONFIG[t.tipo];
 
@@ -27,7 +39,13 @@ export function MissionTypeStatsCard({ porTipo }: Props) {
           return (
             <View
               key={t.tipo}
-              style={[styles.row, i < conDatos.length - 1 && styles.rowBorder]}
+              style={[
+                styles.row,
+                i < conDatos.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.borderMuted,
+                },
+              ]}
             >
               <View style={[styles.iconBox, { backgroundColor: mc.bgColor }]}>
                 <Text style={[styles.iconText, { color: mc.iconColor }]}>
@@ -36,29 +54,52 @@ export function MissionTypeStatsCard({ porTipo }: Props) {
               </View>
 
               <View style={styles.info}>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text
+                  style={[styles.name, { color: colors.text }]}
+                  numberOfLines={1}
+                >
                   {mc.label}
                 </Text>
 
-                <Text style={styles.sub} numberOfLines={1}>
+                <Text
+                  style={[styles.sub, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {mc.sublabel}
                 </Text>
               </View>
 
               <View style={styles.right}>
-                <Text style={styles.count}>{t.total}</Text>
+                <Text style={[styles.count, { color: colors.text }]}>
+                  {t.total}
+                </Text>
 
                 <View style={styles.dotsRow}>
                   {t.easy > 0 && (
-                    <View style={[styles.dot, { backgroundColor: '#16a34a' }]} />
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: colors.success },
+                      ]}
+                    />
                   )}
 
                   {t.medium > 0 && (
-                    <View style={[styles.dot, { backgroundColor: '#ca8a04' }]} />
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: colors.warning },
+                      ]}
+                    />
                   )}
 
                   {t.hard > 0 && (
-                    <View style={[styles.dot, { backgroundColor: '#dc2626' }]} />
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: colors.danger },
+                      ]}
+                    />
                   )}
                 </View>
               </View>
@@ -118,7 +159,6 @@ function getMissionIconText(missionType: string, iconName?: string): string {
 const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
-    color: '#8A93B2',
     paddingHorizontal: 15,
     paddingBottom: 7,
     letterSpacing: 0.7,
@@ -126,9 +166,9 @@ const styles = StyleSheet.create({
   },
   card: {
     minHeight: 64,
-    backgroundColor: '#12161F',
     marginHorizontal: 13,
     borderRadius: 12,
+    borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 10,
@@ -139,10 +179,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#1F2436',
   },
   iconBox: {
     width: 42,
@@ -163,12 +199,10 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F0F2F7',
   },
   sub: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#8A93B2',
     marginTop: 2,
   },
   right: {
@@ -178,7 +212,6 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F0F2F7',
   },
   dotsRow: {
     flexDirection: 'row',

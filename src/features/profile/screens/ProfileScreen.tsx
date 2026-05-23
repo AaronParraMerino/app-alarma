@@ -14,9 +14,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { Modal } from '../../../shared/components/ui/Modal';
@@ -29,6 +29,8 @@ type Props = {
 };
 
 function AvatarLarge({ name }: { name: string }) {
+  const { colors } = useAppTheme();
+
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -39,9 +41,26 @@ function AvatarLarge({ name }: { name: string }) {
 
   return (
     <View style={styles.avatarWrap}>
-      <View style={styles.avatarRing}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials || 'U'}</Text>
+      <View
+        style={[
+          styles.avatarRing,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.primary + '66',
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: colors.primary + '2A',
+            },
+          ]}
+        >
+          <Text style={[styles.avatarText, { color: colors.primary }]}>
+            {initials || 'U'}
+          </Text>
         </View>
       </View>
     </View>
@@ -59,14 +78,26 @@ function StatCard({
   label: string;
   color: string;
 }) {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={[styles.statCard, { borderColor: color + '33' }]}>
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: color + '33',
+        },
+      ]}
+    >
       <View style={[styles.statIconWrap, { backgroundColor: color + '1A' }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
 
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -75,7 +106,7 @@ function ActionRow({
   icon,
   label,
   onPress,
-  color = Colors.text,
+  color,
   sublabel,
   disabled,
 }: {
@@ -86,6 +117,9 @@ function ActionRow({
   sublabel?: string;
   disabled?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const rowColor = color ?? colors.text;
+
   return (
     <TouchableOpacity
       style={[styles.actionRow, disabled && styles.actionRowDisabled]}
@@ -93,26 +127,29 @@ function ActionRow({
       activeOpacity={0.65}
       disabled={disabled}
     >
-      <View style={[styles.actionIconWrap, { backgroundColor: color + '18' }]}>
-        <Ionicons name={icon} size={18} color={color} />
+      <View style={[styles.actionIconWrap, { backgroundColor: rowColor + '18' }]}>
+        <Ionicons name={icon} size={18} color={rowColor} />
       </View>
 
       <View style={styles.actionText}>
-        <Text style={[styles.actionLabel, { color }]}>{label}</Text>
+        <Text style={[styles.actionLabel, { color: rowColor }]}>{label}</Text>
 
         {sublabel ? (
-          <Text style={styles.actionSublabel}>{sublabel}</Text>
+          <Text style={[styles.actionSublabel, { color: colors.textMuted }]}>
+            {sublabel}
+          </Text>
         ) : null}
       </View>
 
       {!disabled && (
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       )}
     </TouchableOpacity>
   );
 }
 
 export default function ProfileScreen({ navigation }: Props) {
+  const { colors, statusBarStyle } = useAppTheme();
   const { user, logout } = useAuth();
 
   const {
@@ -146,6 +183,7 @@ export default function ProfileScreen({ navigation }: Props) {
     '';
 
   const email = currentUser.email ?? '';
+
   const displayName =
     currentUser.username ??
     currentUser.full_name ??
@@ -181,13 +219,18 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.bg }]}
+      edges={['top', 'left', 'right']}
+    >
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
 
       <View style={styles.topBar}>
         <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
-        <Text style={styles.topBarTitle}>Mi perfil</Text>
+        <Text style={[styles.topBarTitle, { color: colors.text }]}>
+          Mi perfil
+        </Text>
 
         <View style={styles.topBarRightSpace} />
       </View>
@@ -199,13 +242,18 @@ export default function ProfileScreen({ navigation }: Props) {
         <View style={styles.hero}>
           <AvatarLarge name={displayName} />
 
-          <Text style={styles.heroName}>{displayName}</Text>
-          <Text style={styles.heroEmail}>{email}</Text>
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {displayName}
+          </Text>
+
+          <Text style={[styles.heroEmail, { color: colors.textSecondary }]}>
+            {email}
+          </Text>
 
           {loading && (
             <ActivityIndicator
               size="small"
-              color={Colors.primary}
+              color={colors.primary}
               style={styles.profileLoader}
             />
           )}
@@ -221,34 +269,46 @@ export default function ProfileScreen({ navigation }: Props) {
           />
         ) : null}
 
-        <Text style={styles.sectionLabel}>Estadísticas</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+          Estadísticas
+        </Text>
 
         <View style={styles.statsRow}>
           <StatCard
             icon="alarm-outline"
             value={profile?.total_alarms_completed ?? 0}
             label="Alarmas"
-            color={Colors.primary}
+            color={colors.primary}
           />
 
           <StatCard
             icon="trophy-outline"
             value={totalMissionsResolved}
             label="Misiones"
-            color={Colors.warning}
+            color={colors.warning}
           />
 
           <StatCard
             icon="flame-outline"
             value={profile?.streak_days ?? 0}
             label="Racha"
-            color={Colors.danger}
+            color={colors.danger}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Cuenta</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+          Cuenta
+        </Text>
 
-        <View style={styles.section}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <ActionRow
             icon="create-outline"
             label="Editar perfil"
@@ -256,7 +316,14 @@ export default function ProfileScreen({ navigation }: Props) {
             disabled
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="time-outline"
@@ -266,7 +333,14 @@ export default function ProfileScreen({ navigation }: Props) {
             disabled={!userId}
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="bar-chart-outline"
@@ -276,29 +350,46 @@ export default function ProfileScreen({ navigation }: Props) {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Sesión</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+          Sesión
+        </Text>
 
-        <View style={styles.section}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <ActionRow
             icon="log-out-outline"
             label={isLoggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
-            color={Colors.warning}
+            color={colors.warning}
             onPress={handleLogout}
             disabled={isLoggingOut}
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="trash-outline"
             label="Eliminar cuenta"
-            color={Colors.danger}
+            color={colors.danger}
             onPress={handleDeleteAccount}
           />
         </View>
 
         {currentUser.createdAt && (
-          <Text style={styles.memberSince}>
+          <Text style={[styles.memberSince, { color: colors.textMuted }]}>
             Miembro desde{' '}
             {new Date(currentUser.createdAt).toLocaleDateString('es-ES', {
               month: 'long',
@@ -347,7 +438,6 @@ export default function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   scroll: {
@@ -375,7 +465,6 @@ const styles = StyleSheet.create({
   topBarTitle: {
     fontSize: Typography.action.fontSize,
     fontWeight: Typography.action.fontWeight,
-    color: Colors.text,
   },
 
   topBarRightSpace: {
@@ -397,9 +486,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     padding: 3,
-    backgroundColor: Colors.bgCard,
     borderWidth: 2,
-    borderColor: Colors.primary + '66',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -408,7 +495,6 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
-    backgroundColor: Colors.primary + '2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,14 +502,12 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: '800',
-    color: Colors.primary,
     letterSpacing: 1,
   },
 
   heroName: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
     marginBottom: 4,
     letterSpacing: -0.3,
     textAlign: 'center',
@@ -431,7 +515,6 @@ const styles = StyleSheet.create({
 
   heroEmail: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
 
   profileLoader: {
@@ -450,7 +533,6 @@ const styles = StyleSheet.create({
 
   statCard: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
@@ -470,13 +552,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.text,
     marginBottom: 4,
   },
 
   statLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
     fontWeight: '500',
     letterSpacing: 0.3,
   },
@@ -484,7 +564,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: Typography.label.fontWeight,
-    color: Colors.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     paddingHorizontal: Layout.screenPadding,
@@ -494,16 +573,13 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: Layout.screenPadding,
     marginBottom: 20,
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.border,
     overflow: 'hidden',
   },
 
   divider: {
     height: 1,
-    backgroundColor: Colors.borderMuted,
     marginLeft: 52,
   },
 
@@ -538,13 +614,11 @@ const styles = StyleSheet.create({
 
   actionSublabel: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 1,
   },
 
   memberSince: {
     fontSize: 12,
-    color: Colors.textMuted,
     textAlign: 'center',
     marginTop: 4,
     fontStyle: 'italic',

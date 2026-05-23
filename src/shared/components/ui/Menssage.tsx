@@ -9,7 +9,10 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../theme/colors';
+import {
+  AppThemeColors,
+  useAppTheme,
+} from '../../theme/useAppTheme';
 
 export type MenssageType = 'success' | 'error' | 'info' | 'warning';
 
@@ -32,32 +35,36 @@ type Props = {
   testID?: string;
 };
 
-const MESSAGE_CONFIG: Record<MenssageType, MenssageConfig> = {
-  success: {
-    icon: 'checkmark-circle-outline',
-    backgroundColor: Colors.successDim,
-    borderColor: Colors.success,
-    textColor: Colors.success,
-  },
-  error: {
-    icon: 'alert-circle-outline',
-    backgroundColor: Colors.dangerDim,
-    borderColor: Colors.danger,
-    textColor: Colors.danger,
-  },
-  info: {
-    icon: 'information-circle-outline',
-    backgroundColor: Colors.accentGlow,
-    borderColor: Colors.primary,
-    textColor: Colors.primaryLight,
-  },
-  warning: {
-    icon: 'warning-outline',
-    backgroundColor: Colors.warningDim,
-    borderColor: Colors.warning,
-    textColor: Colors.warning,
-  },
-};
+function getMessageConfig(
+  colors: AppThemeColors,
+): Record<MenssageType, MenssageConfig> {
+  return {
+    success: {
+      icon: 'checkmark-circle-outline',
+      backgroundColor: colors.successDim,
+      borderColor: colors.success,
+      textColor: colors.success,
+    },
+    error: {
+      icon: 'alert-circle-outline',
+      backgroundColor: colors.dangerDim,
+      borderColor: colors.danger,
+      textColor: colors.danger,
+    },
+    info: {
+      icon: 'information-circle-outline',
+      backgroundColor: colors.accentGlow,
+      borderColor: colors.primary,
+      textColor: colors.primaryLight,
+    },
+    warning: {
+      icon: 'warning-outline',
+      backgroundColor: colors.warningDim,
+      borderColor: colors.warning,
+      textColor: colors.warning,
+    },
+  };
+}
 
 export function Menssage({
   type = 'info',
@@ -68,26 +75,14 @@ export function Menssage({
   textStyle,
   testID,
 }: Props) {
+  const { colors } = useAppTheme();
+
   if (!message && !title) return null;
 
-  const config = MESSAGE_CONFIG[type];
-  const Container = onPress ? TouchableOpacity : View;
+  const config = getMessageConfig(colors)[type];
 
-  return (
-    <Container
-      activeOpacity={0.82}
-      accessibilityRole={onPress ? 'button' : 'text'}
-      onPress={onPress}
-      testID={testID}
-      style={[
-        styles.container,
-        {
-          backgroundColor: config.backgroundColor,
-          borderColor: config.borderColor,
-        },
-        style,
-      ]}
-    >
+  const content = (
+    <>
       <Ionicons name={config.icon} size={19} color={config.textColor} />
 
       <View style={styles.content}>
@@ -103,7 +98,36 @@ export function Menssage({
           </Text>
         ) : null}
       </View>
-    </Container>
+    </>
+  );
+
+  const containerStyle = [
+    styles.container,
+    {
+      backgroundColor: config.backgroundColor,
+      borderColor: config.borderColor,
+    },
+    style,
+  ];
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.82}
+        accessibilityRole="button"
+        onPress={onPress}
+        testID={testID}
+        style={containerStyle}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View accessibilityRole="text" testID={testID} style={containerStyle}>
+      {content}
+    </View>
   );
 }
 
@@ -120,15 +144,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 14,
   },
+
   content: {
     flex: 1,
     gap: 2,
   },
+
   title: {
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 18,
   },
+
   message: {
     flexShrink: 1,
     fontSize: 13,

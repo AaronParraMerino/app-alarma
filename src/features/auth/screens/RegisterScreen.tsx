@@ -1,34 +1,56 @@
+// src/features/auth/screens/RegisterScreen.tsx
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { Modal } from '../../../shared/components/ui/Modal';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<Nav>();
-  const { register, loginAsGuest, loginWithGoogle, isLoading, error, clearError } = useAuth();
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const {
+    register,
+    loginAsGuest,
+    loginWithGoogle,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [confirmPassword, setConfirmPassword] = useState('');
+
   const [validationMessage, setValidationMessage] = useState<{
     title: string;
     message: string;
   } | null>(null);
-  const [showPassword, setShowPassword] = useState(false);         // ← nuevo
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // ← nuevo
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password.trim()) {
@@ -38,6 +60,7 @@ export default function RegisterScreen() {
       });
       return;
     }
+
     if (password !== confirmPassword) {
       setValidationMessage({
         title: 'Contrasenas diferentes',
@@ -45,6 +68,7 @@ export default function RegisterScreen() {
       });
       return;
     }
+
     if (password.length < 6) {
       setValidationMessage({
         title: 'Contrasena muy corta',
@@ -52,133 +76,277 @@ export default function RegisterScreen() {
       });
       return;
     }
+
     await register(email.trim(), password.trim(), username.trim());
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
 
-        <View style={styles.tabRow}>
-          <TouchableOpacity style={styles.tab} onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.tabText}>Iniciar Sesión</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={[
+            styles.tabRow,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.tabText, { color: colors.textMuted }]}>
+              Iniciar Sesión
+            </Text>
           </TouchableOpacity>
-          <View style={[styles.tab, styles.tabActive]}>
-            <Text style={[styles.tabText, styles.tabTextActive]}>Regístrate</Text>
+
+          <View
+            style={[
+              styles.tab,
+              {
+                backgroundColor: colors.primary,
+              },
+            ]}
+          >
+            <Text style={[styles.tabText, { color: colors.white }]}>
+              Regístrate
+            </Text>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Regístrate</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Regístrate
+          </Text>
 
-          <Text style={styles.label}>Nombre:</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>
+            Nombre:
+          </Text>
+
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bgElevated,
+                color: colors.text,
+                borderColor: colors.border,
+              },
+            ]}
             placeholder="Tu nombre"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
             value={username}
             onChangeText={setUsername}
           />
 
-          <Text style={styles.label}>Correo electrónico:</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>
+            Correo electrónico:
+          </Text>
+
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bgElevated,
+                color: colors.text,
+                borderColor: colors.border,
+              },
+            ]}
             placeholder="tucorreo@ejemplo.com"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
           />
 
-          <Text style={styles.label}>Contraseña:</Text>
-          <View style={styles.inputWrap}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>
+            Contraseña:
+          </Text>
+
+          <View
+            style={[
+              styles.inputWrap,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TextInput
-              style={styles.inputInner}
+              style={[
+                styles.inputInner,
+                {
+                  color: colors.text,
+                },
+              ]}
               placeholder="••••••••"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
             />
+
             <TouchableOpacity
-              onPress={() => setShowPassword(p => !p)}
+              onPress={() => setShowPassword((prev) => !prev)}
               style={styles.eyeBtn}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>Repite la contraseña:</Text>
-          <View style={styles.inputWrap}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>
+            Repite la contraseña:
+          </Text>
+
+          <View
+            style={[
+              styles.inputWrap,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TextInput
-              style={styles.inputInner}
+              style={[
+                styles.inputInner,
+                {
+                  color: colors.text,
+                },
+              ]}
               placeholder="••••••••"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               secureTextEntry={!showConfirmPassword}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />
+
             <TouchableOpacity
-              onPress={() => setShowConfirmPassword(p => !p)}
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
               style={styles.eyeBtn}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
-            style={styles.btnPrimary}
+            style={[
+              styles.btnPrimary,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primaryDeep,
+              },
+              isLoading && styles.btnDisabled,
+            ]}
             onPress={handleRegister}
             disabled={isLoading}
             activeOpacity={0.85}
           >
-            {isLoading
-              ? <ActivityIndicator color={Colors.white} />
-              : <Text style={styles.btnPrimaryText}>Regístrate</Text>
-            }
+            {isLoading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
+                Regístrate
+              </Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o</Text>
-            <View style={styles.dividerLine} />
+            <View
+              style={[
+                styles.dividerLine,
+                {
+                  backgroundColor: colors.border,
+                },
+              ]}
+            />
+
+            <Text style={[styles.dividerText, { color: colors.textMuted }]}>
+              o
+            </Text>
+
+            <View
+              style={[
+                styles.dividerLine,
+                {
+                  backgroundColor: colors.border,
+                },
+              ]}
+            />
           </View>
 
-          <Text style={styles.socialLabel}>Regístrate con tu cuenta de</Text>
+          <Text style={[styles.socialLabel, { color: colors.textSecondary }]}>
+            Regístrate con tu cuenta de
+          </Text>
+
           <TouchableOpacity
-            style={[styles.btnGoogle, isLoading && { opacity: 0.6 }]}
+            style={[
+              styles.btnGoogle,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primaryDeep,
+              },
+              isLoading && styles.btnDisabled,
+            ]}
             onPress={loginWithGoogle}
             disabled={isLoading}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnGoogleIcon}>G</Text>
-            <Text style={styles.btnGoogleText}>Google</Text>
+            <Text style={[styles.btnGoogleIcon, { color: colors.white }]}>
+              G
+            </Text>
+
+            <Text style={[styles.btnGoogleText, { color: colors.white }]}>
+              Google
+            </Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={styles.btnGuest}
+          style={[
+            styles.btnGuest,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={loginAsGuest}
           activeOpacity={0.85}
         >
-          <Text style={styles.btnGuestText}>Continuar sin cuenta</Text>
+          <Text style={[styles.btnGuestText, { color: colors.textSecondary }]}>
+            Continuar sin cuenta
+          </Text>
         </TouchableOpacity>
-
       </ScrollView>
 
       <Modal
@@ -209,7 +377,10 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+  root: {
+    flex: 1,
+  },
+
   scroll: {
     flexGrow: 1,
     width: '100%',
@@ -219,59 +390,146 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 40,
   },
+
   tabRow: {
-    flexDirection: 'row', backgroundColor: Colors.bgCard,
-    borderRadius: Layout.controlRadius, padding: 4, marginBottom: 24,
-    borderWidth: 1, borderColor: Colors.border,
+    flexDirection: 'row',
+    borderRadius: Layout.controlRadius,
+    padding: 4,
+    marginBottom: 24,
+    borderWidth: 1,
   },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  tabActive: { backgroundColor: Colors.primary },
-  tabText: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
-  tabTextActive: { color: Colors.white },
+
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
   card: {
-    backgroundColor: Colors.bgCard, borderRadius: Layout.cardRadius,
-    padding: Layout.screenPaddingWide, borderWidth: 1, borderColor: Colors.border, marginBottom: 16,
+    borderRadius: Layout.cardRadius,
+    padding: Layout.screenPaddingWide,
+    borderWidth: 1,
+    marginBottom: 16,
   },
+
   cardTitle: {
-    fontSize: Typography.title.fontSize, fontWeight: Typography.title.fontWeight, color: Colors.text,
-    marginBottom: 20, textAlign: 'center', letterSpacing: -0.3,
+    fontSize: Typography.title.fontSize,
+    fontWeight: Typography.title.fontWeight,
+    marginBottom: 20,
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
-  label: { fontSize: Typography.label.fontSize, color: Colors.textSecondary, marginBottom: 6, fontWeight: Typography.label.fontWeight },
+
+  label: {
+    fontSize: Typography.label.fontSize,
+    marginBottom: 6,
+    fontWeight: Typography.label.fontWeight,
+  },
+
   input: {
-    backgroundColor: Colors.bgElevated, color: Colors.text,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, marginBottom: 14, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    marginBottom: 14,
+    borderWidth: 1,
   },
+
   inputWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.bgElevated, borderRadius: 10,
-    borderWidth: 1, borderColor: Colors.border, marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 14,
   },
+
   inputInner: {
-    flex: 1, color: Colors.text, paddingHorizontal: 14,
-    paddingVertical: 13, fontSize: 15,
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
   },
-  eyeBtn: { paddingHorizontal: 14, paddingVertical: 13 },
+
+  eyeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+
   btnPrimary: {
-    backgroundColor: Colors.primary, borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center',
-    marginTop: 4, borderWidth: 1, borderColor: Colors.primaryDeep,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+    borderWidth: 1,
   },
-  btnPrimaryText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  dividerText: { color: Colors.textMuted, marginHorizontal: 12, fontSize: 13 },
-  socialLabel: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', marginBottom: 10 },
+
+  btnDisabled: {
+    opacity: 0.6,
+  },
+
+  btnPrimaryText: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+  },
+
+  socialLabel: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+
   btnGoogle: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: Colors.primary, borderRadius: 10,
-    paddingVertical: 12, borderWidth: 1, borderColor: Colors.primaryDeep,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 10,
+    paddingVertical: 12,
+    borderWidth: 1,
   },
-  btnGoogleIcon: { fontSize: 16, fontWeight: '800', color: Colors.white },
-  btnGoogleText: { color: Colors.white, fontWeight: '600', fontSize: 15 },
+
+  btnGoogleIcon: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+
+  btnGoogleText: {
+    fontWeight: '600',
+    fontSize: 15,
+  },
+
   btnGuest: {
-    backgroundColor: Colors.bgCard, borderRadius: 10, paddingVertical: 14,
-    alignItems: 'center', borderWidth: 1, borderColor: Colors.border, marginTop: 4,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    marginTop: 4,
   },
-  btnGuestText: { color: Colors.textSecondary, fontWeight: '600', fontSize: 15 },
+
+  btnGuestText: {
+    fontWeight: '600',
+    fontSize: 15,
+  },
 });

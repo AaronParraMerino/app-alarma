@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 interface EmptyHistoryStateProps {
   title?: string;
@@ -10,15 +11,29 @@ export function EmptyHistoryState({
   title = 'Sin misiones aún',
   description = 'Cuando completes misiones en tus alarmas, aparecerán aquí.',
 }: EmptyHistoryStateProps) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconBox}>
-        <Text style={styles.icon}>☰</Text>
+      <View
+        style={[
+          styles.iconBox,
+          {
+            backgroundColor: colors.bgElevated,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.icon, { color: colors.textMuted }]}>☰</Text>
       </View>
 
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: colors.textSecondary }]}>
+        {title}
+      </Text>
 
-      <Text style={styles.sub}>{description}</Text>
+      <Text style={[styles.sub, { color: colors.textMuted }]}>
+        {description}
+      </Text>
     </View>
   );
 }
@@ -33,13 +48,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   icon: {
-    color: '#666',
     fontSize: 30,
     fontWeight: '700',
     lineHeight: 34,
@@ -47,12 +61,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#d1d5db',
     marginBottom: 8,
   },
   sub: {
     fontSize: 12,
-    color: '#777',
     textAlign: 'center',
     lineHeight: 18,
   },

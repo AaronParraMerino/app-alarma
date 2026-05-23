@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../../shared/theme/colors';
+
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 type StopwatchStatus = 'idle' | 'running' | 'paused';
 
@@ -56,18 +57,30 @@ function ControlButton({
   disabled?: boolean;
   variant?: 'primary' | 'secondary' | 'danger';
 }) {
+  const { colors } = useAppTheme();
+
   const color = {
-    primary: Colors.white,
-    secondary: Colors.textSecondary,
-    danger: Colors.danger,
+    primary: colors.white,
+    secondary: colors.textSecondary,
+    danger: colors.danger,
   }[variant];
 
   return (
     <TouchableOpacity
       style={[
         styles.controlButton,
-        variant === 'primary' && styles.controlButtonPrimary,
-        variant === 'danger' && styles.controlButtonDanger,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+        variant === 'primary' && {
+          backgroundColor: colors.primary,
+          borderColor: colors.primaryDeep,
+        },
+        variant === 'danger' && {
+          backgroundColor: colors.dangerDim,
+          borderColor: colors.danger + '66',
+        },
         disabled && styles.controlButtonDisabled,
       ]}
       activeOpacity={0.82}
@@ -81,26 +94,56 @@ function ControlButton({
 }
 
 function LapRow({ item }: { item: Lap }) {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={styles.lapRow}>
-      <View style={styles.lapIndex}>
-        <Text style={styles.lapIndexText}>{item.index}</Text>
+    <View
+      style={[
+        styles.lapRow,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.lapIndex,
+          {
+            backgroundColor: colors.bgElevated,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.lapIndexText, { color: colors.primaryLight }]}>
+          {item.index}
+        </Text>
       </View>
 
       <View style={styles.lapColumn}>
-        <Text style={styles.lapLabel}>Parcial</Text>
-        <Text style={styles.lapTime}>{formatTime(item.lapTime)}</Text>
+        <Text style={[styles.lapLabel, { color: colors.textMuted }]}>
+          Parcial
+        </Text>
+        <Text style={[styles.lapTime, { color: colors.text }]}>
+          {formatTime(item.lapTime)}
+        </Text>
       </View>
 
       <View style={styles.lapColumn}>
-        <Text style={styles.lapLabel}>Total</Text>
-        <Text style={styles.lapTotal}>{formatTime(item.totalTime)}</Text>
+        <Text style={[styles.lapLabel, { color: colors.textMuted }]}>
+          Total
+        </Text>
+        <Text style={[styles.lapTotal, { color: colors.primaryLight }]}>
+          {formatTime(item.totalTime)}
+        </Text>
       </View>
     </View>
   );
 }
 
 export default function StopwatchScreen() {
+  const { colors, statusBarStyle } = useAppTheme();
+
   const [status, setStatus] = useState<StopwatchStatus>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [laps, setLaps] = useState<Lap[]>([]);
@@ -176,25 +219,72 @@ export default function StopwatchScreen() {
       : { label: 'Iniciar', icon: 'play' as const, onPress: handleStart };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.bg }]}
+      edges={['top', 'left', 'right']}
+    >
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Cronometro</Text>
-        <View style={[styles.statusBadge, isRunning && styles.statusBadgeActive]}>
-          <View style={[styles.statusDot, isRunning && styles.statusDotActive]} />
-          <Text style={[styles.statusText, isRunning && styles.statusTextActive]}>
+        <Text style={[styles.title, { color: colors.text }]}>Cronometro</Text>
+
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor: isRunning ? colors.successDim : colors.bgCard,
+              borderColor: isRunning ? colors.success : colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.statusDot,
+              {
+                backgroundColor: isRunning ? colors.success : colors.textMuted,
+              },
+            ]}
+          />
+
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color: isRunning ? colors.success : colors.textSecondary,
+              },
+            ]}
+          >
             {isRunning ? 'En marcha' : status === 'paused' ? 'Pausado' : 'Listo'}
           </Text>
         </View>
       </View>
 
-      <View style={styles.timerPanel}>
-        <View style={styles.timerIconWrap}>
-          <Ionicons name="timer-outline" size={30} color={Colors.primaryLight} />
+      <View
+        style={[
+          styles.timerPanel,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.primary + '33',
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.timerIconWrap,
+            {
+              backgroundColor: colors.accentGlow,
+              borderColor: colors.primary + '55',
+            },
+          ]}
+        >
+          <Ionicons name="timer-outline" size={30} color={colors.primaryLight} />
         </View>
-        <Text style={styles.timer}>{formatTime(elapsed)}</Text>
-        <Text style={styles.timerHint}>
+
+        <Text style={[styles.timer, { color: colors.text }]}>
+          {formatTime(elapsed)}
+        </Text>
+
+        <Text style={[styles.timerHint, { color: colors.textSecondary }]}>
           {laps.length > 0
             ? `${laps.length} parciales registrados`
             : 'Registra parciales mientras el cronometro avanza'}
@@ -208,12 +298,14 @@ export default function StopwatchScreen() {
           onPress={handleLap}
           disabled={!hasTime}
         />
+
         <ControlButton
           icon={primaryAction.icon}
           label={primaryAction.label}
           onPress={primaryAction.onPress}
           variant="primary"
         />
+
         <ControlButton
           icon="refresh-outline"
           label="Reset"
@@ -223,23 +315,53 @@ export default function StopwatchScreen() {
         />
       </View>
 
-      <View style={styles.summaryRow}>
+      <View
+        style={[
+          styles.summaryRow,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Ultimo parcial</Text>
-          <Text style={styles.summaryValue}>
+          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
+            Ultimo parcial
+          </Text>
+
+          <Text style={[styles.summaryValue, { color: colors.text }]}>
             {laps[0] ? formatTime(laps[0].lapTime) : '--:--.--'}
           </Text>
         </View>
-        <View style={styles.summaryDivider} />
+
+        <View
+          style={[
+            styles.summaryDivider,
+            {
+              backgroundColor: colors.borderMuted,
+            },
+          ]}
+        />
+
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Tiempo total</Text>
-          <Text style={styles.summaryValue}>{formatTime(elapsed)}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
+            Tiempo total
+          </Text>
+
+          <Text style={[styles.summaryValue, { color: colors.text }]}>
+            {formatTime(elapsed)}
+          </Text>
         </View>
       </View>
 
       <View style={styles.lapsHeader}>
-        <Text style={styles.sectionTitle}>Parciales</Text>
-        <Text style={styles.sectionCount}>{laps.length}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Parciales
+        </Text>
+
+        <Text style={[styles.sectionCount, { color: colors.textMuted }]}>
+          {laps.length}
+        </Text>
       </View>
 
       <FlatList
@@ -253,9 +375,13 @@ export default function StopwatchScreen() {
         ]}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="flag-outline" size={28} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sin parciales todavia</Text>
-            <Text style={styles.emptyText}>
+            <Ionicons name="flag-outline" size={28} color={colors.textMuted} />
+
+            <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+              Sin parciales todavia
+            </Text>
+
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               Toca Parcial para guardar el tiempo del tramo actual.
             </Text>
           </View>
@@ -268,8 +394,8 @@ export default function StopwatchScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
+
   header: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -281,80 +407,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   title: {
     fontSize: Typography.title.fontSize,
     fontWeight: Typography.title.fontWeight,
-    color: Colors.text,
   },
+
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
-  statusBadgeActive: {
-    backgroundColor: Colors.successDim,
-    borderColor: Colors.success,
-  },
+
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: Colors.textMuted,
   },
-  statusDotActive: {
-    backgroundColor: Colors.success,
-  },
+
   statusText: {
-    color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '700',
   },
-  statusTextActive: {
-    color: Colors.success,
-  },
+
   timerPanel: {
     width: '90%',
     maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
     alignSelf: 'center',
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.primary + '33',
     paddingHorizontal: 18,
     paddingVertical: 28,
     alignItems: 'center',
   },
+
   timerIconWrap: {
     width: 58,
     height: 58,
     borderRadius: 18,
-    backgroundColor: Colors.accentGlow,
     borderWidth: 1,
-    borderColor: Colors.primary + '55',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
+
   timer: {
-    color: Colors.text,
     fontSize: 48,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
     textAlign: 'center',
   },
+
   timerHint: {
-    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 10,
   },
+
   controls: {
     flexDirection: 'row',
     gap: 10,
@@ -363,32 +477,26 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 14,
   },
+
   controlButton: {
     flex: 1,
     minHeight: 54,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
   },
-  controlButtonPrimary: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primaryDeep,
-  },
-  controlButtonDanger: {
-    backgroundColor: Colors.dangerDim,
-    borderColor: Colors.danger + '66',
-  },
+
   controlButtonDisabled: {
     opacity: 0.42,
   },
+
   controlText: {
     fontSize: 12,
     fontWeight: '800',
   },
+
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -396,34 +504,34 @@ const styles = StyleSheet.create({
     maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
     alignSelf: 'center',
     marginTop: 14,
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
     paddingVertical: 14,
   },
+
   summaryItem: {
     flex: 1,
     alignItems: 'center',
     gap: 4,
   },
+
   summaryDivider: {
     width: 1,
     height: 36,
-    backgroundColor: Colors.borderMuted,
   },
+
   summaryLabel: {
-    color: Colors.textMuted,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+
   summaryValue: {
-    color: Colors.text,
     fontSize: 16,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
+
   lapsHeader: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -435,76 +543,79 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 8,
   },
+
   sectionTitle: {
-    color: Colors.text,
     fontSize: 15,
     fontWeight: '800',
   },
+
   sectionCount: {
-    color: Colors.textMuted,
     fontSize: 12,
     fontWeight: '800',
   },
+
   lapsList: {
     paddingHorizontal: 16,
     paddingBottom: 28,
     gap: 8,
   },
+
   lapsFrame: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
     alignSelf: 'center',
   },
+
   emptyList: {
     flexGrow: 1,
   },
+
   lapRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 12,
   },
+
   lapIndex: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Colors.bgElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   lapIndexText: {
-    color: Colors.primaryLight,
     fontSize: 13,
     fontWeight: '800',
   },
+
   lapColumn: {
     flex: 1,
     gap: 2,
   },
+
   lapLabel: {
-    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+
   lapTime: {
-    color: Colors.text,
     fontSize: 15,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
+
   lapTotal: {
-    color: Colors.primaryLight,
     fontSize: 15,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
+
   emptyState: {
     flex: 1,
     alignItems: 'center',
@@ -512,14 +623,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     paddingBottom: 24,
   },
+
   emptyTitle: {
-    color: Colors.textSecondary,
     fontSize: 15,
     fontWeight: '800',
     marginTop: 10,
   },
+
   emptyText: {
-    color: Colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 19,
