@@ -2,7 +2,8 @@ export type MissionType =
   | 'word_completion'
   | 'math_exercises'
   | 'movement'
-  | 'colored_figures';
+  | 'colored_figures'
+  | 'color_find';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 

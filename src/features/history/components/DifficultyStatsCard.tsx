@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { DifficultyStats } from '../types/missionHistory.types';
 import { DIFFICULTY_CONFIG } from '../constants/missionHistory.config';
 
@@ -11,13 +12,24 @@ interface Props {
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 
 export function DifficultyStatsCard({ stats, total }: Props) {
+  const { colors } = useAppTheme();
   const safeTotal = total || 1;
 
   return (
     <>
-      <Text style={styles.sectionLabel}>DIFICULTAD</Text>
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+        DIFICULTAD
+      </Text>
 
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         {DIFFICULTIES.map((key, index) => {
           const dc = DIFFICULTY_CONFIG[key];
           const count = stats[key];
@@ -38,7 +50,14 @@ export function DifficultyStatsCard({ stats, total }: Props) {
                 </Text>
               </View>
 
-              <View style={styles.barTrack}>
+              <View
+                style={[
+                  styles.barTrack,
+                  {
+                    backgroundColor: colors.borderMuted,
+                  },
+                ]}
+              >
                 <View
                   style={[
                     styles.barFill,
@@ -50,8 +69,13 @@ export function DifficultyStatsCard({ stats, total }: Props) {
                 />
               </View>
 
-              <Text style={styles.count}>{count}</Text>
-              <Text style={styles.pct}>{pct}%</Text>
+              <Text style={[styles.count, { color: colors.text }]}>
+                {count}
+              </Text>
+
+              <Text style={[styles.pct, { color: colors.textSecondary }]}>
+                {pct}%
+              </Text>
             </View>
           );
         })}
@@ -63,7 +87,6 @@ export function DifficultyStatsCard({ stats, total }: Props) {
 const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
-    color: '#8A93B2',
     paddingHorizontal: 15,
     paddingBottom: 7,
     letterSpacing: 0.7,
@@ -71,9 +94,9 @@ const styles = StyleSheet.create({
   },
   card: {
     minHeight: 64,
-    backgroundColor: '#12161F',
     marginHorizontal: 13,
     borderRadius: 12,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 12,
     marginBottom: 10,
@@ -101,7 +124,6 @@ const styles = StyleSheet.create({
   barTrack: {
     flex: 1,
     height: 7,
-    backgroundColor: '#1F2436',
     borderRadius: 4,
     overflow: 'hidden',
     marginRight: 10,
@@ -113,7 +135,6 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F0F2F7',
     width: 24,
     textAlign: 'right',
     marginRight: 8,
@@ -121,7 +142,6 @@ const styles = StyleSheet.create({
   pct: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#8A93B2',
     width: 40,
     textAlign: 'right',
   },

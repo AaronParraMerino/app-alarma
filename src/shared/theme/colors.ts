@@ -51,6 +51,7 @@ export const Colors = {
     shapes:   '#22d3ee',   // cyan
     sequence: '#a78bfa',   // violeta
     wordCompletion: '#38bdf8', // celeste
+    colorFind: '#22d3ee', // cyan
   } as Record<string, string>,
 
   // ── Utilidad ────────────────────────────────────────────

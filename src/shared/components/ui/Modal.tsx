@@ -9,8 +9,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../theme/colors';
 import { MenssageType } from './Menssage';
+import {
+  AppThemeColors,
+  useAppTheme,
+} from '../../theme/useAppTheme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -39,32 +42,36 @@ type Props = {
   closeOnBackdropPress?: boolean;
 };
 
-const MODAL_CONFIG: Record<MenssageType, ModalConfig> = {
-  success: {
-    icon: 'checkmark-circle-outline',
-    color: Colors.success,
-    backgroundColor: Colors.successDim,
-    borderColor: Colors.success,
-  },
-  error: {
-    icon: 'alert-circle-outline',
-    color: Colors.danger,
-    backgroundColor: Colors.dangerDim,
-    borderColor: Colors.danger,
-  },
-  info: {
-    icon: 'information-circle-outline',
-    color: Colors.primaryLight,
-    backgroundColor: Colors.accentGlow,
-    borderColor: Colors.primary,
-  },
-  warning: {
-    icon: 'warning-outline',
-    color: Colors.warning,
-    backgroundColor: Colors.warningDim,
-    borderColor: Colors.warning,
-  },
-};
+function getModalConfig(
+  colors: AppThemeColors,
+): Record<MenssageType, ModalConfig> {
+  return {
+    success: {
+      icon: 'checkmark-circle-outline',
+      color: colors.success,
+      backgroundColor: colors.successDim,
+      borderColor: colors.success,
+    },
+    error: {
+      icon: 'alert-circle-outline',
+      color: colors.danger,
+      backgroundColor: colors.dangerDim,
+      borderColor: colors.danger,
+    },
+    info: {
+      icon: 'information-circle-outline',
+      color: colors.primaryLight,
+      backgroundColor: colors.accentGlow,
+      borderColor: colors.primary,
+    },
+    warning: {
+      icon: 'warning-outline',
+      color: colors.warning,
+      backgroundColor: colors.warningDim,
+      borderColor: colors.warning,
+    },
+  };
+}
 
 export function Modal({
   visible,
@@ -76,7 +83,8 @@ export function Modal({
   onClose,
   closeOnBackdropPress = true,
 }: Props) {
-  const config = MODAL_CONFIG[type];
+  const { colors, isDark } = useAppTheme();
+  const config = getModalConfig(colors)[type];
 
   const handleBackdropPress = () => {
     if (closeOnBackdropPress) {
@@ -92,9 +100,25 @@ export function Modal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={handleBackdropPress}>
+      <Pressable
+        style={[
+          styles.backdrop,
+          {
+            backgroundColor: isDark
+              ? 'rgba(0, 0, 0, 0.68)'
+              : 'rgba(15, 23, 42, 0.35)',
+          },
+        ]}
+        onPress={handleBackdropPress}
+      >
         <Pressable
-          style={styles.card}
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={(event) => event.stopPropagation()}
         >
           <View
@@ -109,22 +133,39 @@ export function Modal({
             <Ionicons name={config.icon} size={26} color={config.color} />
           </View>
 
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
 
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {message ? (
+            <Text style={[styles.message, { color: colors.textSecondary }]}>
+              {message}
+            </Text>
+          ) : null}
 
           <View style={styles.actions}>
             {cancelAction ? (
               <TouchableOpacity
-                style={[styles.button, styles.buttonSecondary]}
+                style={[
+                  styles.button,
+                  {
+                    backgroundColor: colors.bgElevated,
+                    borderColor: colors.border,
+                  },
+                ]}
                 activeOpacity={0.82}
                 onPress={cancelAction.onPress}
                 disabled={cancelAction.disabled || cancelAction.loading}
               >
                 {cancelAction.loading ? (
-                  <ActivityIndicator color={Colors.textSecondary} />
+                  <ActivityIndicator color={colors.textSecondary} />
                 ) : (
-                  <Text style={styles.buttonSecondaryText}>{cancelAction.label}</Text>
+                  <Text
+                    style={[
+                      styles.buttonSecondaryText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {cancelAction.label}
+                  </Text>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -133,8 +174,10 @@ export function Modal({
               <TouchableOpacity
                 style={[
                   styles.button,
-                  styles.buttonPrimary,
-                  { backgroundColor: config.color, borderColor: config.borderColor },
+                  {
+                    backgroundColor: config.color,
+                    borderColor: config.borderColor,
+                  },
                   confirmAction.disabled && styles.buttonDisabled,
                 ]}
                 activeOpacity={0.82}
@@ -142,9 +185,11 @@ export function Modal({
                 disabled={confirmAction.disabled || confirmAction.loading}
               >
                 {confirmAction.loading ? (
-                  <ActivityIndicator color={Colors.white} />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
-                  <Text style={styles.buttonPrimaryText}>{confirmAction.label}</Text>
+                  <Text style={[styles.buttonPrimaryText, { color: colors.white }]}>
+                    {confirmAction.label}
+                  </Text>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -160,21 +205,20 @@ export const AppModal = Modal;
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.68)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
+
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: Colors.bgCard,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 20,
     alignItems: 'center',
   },
+
   iconWrap: {
     width: 56,
     height: 56,
@@ -184,26 +228,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 14,
   },
+
   title: {
-    color: Colors.text,
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 8,
   },
+
   message: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
     textAlign: 'center',
     marginBottom: 18,
   },
+
   actions: {
     width: '100%',
     flexDirection: 'row',
     gap: 10,
   },
+
   button: {
     flex: 1,
     minHeight: 44,
@@ -213,23 +259,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  buttonSecondary: {
-    backgroundColor: Colors.bgElevated,
-    borderColor: Colors.border,
-  },
-  buttonPrimary: {
-    borderColor: Colors.primaryDeep,
-  },
+
   buttonDisabled: {
     opacity: 0.55,
   },
+
   buttonSecondaryText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '700',
   },
+
   buttonPrimaryText: {
-    color: Colors.white,
     fontSize: 14,
     fontWeight: '800',
   },

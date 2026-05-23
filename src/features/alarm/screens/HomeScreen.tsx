@@ -15,10 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+
 import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { Modal as AppModal } from '../../../shared/components/ui/Modal';
+
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { useAlarmStore } from '../store/alarmStore';
 import { Alarm, MissionType } from '../types/alarm.types';
@@ -64,6 +67,10 @@ const MISSION_ICON_META: Record<MissionType, { icon: IconName; color: string }> 
     icon: 'color-palette-outline',
     color: Colors.missionColors.color,
   },
+  colorFind: {
+    icon: 'grid-outline',
+    color: Colors.missionColors.colorFind ?? Colors.primaryLight,
+  },
   shapes: {
     icon: 'grid-outline',
     color: Colors.missionColors.shapes,
@@ -91,12 +98,18 @@ function formatTime(hour: number, minute: number): string {
 function formatRepeat(repeatDays: number[]): string {
   if (repeatDays.length === 0) return 'Solo una vez';
   if (repeatDays.length === 7) return 'Todos los días';
-  if (repeatDays.length === 5 && [1, 2, 3, 4, 5].every(d => repeatDays.includes(d)))
+
+  if (
+    repeatDays.length === 5 &&
+    [1, 2, 3, 4, 5].every((d) => repeatDays.includes(d))
+  ) {
     return 'Lun – Vie';
+  }
+
   return repeatDays
     .slice()
     .sort((a, b) => a - b)
-    .map(d => DAY_LABELS_SHORT[d])
+    .map((d) => DAY_LABELS_SHORT[d])
     .join(' · ');
 }
 
@@ -107,6 +120,7 @@ function formatSound(soundUri: string | null): string {
 function minutesUntilNextAlarm(alarms: Alarm[]): number | null {
   const now = new Date();
   let min = Infinity;
+
   for (const alarm of alarms) {
     const nextOccurrence = getNextAlarmOccurrence(alarm, now);
     if (!nextOccurrence) continue;
@@ -114,14 +128,17 @@ function minutesUntilNextAlarm(alarms: Alarm[]): number | null {
     const diff = Math.ceil((nextOccurrence.getTime() - now.getTime()) / 60_000);
     if (diff < min) min = diff;
   }
+
   return min === Infinity ? null : min;
 }
 
 function formatCountdown(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
+
   if (h === 0) return `${m} min`;
   if (m === 0) return `${h} h`;
+
   return `${h} h ${m} min`;
 }
 
@@ -134,101 +151,203 @@ interface AlarmCardProps {
   onLongPress: (alarm: Alarm) => void;
 }
 
-const AlarmCard = React.memo(({ alarm, onToggle, onPress, onLongPress }: AlarmCardProps) => {
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
-  const switchOn = shouldShowAlarmSwitchOn(alarm);
+const AlarmCard = React.memo(
+  ({ alarm, onToggle, onPress, onLongPress }: AlarmCardProps) => {
+    const { colors } = useAppTheme();
 
-  const handlePressIn = () =>
-    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const switchOn = shouldShowAlarmSwitchOn(alarm);
 
-  const handlePressOut = () =>
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+    const handlePressIn = () =>
+      Animated.spring(scaleAnim, {
+        toValue: 0.97,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 0,
+      }).start();
 
-  return (
-    <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        activeOpacity={1}
-        style={[styles.card, switchOn ? styles.cardEnabled : styles.cardDisabled]}
-        onPress={() => onPress(alarm)}
-        onLongPress={() => onLongPress(alarm)}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+    const handlePressOut = () =>
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+
+    return (
+      <Animated.View
+        style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}
       >
-        {switchOn && <View style={styles.cardAccentBar} />}
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[
+            styles.card,
+            {
+              backgroundColor: switchOn ? colors.bgCard : colors.bg,
+              borderColor: switchOn ? colors.border : colors.borderMuted,
+              opacity: switchOn ? 1 : 0.55,
+            },
+          ]}
+          onPress={() => onPress(alarm)}
+          onLongPress={() => onLongPress(alarm)}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        >
+          {switchOn && (
+            <View
+              style={[
+                styles.cardAccentBar,
+                {
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            />
+          )}
 
-        <View style={styles.cardTop}>
-          <View>
-            <Text style={[styles.alarmTime, !switchOn && styles.textDisabled]}>
-              {formatTime(alarm.hour, alarm.minute)}
-            </Text>
-            {alarm.label.length > 0 && (
+          <View style={styles.cardTop}>
+            <View>
               <Text
-                style={[styles.alarmLabel, !switchOn && styles.textMutedDisabled]}
-                numberOfLines={1}
+                style={[
+                  styles.alarmTime,
+                  {
+                    color: switchOn ? colors.cream : colors.textMuted,
+                  },
+                ]}
               >
-                {alarm.label}
+                {formatTime(alarm.hour, alarm.minute)}
               </Text>
-            )}
+
+              {alarm.label.length > 0 && (
+                <Text
+                  style={[
+                    styles.alarmLabel,
+                    {
+                      color: switchOn
+                        ? colors.textSecondary
+                        : colors.textMuted,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {alarm.label}
+                </Text>
+              )}
+            </View>
+
+            <Switch
+              value={switchOn}
+              onValueChange={() => onToggle(alarm.id)}
+              trackColor={{
+                false: colors.borderFocus + '33',
+                true: colors.primary,
+              }}
+              thumbColor={switchOn ? colors.primaryLight : colors.textMuted}
+              ios_backgroundColor={colors.border}
+            />
           </View>
 
-          <Switch
-            value={switchOn}
-            onValueChange={() => onToggle(alarm.id)}
-            trackColor={{
-              false: Colors.borderFocus + '33',
-              true: Colors.primary,
-            }}
-            thumbColor={switchOn ? Colors.primaryLight : Colors.textMuted}
-            ios_backgroundColor={Colors.border}
-          />
-        </View>
+          <View style={styles.cardBottom}>
+            <View style={styles.repeatRow}>
+              <Text style={[styles.repeatDot, { color: colors.primary }]}>
+                ◈
+              </Text>
 
-        <View style={styles.cardBottom}>
-          <View style={styles.repeatRow}>
-            <Text style={styles.repeatDot}>◈</Text>
-            <Text style={[styles.repeatText, !switchOn && styles.textMutedDisabled]}>
-              {formatRepeat(alarm.repeatDays)}
-            </Text>
-            <Text style={[styles.soundText, !switchOn && styles.textMutedDisabled]}>
-              {formatSound(alarm.soundUri)}
-            </Text>
+              <Text
+                style={[
+                  styles.repeatText,
+                  {
+                    color: switchOn
+                      ? colors.textSecondary
+                      : colors.textMuted,
+                  },
+                ]}
+              >
+                {formatRepeat(alarm.repeatDays)}
+              </Text>
+
+              <Text
+                style={[
+                  styles.soundText,
+                  {
+                    color: colors.textMuted,
+                  },
+                ]}
+              >
+                {formatSound(alarm.soundUri)}
+              </Text>
+            </View>
+
+            <View style={styles.missionRow}>
+              {alarm.randomMissions ? (
+                <View
+                  style={[
+                    styles.missionBadge,
+                    {
+                      backgroundColor: colors.bgElevated,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={MISSION_ICON_META.random.icon}
+                    size={16}
+                    color={MISSION_ICON_META.random.color}
+                  />
+
+                  <Text
+                    style={[
+                      styles.missionBadgeLabel,
+                      {
+                        color: colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Aleatorio
+                  </Text>
+                </View>
+              ) : (
+                alarm.missions.slice(0, 3).map((m, i) => {
+                  const meta = MISSION_ICON_META[m.type] ?? MISSION_ICON_META.random;
+
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.missionBadge,
+                        {
+                          backgroundColor: colors.bgElevated,
+                          borderColor: colors.border,
+                          opacity: switchOn ? 1 : 0.4,
+                        },
+                      ]}
+                    >
+                      <Ionicons name={meta.icon} size={16} color={meta.color} />
+                    </View>
+                  );
+                })
+              )}
+
+              {!alarm.randomMissions && alarm.missions.length > 3 && (
+                <Text style={[styles.moreMissions, { color: colors.textMuted }]}>
+                  +{alarm.missions.length - 3}
+                </Text>
+              )}
+            </View>
           </View>
-
-          <View style={styles.missionRow}>
-            {alarm.randomMissions ? (
-              <View style={styles.missionBadge}>
-                <Ionicons
-                  name={MISSION_ICON_META.random.icon}
-                  size={16}
-                  color={MISSION_ICON_META.random.color}
-                />
-                <Text style={styles.missionBadgeLabel}>Aleatorio</Text>
-              </View>
-            ) : (
-              alarm.missions.slice(0, 3).map((m, i) => {
-                const meta = MISSION_ICON_META[m.type] ?? MISSION_ICON_META.random;
-
-                return (
-                  <View key={i} style={[styles.missionBadge, !switchOn && { opacity: 0.4 }]}>
-                    <Ionicons name={meta.icon} size={16} color={meta.color} />
-                  </View>
-                );
-              })
-            )}
-            {!alarm.randomMissions && alarm.missions.length > 3 && (
-              <Text style={styles.moreMissions}>+{alarm.missions.length - 3}</Text>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  },
+);
 
 // ─── Banner próxima alarma ────────────────────────────────────────────────────
 
 function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
-  const [minutes, setMinutes] = useState<number | null>(() => minutesUntilNextAlarm(alarms));
+  const { colors } = useAppTheme();
+
+  const [minutes, setMinutes] = useState<number | null>(() =>
+    minutesUntilNextAlarm(alarms),
+  );
 
   useEffect(() => {
     const updateMinutes = () => {
@@ -238,7 +357,9 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
     updateMinutes();
 
     const now = new Date();
-    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    const msUntilNextMinute =
+      (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
     const timeoutId = setTimeout(() => {
@@ -255,13 +376,37 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
   if (minutes === null) return null;
 
   return (
-    <View style={styles.banner}>
+    <View
+      style={[
+        styles.banner,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.primary + '55',
+        },
+      ]}
+    >
       <View>
-        <Text style={styles.bannerLabel}>Próxima alarma</Text>
-        <Text style={styles.bannerSub}>Sonará pronto</Text>
+        <Text style={[styles.bannerLabel, { color: colors.textAccent }]}>
+          Próxima alarma
+        </Text>
+
+        <Text style={[styles.bannerSub, { color: colors.textMuted }]}>
+          Sonará pronto
+        </Text>
       </View>
-      <View style={styles.bannerTimeWrap}>
-        <Text style={styles.bannerTime}>{formatCountdown(minutes)}</Text>
+
+      <View
+        style={[
+          styles.bannerTimeWrap,
+          {
+            backgroundColor: colors.primary + '22',
+            borderColor: colors.primary + '44',
+          },
+        ]}
+      >
+        <Text style={[styles.bannerTime, { color: colors.primaryLight }]}>
+          {formatCountdown(minutes)}
+        </Text>
       </View>
     </View>
   );
@@ -270,17 +415,44 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.empty}>
-      <View style={styles.emptyIconWrap}>
+      <View
+        style={[
+          styles.emptyIconWrap,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <Text style={styles.emptyIcon}>⏰</Text>
       </View>
-      <Text style={styles.emptyTitle}>Sin alarmas</Text>
-      <Text style={styles.emptySubtitle}>
+
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+        Sin alarmas
+      </Text>
+
+      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
         Crea tu primera alarma con misiones{'\n'}para despertar de verdad
       </Text>
-      <TouchableOpacity style={styles.emptyBtn} onPress={onAdd} activeOpacity={0.85}>
-        <Text style={styles.emptyBtnText}>+ Crear alarma</Text>
+
+      <TouchableOpacity
+        style={[
+          styles.emptyBtn,
+          {
+            backgroundColor: colors.primary,
+            borderColor: colors.primaryDeep,
+          },
+        ]}
+        onPress={onAdd}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.emptyBtnText, { color: colors.white }]}>
+          + Crear alarma
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -289,30 +461,27 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList, 'Home'>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AlarmStackParamList, 'Home'>>();
+
+  const { colors, statusBarStyle } = useAppTheme();
   const { alarms, toggleAlarm, deleteAlarm } = useAlarmStore();
+
   const [alarmToDelete, setAlarmToDelete] = useState<Alarm | null>(null);
 
   const handleAdd = useCallback(() => {
     navigation.navigate('AlarmCreate');
   }, [navigation]);
 
-  const handlePress = useCallback((alarm: Alarm) => {
-    navigation.navigate('AlarmEdit', { alarmId: alarm.id });
-  }, [navigation]);
+  const handlePress = useCallback(
+    (alarm: Alarm) => {
+      navigation.navigate('AlarmEdit', { alarmId: alarm.id });
+    },
+    [navigation],
+  );
 
   const handleLongPress = useCallback((alarm: Alarm) => {
     setAlarmToDelete(alarm);
-    return;
-
-    /*
-      'Eliminar alarma',
-      `¿Eliminar "${alarm.label || formatTime(alarm.hour, alarm.minute)}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => deleteAlarm(alarm.id) },
-      ],
-    */
   }, []);
 
   const confirmDeleteAlarm = useCallback(() => {
@@ -341,21 +510,31 @@ export default function HomeScreen() {
       [...alarms].sort((a, b) => {
         const aEnabled = shouldShowAlarmSwitchOn(a);
         const bEnabled = shouldShowAlarmSwitchOn(b);
+
         if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
+
         return a.hour * 60 + a.minute - (b.hour * 60 + b.minute);
       }),
     [alarms],
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.bg }]}
+      edges={['top', 'left', 'right']}
+    >
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
 
-      {/* Header — sin botón de perfil */}
+      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerEyebrow}>Buenos días</Text>
-          <Text style={styles.headerTitle}>Neuro Wake</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.textAccent }]}>
+            Buenos días
+          </Text>
+
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Neuro Wake
+          </Text>
         </View>
       </View>
 
@@ -364,8 +543,9 @@ export default function HomeScreen() {
 
       {/* Contador */}
       {sortedAlarms.length > 0 && (
-        <Text style={styles.alarmCount}>
-          {sortedAlarms.filter(shouldShowAlarmSwitchOn).length} de {sortedAlarms.length} activas
+        <Text style={[styles.alarmCount, { color: colors.textMuted }]}>
+          {sortedAlarms.filter(shouldShowAlarmSwitchOn).length} de{' '}
+          {sortedAlarms.length} activas
         </Text>
       )}
 
@@ -385,8 +565,19 @@ export default function HomeScreen() {
 
       {/* FAB */}
       {sortedAlarms.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleAdd} activeOpacity={0.85}>
-          <Text style={styles.fabIcon}>+</Text>
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            {
+              backgroundColor: colors.primary,
+              shadowColor: colors.primary,
+              borderColor: colors.primaryLight + '44',
+            },
+          ]}
+          onPress={handleAdd}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.fabIcon, { color: colors.white }]}>+</Text>
         </TouchableOpacity>
       )}
 
@@ -396,7 +587,10 @@ export default function HomeScreen() {
         title="Eliminar alarma"
         message={
           alarmToDelete
-            ? `¿Eliminar "${alarmToDelete.label || formatTime(alarmToDelete.hour, alarmToDelete.minute)}"?`
+            ? `¿Eliminar "${
+                alarmToDelete.label ||
+                formatTime(alarmToDelete.hour, alarmToDelete.minute)
+              }"?`
             : undefined
         }
         closeOnBackdropPress
@@ -419,7 +613,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   // Header
@@ -431,18 +624,18 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 10,
   },
+
   headerEyebrow: {
     fontSize: 12,
-    color: Colors.textAccent,
     fontWeight: '500',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
+
   headerTitle: {
     fontSize: Typography.title.fontSize,
     fontWeight: Typography.title.fontWeight,
-    color: Colors.text,
     letterSpacing: -0.5,
   },
 
@@ -455,43 +648,39 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: Colors.primary + '55',
   },
+
   bannerLabel: {
     fontSize: 13,
-    color: Colors.textAccent,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
+
   bannerSub: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 2,
   },
+
   bannerTimeWrap: {
-    backgroundColor: Colors.primary + '22',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.primary + '44',
   },
+
   bannerTime: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primaryLight,
   },
 
   // Contador
   alarmCount: {
     fontSize: 12,
-    color: Colors.textMuted,
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
     alignSelf: 'center',
@@ -506,13 +695,17 @@ const styles = StyleSheet.create({
     maxWidth: Layout.maxWideContentWidth,
     alignSelf: 'center',
   },
+
   list: {
     paddingHorizontal: 16,
     paddingBottom: 100,
   },
 
   // Card
-  cardWrap: { marginBottom: 10 },
+  cardWrap: {
+    marginBottom: 10,
+  },
+
   card: {
     borderRadius: 16,
     padding: 16,
@@ -520,94 +713,85 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
-  cardEnabled: {
-    backgroundColor: Colors.bgCard,
-    borderColor: Colors.border,
-  },
-  cardDisabled: {
-    backgroundColor: Colors.bg,
-    borderColor: Colors.borderMuted,
-    opacity: 0.55,
-  },
+
   cardAccentBar: {
     position: 'absolute',
     left: 0,
     top: 12,
     bottom: 12,
     width: 3,
-    backgroundColor: Colors.primary,
     borderRadius: 2,
   },
+
   cardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
+
   alarmTime: {
     fontSize: 38,
     fontWeight: '700',
-    color: Colors.cream,
     letterSpacing: -1,
     lineHeight: 42,
   },
+
   alarmLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 3,
     maxWidth: 200,
   },
-  textDisabled: { color: Colors.textMuted },
-  textMutedDisabled: { color: Colors.textMuted },
 
   cardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   repeatRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
   },
+
   repeatDot: {
     fontSize: 10,
-    color: Colors.primary,
   },
+
   repeatText: {
     fontSize: 12,
-    color: Colors.textSecondary,
     fontWeight: '500',
   },
+
   soundText: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginLeft: 6,
   },
+
   missionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
+
   missionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
+
   missionBadgeLabel: {
     fontSize: 11,
-    color: Colors.textSecondary,
     fontWeight: '500',
   },
+
   moreMissions: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginLeft: 2,
   },
 
@@ -618,41 +802,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 40,
   },
+
   emptyIconWrap: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: Colors.bgCard,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
-  emptyIcon: { fontSize: 40 },
+
+  emptyIcon: {
+    fontSize: 40,
+  },
+
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text,
     marginBottom: 8,
   },
+
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 21,
     marginBottom: 28,
   },
+
   emptyBtn: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.primaryDeep,
   },
+
   emptyBtnText: {
-    color: Colors.white,
     fontWeight: '700',
     fontSize: 15,
     letterSpacing: 0.3,
@@ -666,19 +851,16 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.primaryLight + '44',
   },
+
   fabIcon: {
-    color: Colors.white,
     fontSize: 30,
     fontWeight: '300',
     lineHeight: 34,

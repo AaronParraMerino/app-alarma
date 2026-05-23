@@ -56,6 +56,15 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
     bgColor: '#1e0d2e',
     failedBg: '#2e0d2e',
   },
+
+  color_find: {
+    label: 'Color diferente',
+    sublabel: 'Encontrar el cuadro distinto',
+    iconName: 'grid-outline',
+    iconColor: '#22d3ee',
+    bgColor: '#0d2630',
+    failedBg: '#10222c',
+  },
 };
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyVisualConfig> = {
@@ -85,6 +94,7 @@ export const FILTER_OPTIONS: { key: FilterOption; label: string }[] = [
   { key: 'word_completion', label: 'Palabras' },
   { key: 'movement', label: 'Movimientos' },
   { key: 'colored_figures', label: 'Colores' },
+  { key: 'color_find', label: 'Color diferente' },
 ];
 
 export const MISSION_TYPES_ORDER: MissionType[] = [
@@ -92,6 +102,7 @@ export const MISSION_TYPES_ORDER: MissionType[] = [
   'word_completion',
   'movement',
   'colored_figures',
+  'color_find',
 ];
 
 export function formatFecha(isoString: string): string {
@@ -169,6 +180,17 @@ export function formatContenido(
     if (figure && color) return `${figure} - ${color}`;
     if (figure) return `Figura: ${figure}`;
     if (color) return `Color: ${color}`;
+
+    return '';
+  }
+
+  if (missionType === 'color_find') {
+    const gridSize = getStringValue(content, ['gridSize']);
+    const oddColor = getStringValue(content, ['oddColor']);
+
+    if (gridSize && oddColor) return `${gridSize}x${gridSize} - ${oddColor}`;
+    if (gridSize) return `${gridSize}x${gridSize}`;
+    if (oddColor) return `Color diferente: ${oddColor}`;
 
     return '';
   }

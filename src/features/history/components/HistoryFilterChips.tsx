@@ -7,9 +7,9 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 import { FILTER_OPTIONS } from '../constants/missionHistory.config';
 import { FilterOption } from '../types/missionHistory.types';
@@ -20,6 +20,8 @@ interface Props {
 }
 
 export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
+  const { colors } = useAppTheme();
+
   return (
     <ScrollView
       horizontal
@@ -34,7 +36,10 @@ export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
             key={filter.key}
             style={[
               styles.chip,
-              active && styles.chipActive,
+              {
+                borderColor: active ? colors.primary : colors.border,
+                backgroundColor: active ? colors.accentGlow : colors.bgCard,
+              },
               index < FILTER_OPTIONS.length - 1 && styles.chipSpacing,
             ]}
             onPress={() => onSelect(filter.key)}
@@ -43,7 +48,9 @@ export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
             <Text
               style={[
                 styles.chipText,
-                active && styles.chipTextActive,
+                {
+                  color: active ? colors.primaryLight : colors.textSecondary,
+                },
               ]}
               numberOfLines={1}
             >
@@ -69,8 +76,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -79,18 +84,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 
-  chipActive: {
-    backgroundColor: Colors.accentGlow,
-    borderColor: Colors.primary,
-  },
-
   chipText: {
     fontSize: Typography.label.fontSize,
     fontWeight: Typography.label.fontWeight,
-    color: Colors.textSecondary,
-  },
-
-  chipTextActive: {
-    color: Colors.primaryLight,
   },
 });

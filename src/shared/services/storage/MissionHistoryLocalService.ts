@@ -5,7 +5,8 @@ export type MissionType =
   | 'movement'
   | 'math_exercises'
   | 'colored_figures'
-  | 'memory_pairs';
+  | 'memory_pairs'
+  | 'color_find';
 
 export interface SaveMissionHistoryDTO {
   userId: string;
