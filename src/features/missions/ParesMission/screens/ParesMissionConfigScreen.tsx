@@ -12,20 +12,19 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { PairCardTile } from '../components/PairCardTile';
 import { PAIR_CARD_ASSETS } from '../constants/paresAssets';
 import {
-  BOARD_CELLS_BY_DIFFICULTY,
   DEFAULT_CONFIG,
   DIFFICULTY_STYLES,
-  GRID_SIZE,
   MAX_QUANTITY,
   MIN_QUANTITY,
+  PAIRS_BY_DIFFICULTY,
 } from '../constants/paresMission.config';
 import { usePairsMissionStore } from '../store/paresMissionStore';
 import { PairsDifficulty } from '../types/paresMission.types';
@@ -85,6 +84,7 @@ function getPreviewCards(difficulty: PairsDifficulty) {
 
 export function ParesMissionConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
+  const { colors, statusBarStyle } = useAppTheme();
   const { language } = useTranslation();
   const isSpanish = language === 'es';
   const { config, setConfig } = usePairsMissionStore();
@@ -101,8 +101,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
   const style = DIFFICULTY_STYLES[difficulty];
   const sliderIdx = LEVELS.indexOf(difficulty);
   const previews = getPreviewCards(difficulty);
-  const gridSize = GRID_SIZE[difficulty];
-  const boardCells = BOARD_CELLS_BY_DIFFICULTY[difficulty];
+  const pairCount = PAIRS_BY_DIFFICULTY[difficulty];
 
   const isSmall = width < 360;
   const isShort = height < 680;
@@ -126,8 +125,8 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.bg} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: isSmall ? 14 : 20 }]}
@@ -136,17 +135,26 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
       >
         <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
 
-        <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
-          <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
+        <View
+          style={[
+            styles.headerPill,
+            {
+              backgroundColor: colors.primary,
+              paddingVertical: pillPadV,
+              marginBottom: sectionGap,
+            },
+          ]}
+        >
+          <Text style={[styles.headerText, { color: colors.white, fontSize: isSmall ? 12 : 14 }]}>
             {isSpanish ? 'MISION' : 'FIND'}{'\n'}
             {isSpanish ? 'ENCONTRAR PARES' : 'PAIRS'}
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
+        <Text style={[styles.sectionLabel, { color: colors.text, fontSize: fontBase, marginBottom: 6 }]}>
           {isSpanish ? 'Seleccione la dificultad' : 'Select difficulty'}
         </Text>
-        <Text style={[styles.subLabel, { fontSize: isSmall ? 11 : 12 }]}>
+        <Text style={[styles.subLabel, { color: colors.textSecondary, fontSize: isSmall ? 11 : 12 }]}>
           {isSpanish ? 'Ejemplo' : 'Example'}
         </Text>
 
@@ -154,6 +162,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           style={[
             styles.previewBox,
             {
+              backgroundColor: colors.bgCard,
               minHeight: previewMin,
               marginBottom: sectionGap,
               borderColor: style.accentColor + '40',
@@ -161,8 +170,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           ]}
         >
           <Text style={[styles.previewTitle, { color: style.accentColor }]}>
-            {gridSize} x {gridSize} - {boardCells}{' '}
-            {isSpanish ? 'casillas' : 'tiles'}
+            {pairCount} {isSpanish ? 'pares' : 'pairs'}
           </Text>
           <View style={styles.previewRow}>
             {previews.map(card => (
@@ -173,6 +181,10 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
                 revealed
                 accentColor={style.accentColor}
                 textColor={style.textColor}
+                borderColor={colors.border}
+                cardBgColor={colors.bgElevated}
+                activeBgColor={colors.bgCardActive}
+                mismatchColor={colors.text}
                 size={previewSize}
                 onPress={() => {}}
               />
@@ -181,7 +193,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
         </View>
 
         <View style={[styles.sliderWrapper, { marginBottom: isShort ? 4 : 8 }]}>
-          <View style={styles.trackBg}>
+          <View style={[styles.trackBg, { backgroundColor: colors.bgElevated }]}>
             <View
               style={[
                 styles.trackFill,
@@ -201,8 +213,8 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
                   style={[
                     styles.thumb,
                     {
-                      backgroundColor: sliderIdx >= index ? style.accentColor : Colors.bgElevated,
-                      borderColor: sliderIdx >= index ? style.accentColor : Colors.textMuted,
+                      backgroundColor: sliderIdx >= index ? style.accentColor : colors.bgElevated,
+                      borderColor: sliderIdx >= index ? style.accentColor : colors.textMuted,
                     },
                   ]}
                 />
@@ -216,7 +228,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
                 <Text
                   style={[
                     styles.labelText,
-                    { fontSize: isSmall ? 11 : 13 },
+                    { color: colors.textMuted, fontSize: isSmall ? 11 : 13 },
                     difficulty === level && { color: style.accentColor, fontWeight: '500' },
                   ]}
                 >
@@ -227,14 +239,23 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <View style={[styles.divider, { marginVertical: sectionGap }]} />
+        <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: sectionGap }]} />
 
-        <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
+        <Text style={[styles.sectionLabel, { color: colors.text, fontSize: fontBase, marginBottom: 6 }]}>
           {isSpanish ? 'Seleccione la cantidad' : 'Select quantity'}
         </Text>
         <View style={styles.quantityRow}>
-          <View style={[styles.quantityBox, { paddingVertical: isShort ? 8 : 10 }]}>
-            <Text style={[styles.quantityNum, { fontSize: isSmall ? 18 : 22 }]}>
+          <View
+            style={[
+              styles.quantityBox,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+                paddingVertical: isShort ? 8 : 10,
+              },
+            ]}
+          >
+            <Text style={[styles.quantityNum, { color: colors.text, fontSize: isSmall ? 18 : 22 }]}>
               {quantity}
             </Text>
             <View style={styles.arrows}>
@@ -242,17 +263,17 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
                 onPress={() => setQuantity(q => Math.min(MAX_QUANTITY, q + 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>▲</Text>
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setQuantity(q => Math.max(MIN_QUANTITY, q - 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>▼</Text>
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>
+          <Text style={[styles.vecesText, { color: colors.textSecondary, fontSize: isSmall ? 13 : 15 }]}>
             {isSpanish ? 'veces' : 'times'}
           </Text>
         </View>
@@ -277,7 +298,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1 },
   scroll: {
     flexGrow: 1,
     width: '100%',
@@ -290,22 +311,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   headerPill: {
-    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
     marginTop: 8,
   },
   headerText: {
-    color: Colors.white,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { color: Colors.text },
-  subLabel: { color: Colors.textSecondary, marginBottom: 8 },
+  sectionLabel: {},
+  subLabel: { marginBottom: 8 },
   previewBox: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -318,7 +336,6 @@ const styles = StyleSheet.create({
   sliderWrapper: {},
   trackBg: {
     height: 4,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
@@ -338,24 +355,22 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { color: Colors.textMuted },
-  divider: { height: 0.5, backgroundColor: Colors.border },
+  labelText: {},
+  divider: { height: 0.5 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: Colors.bgElevated,
     borderRadius: Layout.controlRadius,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.5,
-    borderColor: Colors.border,
   },
-  quantityNum: { fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontWeight: '500', minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 13, color: Colors.textSecondary, fontWeight: '900' },
-  vecesText: { color: Colors.textSecondary },
+  arrowText: { fontSize: 13, fontWeight: '900' },
+  vecesText: {},
   confirmBtn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontWeight: '500' },
 });

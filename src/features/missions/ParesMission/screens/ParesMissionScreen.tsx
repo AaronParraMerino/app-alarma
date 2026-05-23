@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
+  StatusBar,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
@@ -64,6 +65,35 @@ const PAIR_NAME_TRANSLATIONS: Record<string, string> = {
 
 function getPairName(id: string, name: string, isSpanish: boolean) {
   return isSpanish ? name : PAIR_NAME_TRANSLATIONS[id] ?? name;
+}
+
+function capitalizeFirst(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function translateDay(day: string, isSpanish: boolean): string {
+  if (isSpanish) {
+    return capitalizeFirst(day);
+  }
+
+  const normalized = day
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('lunes')) return 'Monday';
+  if (normalized.includes('martes')) return 'Tuesday';
+  if (normalized.includes('miercoles')) return 'Wednesday';
+  if (normalized.includes('jueves')) return 'Thursday';
+  if (normalized.includes('viernes')) return 'Friday';
+  if (normalized.includes('sabado')) return 'Saturday';
+  if (normalized.includes('domingo')) return 'Sunday';
+
+  return capitalizeFirst(day);
 }
 
 // Obtiene la dificultad anterior
@@ -135,6 +165,7 @@ export function ParesMissionScreen({
   alarmLabel,
 }: Props) {
   const { width, height } = useWindowDimensions();
+  const { colors, statusBarStyle } = useAppTheme();
   const { language } = useTranslation();
   const isSpanish = language === 'es';
   const { time, day } = useCurrentTime(language);
@@ -159,10 +190,8 @@ export function ParesMissionScreen({
   const boardCells = BOARD_CELLS_BY_DIFFICULTY[difficulty];
   const maxMisses = MAX_BOARD_MISSES[difficulty];
   const remaining = maxMisses - misses;
-  const defaultAlarmLabel = isSpanish ? 'Hora de levantarse' : 'Time to wake up';
-  const displayAlarmLabel = !alarmLabel || alarmLabel === 'Alarma'
-    ? defaultAlarmLabel
-    : alarmLabel;
+  const displayAlarmLabel =
+    alarmLabel ?? (isSpanish ? 'Hora de levantarse' : 'Time to wake up');
   const matchedPairs = useMemo(() => getMatchedPairs(board), [board]);
   const totalPairs = PAIRS_BY_DIFFICULTY[difficulty];
   const boardRows = useMemo(() => chunkBoardRows(board, gridSize), [board, gridSize]);
@@ -346,12 +375,12 @@ export function ParesMissionScreen({
   // Pantalla corta antes de volver al flujo de alarma.
   if (completed) {
     return (
-      <CenteredState color={style.accentColor}>
+      <CenteredState>
         <Text style={[styles.stateIcon, { color: style.accentColor }]}>OK</Text>
         <Text style={[styles.stateTitle, { color: style.accentColor }]}>
           {isSpanish ? 'Mision completada' : 'Mission complete'}
         </Text>
-        <Text style={styles.stateText}>
+        <Text style={[styles.stateText, { color: colors.textSecondary }]}>
           {isSpanish
             ? `${quantity} tablero${quantity === 1 ? '' : 's'} completado${quantity === 1 ? '' : 's'}.`
             : `${quantity} board${quantity === 1 ? '' : 's'} completed.`}
@@ -361,30 +390,42 @@ export function ParesMissionScreen({
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.screen}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
+
+      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
         <View style={[styles.pill, { backgroundColor: style.bgColor, borderColor: style.accentColor + '40' }]}>
           <Text style={[styles.pillText, { color: style.accentColor }]}>{difficultyLabel}</Text>
         </View>
 
         <View style={styles.timeBlock}>
-          <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>
+          <Text style={[styles.time, { color: colors.text, fontSize: width < 380 ? 44 : 52 }]}>
             {time}
           </Text>
-          <Text style={styles.dateLabel}>{day} - {displayAlarmLabel}</Text>
+          <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
+            {translateDay(day, isSpanish)} - {displayAlarmLabel}
+          </Text>
         </View>
 
         <View style={styles.progressWrap}>
-          <OpportunityBar remaining={remaining} total={maxMisses} color={style.accentColor} />
+          <OpportunityBar
+            remaining={remaining}
+            total={maxMisses}
+            color={style.accentColor}
+            trackColor={colors.border}
+          />
           <Text style={[styles.progressText, { color: style.accentColor + 'AA' }]}>
             {remaining} {isSpanish ? 'oportunidades' : 'chances'}
           </Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.body}>
-          <Text style={styles.instruction}>
+          <Text style={[styles.instruction, { color: colors.textSecondary }]}>
             {isSpanish ? 'Encuentra los pares:' : 'Find the pairs:'}
           </Text>
           <Text style={[styles.pairCounter, { color: style.accentColor }]}>
@@ -397,6 +438,7 @@ export function ParesMissionScreen({
               {
                 width: boardSize,
                 height: boardSize,
+                backgroundColor: colors.bgCard,
                 gap: boardGap,
                 padding: boardPadding,
               },
@@ -414,6 +456,10 @@ export function ParesMissionScreen({
                     mismatched={mismatchIds.includes(card.id)}
                     accentColor={style.accentColor}
                     textColor={style.textColor}
+                    borderColor={colors.border}
+                    cardBgColor={colors.bgElevated}
+                    activeBgColor={colors.bgCardActive}
+                    mismatchColor={colors.text}
                     size={cardSize}
                     onPress={() => handleSelectCard(card)}
                   />
@@ -428,10 +474,10 @@ export function ParesMissionScreen({
                 styles.feedbackText,
                 {
                   color: feedbackType === 'success'
-                    ? Colors.success
+                    ? colors.success
                     : feedbackType === 'warning'
                     ? style.accentColor
-                    : Colors.danger,
+                    : colors.danger,
                 },
               ]}
             >
@@ -447,21 +493,27 @@ export function ParesMissionScreen({
 function CenteredState({
   children,
 }: {
-  color: string;
   children: React.ReactNode;
 }) {
+  const { colors, statusBarStyle } = useAppTheme();
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.centered}>{children}</View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
+      <View style={[styles.centered, { backgroundColor: colors.bg }]}>
+        {children}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1 },
   screen: {
     flex: 1,
-    backgroundColor: Colors.bg,
     paddingTop: 40,
   },
   pill: {
@@ -474,8 +526,8 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5 },
   timeBlock: { alignItems: 'center', paddingVertical: 10 },
-  time: { fontWeight: '500', color: Colors.text, letterSpacing: -1, lineHeight: 56 },
-  dateLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  time: { fontWeight: '500', letterSpacing: -1, lineHeight: 56 },
+  dateLabel: { fontSize: 12, marginTop: 2 },
   progressWrap: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -484,7 +536,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   progressText: { fontSize: 11, textAlign: 'center' },
-  divider: { height: 0.5, backgroundColor: Colors.border, marginHorizontal: 16, marginVertical: 10 },
+  divider: { height: 0.5, marginHorizontal: 16, marginVertical: 10 },
   body: {
     flex: 1,
     width: '100%',
@@ -497,7 +549,6 @@ const styles = StyleSheet.create({
   instruction: {
     alignSelf: 'flex-start',
     fontSize: 12,
-    color: Colors.textSecondary,
     marginBottom: 4,
   },
   pairCounter: {
@@ -507,7 +558,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   board: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.controlRadius,
     justifyContent: 'center',
     alignItems: 'center',
@@ -520,27 +570,23 @@ const styles = StyleSheet.create({
   hint: { fontSize: 11, textAlign: 'center' },
   centered: {
     flex: 1,
-    backgroundColor: Colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
   },
   stateIcon: {
-    color: Colors.text,
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 14,
   },
   stateTitle: {
-    color: Colors.text,
     fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
   stateText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,

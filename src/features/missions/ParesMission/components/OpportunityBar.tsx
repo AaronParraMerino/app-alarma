@@ -5,14 +5,15 @@ interface Props {
   remaining: number;
   total: number;
   color: string;
+  trackColor: string;
 }
 
 // Muestra las oportunidades restantes del tablero
-export function OpportunityBar({ remaining, total, color }: Props) {
+export function OpportunityBar({ remaining, total, color, trackColor }: Props) {
   const ratio = Math.max(0, Math.min(1, remaining / total));
 
   return (
-    <View style={styles.track}>
+    <View style={[styles.track, { backgroundColor: trackColor }]}>
       <View
         style={[
           styles.fill,
@@ -29,7 +30,6 @@ export function OpportunityBar({ remaining, total, color }: Props) {
 const styles = StyleSheet.create({
   track: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 4,
     overflow: 'hidden',
     width: '100%',

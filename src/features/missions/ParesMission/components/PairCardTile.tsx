@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Colors } from '../../../../shared/theme/colors';
 
 interface Props {
   name: string;
@@ -18,6 +17,10 @@ interface Props {
   fixed?: boolean;
   accentColor: string;
   textColor: string;
+  borderColor: string;
+  cardBgColor: string;
+  activeBgColor: string;
+  mismatchColor: string;
   size: number;
   onPress: () => void;
 }
@@ -31,6 +34,10 @@ export function PairCardTile({
   fixed,
   accentColor,
   textColor,
+  borderColor,
+  cardBgColor,
+  activeBgColor,
+  mismatchColor,
   size,
   onPress,
 }: Props) {
@@ -64,6 +71,7 @@ export function PairCardTile({
             width: size,
             height: size,
             borderColor: accentColor + '35',
+            backgroundColor: activeBgColor,
           },
         ]}
       >
@@ -82,11 +90,13 @@ export function PairCardTile({
           width: size,
           height: size,
           borderColor: mismatched
-            ? Colors.white
+            ? mismatchColor
             : revealed
               ? accentColor + '70'
-              : Colors.border,
+              : borderColor,
           borderWidth: mismatched ? 2 : 1,
+          backgroundColor: cardBgColor,
+          shadowColor: mismatchColor,
         },
         mismatched && styles.mismatchCard,
       ]}
@@ -99,6 +109,7 @@ export function PairCardTile({
           styles.face,
           styles.backFace,
           {
+            backgroundColor: cardBgColor,
             transform: [{ perspective: 700 }, { rotateY: backRotate }],
           },
         ]}
@@ -152,7 +163,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: Colors.bgElevated,
   },
   face: {
     ...StyleSheet.absoluteFillObject,
@@ -161,18 +171,15 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden',
   },
   backFace: {
-    backgroundColor: Colors.bgElevated,
   },
   frontFace: {
     backfaceVisibility: 'hidden',
   },
   fixedCard: {
-    backgroundColor: Colors.bgCardActive,
     borderStyle: 'dashed',
     opacity: 0.82,
   },
   mismatchCard: {
-    shadowColor: Colors.white,
     shadowOpacity: 0.5,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },

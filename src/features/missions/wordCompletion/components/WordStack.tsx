@@ -30,7 +30,7 @@ export function WordStack({
 
         return (
           <View
-            key={idx}
+            key={`${challenge.word}-${idx}`}
             style={[
               styles.card,
               isActive && { borderColor: accentColor + '50', borderWidth: 0.5 },

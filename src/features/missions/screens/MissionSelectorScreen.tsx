@@ -16,7 +16,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
@@ -31,8 +30,7 @@ import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/c
 
 import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
 import {
-  DIFFICULTY_COLORS as MOVEMENT_DIFFICULTY_COLORS,
-  DIFFICULTY_LABELS as MOVEMENT_DIFFICULTY_LABELS,
+  DIFFICULTY_STYLES as MOVEMENT_DIFFICULTY_STYLES,
 } from '../MovementMission/constants/movementConstants';
 
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
@@ -51,12 +49,6 @@ type NavigationProp = NativeStackNavigationProp<
   MissionsStackParamList,
   'MissionSelector'
 >;
-
-const MOVEMENT_BG_COLORS: Record<Difficulty, string> = {
-  easy: Colors.successDim,
-  medium: Colors.warningDim,
-  hard: Colors.dangerDim,
-};
 
 const OBJECT_DIFFICULTY_LABELS_ES: Record<Difficulty, string> = {
   easy: 'FÁCIL',
@@ -297,22 +289,10 @@ export default function MissionSelectorScreen() {
     userConfig: movementConfig,
   } = useMovementMissionStore();
 
-  const movementStyle = {
-    label: translateDifficultyLabel(
-      MOVEMENT_DIFFICULTY_LABELS[
-        movementConfig.difficulty
-      ].toUpperCase(),
-      isSpanish,
-    ),
-    accentColor:
-      MOVEMENT_DIFFICULTY_COLORS[
-        movementConfig.difficulty
-      ],
-    bgColor:
-      MOVEMENT_BG_COLORS[
-        movementConfig.difficulty
-      ],
-  };
+  const movementStyle =
+    MOVEMENT_DIFFICULTY_STYLES[
+      movementConfig.difficulty
+    ];
 
   const {
     config: colorConfig,
@@ -377,7 +357,10 @@ export default function MissionSelectorScreen() {
     isSpanish,
   )}`;
 
-  const movementSummary = `${movementStyle.label} · ${formatQuantity(
+  const movementSummary = `${translateDifficultyLabel(
+    movementStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
     movementConfig.quantity,
     isSpanish,
   )}`;

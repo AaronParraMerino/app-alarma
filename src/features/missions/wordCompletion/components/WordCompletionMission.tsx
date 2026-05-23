@@ -10,6 +10,7 @@ import {
   StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   useWindowDimensions,
   StatusBar,
@@ -87,12 +88,20 @@ function getDifficultyPillLabel(
   return isSpanish ? 'DIFICIL' : 'HARD';
 }
 
+function capitalizeFirst(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function translateDay(
   day: string,
   isSpanish: boolean,
 ): string {
   if (isSpanish) {
-    return day;
+    return capitalizeFirst(day);
   }
 
   const normalized = day
@@ -128,7 +137,7 @@ function translateDay(
     return 'Sunday';
   }
 
-  return day;
+  return capitalizeFirst(day);
 }
 
 export function WordCompletionMission({
@@ -185,6 +194,20 @@ export function WordCompletionMission({
     'error' | 'warning' | 'success'
   >('error');
 
+  const [
+    completed,
+    setCompleted,
+  ] = useState(false);
+
+  const completionHandledRef =
+    React.useRef(false);
+
+  const completionTimeoutRef =
+    React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const nextMissionTimeoutRef =
+    React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const difficultyStyle =
     WordCompletionService.getDifficultyStyle(difficulty);
 
@@ -201,6 +224,23 @@ export function WordCompletionMission({
     time,
     day,
   } = useCurrentTime(language);
+
+  const handleSafeConfirm =
+    React.useCallback(() => {
+      if (
+        completed ||
+        state.isCompleted ||
+        completionHandledRef.current
+      ) {
+        return;
+      }
+
+      handleConfirm();
+    }, [
+      completed,
+      state.isCompleted,
+      handleConfirm,
+    ]);
 
   const isHard = difficulty === 'hard';
 
@@ -399,15 +439,34 @@ export function WordCompletionMission({
   ]);
 
   React.useEffect(() => {
+    completionHandledRef.current = false;
     setErrorCount(0);
   }, [
     state.currentChallengeIndex,
   ]);
 
   React.useEffect(() => {
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+
+      if (nextMissionTimeoutRef.current) {
+        clearTimeout(nextMissionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
     if (!state.isCompleted) {
       return;
     }
+
+    if (completionHandledRef.current) {
+      return;
+    }
+
+    completionHandledRef.current = true;
 
     if (
       isAuthenticated &&
@@ -439,12 +498,28 @@ export function WordCompletionMission({
       missionCount + 1;
 
     if (next >= quantity) {
-      onComplete();
+      Keyboard.dismiss();
+      setCompleted(true);
+
+      completionTimeoutRef.current =
+        setTimeout(onComplete, 900);
     } else {
       setMissionCount(next);
-      handleReplace();
       setErrorCount(0);
-      setFeedbackMessage('');
+
+      setFeedbackType('success');
+      setFeedbackMessage(
+        isSpanish
+          ? 'Correcto.'
+          : 'Correct.',
+      );
+
+      nextMissionTimeoutRef.current =
+        setTimeout(() => {
+          setFeedbackMessage('');
+          handleReplace();
+          completionHandledRef.current = false;
+        }, 500);
     }
   }, [
     state.isCompleted,
@@ -460,6 +535,7 @@ export function WordCompletionMission({
     onComplete,
     handleReplace,
     language,
+    isSpanish,
   ]);
 
   const feedbackColor =
@@ -468,6 +544,51 @@ export function WordCompletionMission({
       : feedbackType === 'warning'
         ? difficultyStyle.accentColor
         : colors.danger;
+
+  if (completed) {
+    return (
+      <CenteredState>
+        <Text
+          style={[
+            styles.stateIcon,
+            {
+              color:
+                difficultyStyle.accentColor,
+            },
+          ]}
+        >
+          OK
+        </Text>
+
+        <Text
+          style={[
+            styles.stateTitle,
+            {
+              color:
+                difficultyStyle.accentColor,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Mision completada'
+            : 'Mission complete'}
+        </Text>
+
+        <Text
+          style={[
+            styles.stateText,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? `${quantity} palabra${quantity === 1 ? '' : 's'} completada${quantity === 1 ? '' : 's'}.`
+            : `${quantity} word${quantity === 1 ? '' : 's'} completed.`}
+        </Text>
+      </CenteredState>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -653,7 +774,12 @@ export function WordCompletionMission({
                 },
               ]}
               value={state.userInput}
+              editable={!state.isCompleted}
               onChangeText={(value) => {
+                if (state.isCompleted) {
+                  return;
+                }
+
                 handleInputChange(value);
 
                 if (
@@ -709,7 +835,12 @@ export function WordCompletionMission({
                     difficultyStyle.accentColor,
                 },
               ]}
-              onPress={handleConfirm}
+              onPress={handleSafeConfirm}
+              disabled={
+                completed ||
+                state.isCompleted ||
+                completionHandledRef.current
+              }
               activeOpacity={0.85}
             >
               <Text
@@ -737,6 +868,44 @@ export function WordCompletionMission({
           </View>
         </View>
       </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function CenteredState({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  return (
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
+
+      <View
+        style={[
+          styles.centered,
+          {
+            backgroundColor: colors.bg,
+          },
+        ]}
+      >
+        {children}
+      </View>
     </SafeAreaView>
   );
 }
@@ -848,5 +1017,32 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 15,
     fontWeight: '500',
+  },
+
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 28,
+  },
+
+  stateIcon: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 14,
+  },
+
+  stateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+
+  stateText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
