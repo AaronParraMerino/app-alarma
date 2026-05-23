@@ -1,3 +1,4 @@
+// src/features/alarm/components/AlarmForm.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
@@ -11,20 +12,35 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Modal as AppModal } from '../../../shared/components/ui/Modal';
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
+
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { RandomMissionConfig } from '../../missions/random/components/RandomMissionConfig';
 import { registerAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
-import { ALARM_SOUND_OPTIONS, DEFAULT_ALARM_SOUND_URI } from '../services/alarmService';
+import {
+  ALARM_SOUND_OPTIONS,
+  DEFAULT_ALARM_SOUND_URI,
+} from '../services/alarmService';
 import AlarmChooseMission from './AlarmChooseMission';
-import AlarmSelectMission, { AlarmMissionSelection } from './AlarmSelectMission';
+import AlarmSelectMission, {
+  AlarmMissionSelection,
+} from './AlarmSelectMission';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
-import { AlarmCreate, AlarmMission, Difficulty, RepeatDay } from '../types/alarm.types';
-import { ALL_REPEAT_DAYS, normalizeRepeatDays } from '../utils/repeatSchedule';
+import {
+  AlarmCreate,
+  AlarmMission,
+  Difficulty,
+  RepeatDay,
+} from '../types/alarm.types';
+import {
+  ALL_REPEAT_DAYS,
+  normalizeRepeatDays,
+} from '../utils/repeatSchedule';
 
 interface AlarmFormProps {
   title: string;
@@ -134,10 +150,13 @@ function applyConfiguredMission(
 ): AlarmMission[] {
   if (index === null || index < 0 || index >= missions.length) {
     if (missions.length >= MAX_MISSIONS) return missions;
+
     return [...missions, mission];
   }
 
-  return missions.map((item, itemIndex) => (itemIndex === index ? mission : item));
+  return missions.map((item, itemIndex) =>
+    itemIndex === index ? mission : item,
+  );
 }
 
 type TimeWheelProps = {
@@ -147,7 +166,14 @@ type TimeWheelProps = {
   label: string;
 };
 
-function TimeWheel({ values, value, onChange, label }: TimeWheelProps) {
+function TimeWheel({
+  values,
+  value,
+  onChange,
+  label,
+}: TimeWheelProps) {
+  const { colors } = useAppTheme();
+
   const max = values.length;
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
@@ -168,6 +194,7 @@ function TimeWheel({ values, value, onChange, label }: TimeWheelProps) {
 
   const changeBy = (delta: number) => {
     const nextValue = values[mod(valueRef.current + delta, max)];
+
     valueRef.current = nextValue;
     onChangeRef.current(nextValue);
   };
@@ -178,6 +205,7 @@ function TimeWheel({ values, value, onChange, label }: TimeWheelProps) {
 
     repeatDelayRef.current = setTimeout(() => {
       repeatDelayRef.current = null;
+
       repeatIntervalRef.current = setInterval(() => {
         changeBy(delta);
       }, 72);
@@ -193,23 +221,64 @@ function TimeWheel({ values, value, onChange, label }: TimeWheelProps) {
 
   return (
     <View style={styles.timeStepper}>
-      <Text style={styles.timeStepperLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.timeStepperLabel,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
       <TouchableOpacity
-        style={styles.timeStepperButton}
+        style={[
+          styles.timeStepperButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.bgElevated,
+          },
+        ]}
         onPressIn={() => startRepeat(1)}
         onPressOut={clearRepeat}
         activeOpacity={0.82}
       >
-        <Ionicons name="chevron-up" size={26} color={Colors.text} />
+        <Ionicons
+          name="chevron-up"
+          size={26}
+          color={colors.text}
+        />
       </TouchableOpacity>
-      <Text style={styles.timeStepperValue}>{padTime(value)}</Text>
+
+      <Text
+        style={[
+          styles.timeStepperValue,
+          {
+            color: colors.text,
+          },
+        ]}
+      >
+        {padTime(value)}
+      </Text>
+
       <TouchableOpacity
-        style={styles.timeStepperButton}
+        style={[
+          styles.timeStepperButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.bgElevated,
+          },
+        ]}
         onPressIn={() => startRepeat(-1)}
         onPressOut={clearRepeat}
         activeOpacity={0.82}
       >
-        <Ionicons name="chevron-down" size={26} color={Colors.text} />
+        <Ionicons
+          name="chevron-down"
+          size={26}
+          color={colors.text}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -224,58 +293,100 @@ export default function AlarmForm({
   onSubmit,
   onDelete,
 }: AlarmFormProps) {
-  const navigation = useNavigation<NativeStackNavigationProp<AlarmStackParamList>>();
+  const { colors } = useAppTheme();
+
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AlarmStackParamList>>();
+
   const insets = useSafeAreaInsets();
+
   const initialDraftRef = useRef<AlarmFormDraft | null>(
     alarmFormDrafts.get(draftKey) ?? null,
   );
+
   const initialDraft = initialDraftRef.current;
+
   const initialMissionEnabled = Boolean(
-    initialDraft?.missionEnabled
-      ?? (initialData?.randomMissions || (initialData?.missions?.length ?? 0) > 0),
+    initialDraft?.missionEnabled ??
+      (initialData?.randomMissions ||
+        (initialData?.missions?.length ?? 0) > 0),
   );
+
   const initialMissionList = initialDraft?.configuredMissions?.length
     ? initialDraft.configuredMissions.slice(0, MAX_MISSIONS)
     : initialData?.missions?.length
       ? initialData.missions.slice(0, MAX_MISSIONS)
       : [DEFAULT_RANDOM_CONFIG];
+
   const initialMissions = initialMissionEnabled
-    ? initialMissionList.map(mission =>
+    ? initialMissionList.map((mission) =>
         (initialDraft?.randomMissions ?? initialData?.randomMissions)
-          ? { ...mission, type: 'random' as const }
+          ? {
+              ...mission,
+              type: 'random' as const,
+            }
           : mission,
       )
     : [];
 
-  const [hour, setHour] = useState<number>(initialDraft?.hour ?? initialData?.hour ?? 7);
-  const [minute, setMinute] = useState<number>(initialDraft?.minute ?? initialData?.minute ?? 0);
+  const [hour, setHour] = useState<number>(
+    initialDraft?.hour ?? initialData?.hour ?? 7,
+  );
+
+  const [minute, setMinute] = useState<number>(
+    initialDraft?.minute ?? initialData?.minute ?? 0,
+  );
+
   const [hourText, setHourText] = useState(() =>
     padTime(initialDraft?.hour ?? initialData?.hour ?? 7),
   );
+
   const [minuteText, setMinuteText] = useState(() =>
     padTime(initialDraft?.minute ?? initialData?.minute ?? 0),
   );
-  const [label, setLabel] = useState<string>(initialDraft?.label ?? initialData?.label ?? '');
+
+  const [label, setLabel] = useState<string>(
+    initialDraft?.label ?? initialData?.label ?? '',
+  );
+
   const [repeatDays, setRepeatDays] = useState<RepeatDay[]>(
     initialDraft?.repeatDays ?? initialData?.repeatDays ?? [],
   );
-  const [missionEnabled, setMissionEnabled] = useState(initialMissionEnabled);
+
+  const [missionEnabled, setMissionEnabled] =
+    useState(initialMissionEnabled);
+
   const [randomMissions, setRandomMissions] = useState<boolean>(
     initialDraft?.randomMissions ?? Boolean(initialData?.randomMissions),
   );
-  const [configuredMissions, setConfiguredMissions] = useState<AlarmMission[]>(
-    initialDraft?.configuredMissions ?? initialMissions,
-  );
-  const [draftMission, setDraftMission] = useState<AlarmMission | null>(null);
-  const [configSelection, setConfigSelection] = useState<AlarmMissionSelection | null>(null);
-  const [editingMissionIndex, setEditingMissionIndex] = useState<number | null>(null);
-  const [missionStep, setMissionStep] = useState<MissionStep>('form');
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+
+  const [configuredMissions, setConfiguredMissions] =
+    useState<AlarmMission[]>(
+      initialDraft?.configuredMissions ?? initialMissions,
+    );
+
+  const [draftMission, setDraftMission] =
+    useState<AlarmMission | null>(null);
+
+  const [configSelection, setConfigSelection] =
+    useState<AlarmMissionSelection | null>(null);
+
+  const [editingMissionIndex, setEditingMissionIndex] =
+    useState<number | null>(null);
+
+  const [missionStep, setMissionStep] =
+    useState<MissionStep>('form');
+
+  const [deleteConfirmVisible, setDeleteConfirmVisible] =
+    useState(false);
+
   const [soundUri, setSoundUri] = useState<string | null>(
-    initialDraft?.soundUri
-      ?? (initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI),
+    initialDraft?.soundUri ??
+      (initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI),
   );
+
   const draftClosedRef = useRef(false);
+
   const draftRef = useRef<AlarmFormDraft>({
     hour,
     minute,
@@ -300,6 +411,7 @@ export default function AlarmForm({
       configuredMissions,
       soundUri,
     };
+
     alarmFormDrafts.set(draftKey, draftRef.current);
   }, [
     configuredMissions,
@@ -331,6 +443,7 @@ export default function AlarmForm({
 
     draftRef.current = draft;
     alarmFormDrafts.set(draftKey, draft);
+
     return draft;
   };
 
@@ -341,15 +454,20 @@ export default function AlarmForm({
 
   const updateHour = (nextHour: number) => {
     setHour(nextHour);
-    persistDraft({ hour: nextHour });
+    persistDraft({
+      hour: nextHour,
+    });
   };
 
   const updateMinute = (nextMinute: number) => {
     setMinute(nextMinute);
-    persistDraft({ minute: nextMinute });
+    persistDraft({
+      minute: nextMinute,
+    });
   };
 
-  const sanitizeTimeText = (text: string) => text.replace(/\D/g, '').slice(0, 2);
+  const sanitizeTimeText = (text: string) =>
+    text.replace(/\D/g, '').slice(0, 2);
 
   const commitHourText = () => {
     const parsedHour = Number.parseInt(hourText, 10);
@@ -389,16 +507,17 @@ export default function AlarmForm({
   };
 
   const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
-  const allDaysSelected = normalizedRepeatDays.length === ALL_REPEAT_DAYS.length;
+  const allDaysSelected =
+    normalizedRepeatDays.length === ALL_REPEAT_DAYS.length;
 
   const toggleAllDays = () => {
     setRepeatDays(allDaysSelected ? [] : [...ALL_REPEAT_DAYS]);
   };
 
   const toggleDay = (day: RepeatDay) => {
-    setRepeatDays(prev => {
+    setRepeatDays((prev) => {
       if (prev.includes(day)) {
-        return prev.filter(d => d !== day);
+        return prev.filter((d) => d !== day);
       }
 
       return normalizeRepeatDays([...prev, day]);
@@ -407,14 +526,18 @@ export default function AlarmForm({
 
   const openMissionSelector = () => {
     setMissionEnabled(true);
-    persistDraft({ missionEnabled: true });
+    persistDraft({
+      missionEnabled: true,
+    });
     setEditingMissionIndex(null);
     setMissionStep('select');
   };
 
   const clearMission = (index?: number) => {
     if (typeof index === 'number') {
-      setConfiguredMissions(prev => prev.filter((_, itemIndex) => itemIndex !== index));
+      setConfiguredMissions((prev) =>
+        prev.filter((_, itemIndex) => itemIndex !== index),
+      );
       setRandomMissions(false);
       return;
     }
@@ -428,40 +551,48 @@ export default function AlarmForm({
 
   const toggleMissionEnabled = (enabled: boolean) => {
     setMissionEnabled(enabled);
+
     if (!enabled) {
       clearMission();
     }
   };
 
-  const setConfiguredMissionAtIndex = (mission: AlarmMission, index: number | null) => {
-    setConfiguredMissions(prev => {
+  const setConfiguredMissionAtIndex = (
+    mission: AlarmMission,
+    index: number | null,
+  ) => {
+    setConfiguredMissions((prev) => {
       const next = applyConfiguredMission(prev, mission, index);
+
       persistDraft({
         configuredMissions: next,
         missionEnabled: true,
         randomMissions: false,
       });
+
       return next;
     });
   };
 
   const editMission = (index: number) => {
     const mission = configuredMissions[index];
+
     if (!mission) return;
 
-    const selection = mission.type === 'random' || randomMissions
-      ? 'random'
-      : mission.type === 'math'
-        ? 'math'
-        : mission.type === 'physical'
-          ? 'physical'
-          : mission.type === 'color'
-            ? 'color'
-            : mission.type === 'colorFind'
-              ? 'colorFind'
-              : mission.type === 'photo'
-                ? 'photo'
-                : 'wordCompletion';
+    const selection =
+      mission.type === 'random' || randomMissions
+        ? 'random'
+        : mission.type === 'math'
+          ? 'math'
+          : mission.type === 'physical'
+            ? 'physical'
+            : mission.type === 'color'
+              ? 'color'
+              : mission.type === 'colorFind'
+                ? 'colorFind'
+                : mission.type === 'photo'
+                  ? 'photo'
+                  : 'wordCompletion';
 
     setEditingMissionIndex(index);
     setConfigSelection(selection);
@@ -480,31 +611,48 @@ export default function AlarmForm({
     setConfigSelection(selection);
 
     if (selection === 'random') {
-      const currentMission = editingMissionIndex !== null
-        ? configuredMissions[editingMissionIndex]
-        : null;
-      setDraftMission(currentMission?.type === 'random' ? currentMission : DEFAULT_RANDOM_CONFIG);
+      const currentMission =
+        editingMissionIndex !== null
+          ? configuredMissions[editingMissionIndex]
+          : null;
+
+      setDraftMission(
+        currentMission?.type === 'random'
+          ? currentMission
+          : DEFAULT_RANDOM_CONFIG,
+      );
+
       setMissionStep('config');
       return;
     }
 
-    const defaultMission = selection === 'math'
-      ? DEFAULT_MATH_MISSION
-      : selection === 'physical'
-        ? DEFAULT_MOVEMENT_MISSION
-        : selection === 'color'
-          ? DEFAULT_COLOR_MISSION
-          : selection === 'colorFind'
-            ? DEFAULT_COLOR_FIND_MISSION
-            : selection === 'photo'
-              ? DEFAULT_OBJECT_MISSION
-              : DEFAULT_WORD_MISSION;
-    const existingMission = editingMissionIndex !== null
-      ? configuredMissions[editingMissionIndex] ?? defaultMission
-      : defaultMission;
+    const defaultMission =
+      selection === 'math'
+        ? DEFAULT_MATH_MISSION
+        : selection === 'physical'
+          ? DEFAULT_MOVEMENT_MISSION
+          : selection === 'color'
+            ? DEFAULT_COLOR_MISSION
+            : selection === 'colorFind'
+              ? DEFAULT_COLOR_FIND_MISSION
+              : selection === 'photo'
+                ? DEFAULT_OBJECT_MISSION
+                : DEFAULT_WORD_MISSION;
 
-    persistDraft({ missionEnabled: true });
-    openConcreteMissionConfig(selection, existingMission, editingMissionIndex);
+    const existingMission =
+      editingMissionIndex !== null
+        ? configuredMissions[editingMissionIndex] ?? defaultMission
+        : defaultMission;
+
+    persistDraft({
+      missionEnabled: true,
+    });
+
+    openConcreteMissionConfig(
+      selection,
+      existingMission,
+      editingMissionIndex,
+    );
   };
 
   const closeMissionConfig = () => {
@@ -519,7 +667,7 @@ export default function AlarmForm({
     mission: AlarmMission,
     index: number | null,
   ) => {
-    const sessionId = registerAlarmMissionConfigSession(nextMission => {
+    const sessionId = registerAlarmMissionConfigSession((nextMission) => {
       setConfiguredMissionAtIndex(nextMission, index);
       setMissionEnabled(true);
       setRandomMissions(false);
@@ -590,13 +738,20 @@ export default function AlarmForm({
   };
 
   const getRandomMissionConfigLimit = () => {
-    const randomCount = configuredMissions.filter(mission => mission.type === 'random').length;
-    const editingMission = editingMissionIndex !== null
-      ? configuredMissions[editingMissionIndex]
-      : null;
+    const randomCount = configuredMissions.filter(
+      (mission) => mission.type === 'random',
+    ).length;
+
+    const editingMission =
+      editingMissionIndex !== null
+        ? configuredMissions[editingMissionIndex]
+        : null;
 
     if (editingMission?.type === 'random') {
-      return Math.max(1, MAX_MISSIONS - (configuredMissions.length - randomCount));
+      return Math.max(
+        1,
+        MAX_MISSIONS - (configuredMissions.length - randomCount),
+      );
     }
 
     if (editingMissionIndex !== null) {
@@ -607,12 +762,17 @@ export default function AlarmForm({
   };
 
   const getInitialRandomMissionCount = () => {
-    const editingMission = editingMissionIndex !== null
-      ? configuredMissions[editingMissionIndex]
-      : null;
+    const editingMission =
+      editingMissionIndex !== null
+        ? configuredMissions[editingMissionIndex]
+        : null;
 
     if (editingMission?.type === 'random') {
-      return Math.max(1, configuredMissions.filter(mission => mission.type === 'random').length);
+      return Math.max(
+        1,
+        configuredMissions.filter((mission) => mission.type === 'random')
+          .length,
+      );
     }
 
     return 1;
@@ -629,13 +789,16 @@ export default function AlarmForm({
       config.missionCount,
     );
 
-    setConfiguredMissions(prev => {
-      const editingMission = editingMissionIndex !== null ? prev[editingMissionIndex] : null;
+    setConfiguredMissions((prev) => {
+      const editingMission =
+        editingMissionIndex !== null ? prev[editingMissionIndex] : null;
+
       let next: AlarmMission[];
 
       if (editingMission?.type === 'random') {
         let inserted = false;
-        next = prev.flatMap(mission => {
+
+        next = prev.flatMap((mission) => {
           if (mission.type !== 'random') return [mission];
           if (inserted) return [];
 
@@ -644,9 +807,15 @@ export default function AlarmForm({
         });
 
         next = next.slice(0, MAX_MISSIONS);
-      } else if (editingMissionIndex !== null && editingMissionIndex >= 0 && editingMissionIndex < prev.length) {
+      } else if (
+        editingMissionIndex !== null &&
+        editingMissionIndex >= 0 &&
+        editingMissionIndex < prev.length
+      ) {
         next = prev
-          .flatMap((mission, index) => (index === editingMissionIndex ? randomMissionGroup : [mission]))
+          .flatMap((mission, index) =>
+            index === editingMissionIndex ? randomMissionGroup : [mission],
+          )
           .slice(0, MAX_MISSIONS);
       } else {
         next = [...prev, ...randomMissionGroup].slice(0, MAX_MISSIONS);
@@ -657,6 +826,7 @@ export default function AlarmForm({
         missionEnabled: true,
         randomMissions: false,
       });
+
       return next;
     });
 
@@ -668,10 +838,13 @@ export default function AlarmForm({
   };
 
   const saveAlarm = () => {
-    const hasConfiguredMissions = missionEnabled && configuredMissions.length > 0;
+    const hasConfiguredMissions =
+      missionEnabled && configuredMissions.length > 0;
+
     const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
 
     clearSavedDraft();
+
     onSubmit({
       hour,
       minute,
@@ -693,7 +866,11 @@ export default function AlarmForm({
     );
   }
 
-  if (missionStep === 'config' && configSelection === 'random' && draftMission) {
+  if (
+    missionStep === 'config' &&
+    configSelection === 'random' &&
+    draftMission
+  ) {
     return (
       <RandomMissionConfig
         initialDifficulty={toRuntimeDifficulty(draftMission.difficulty)}
@@ -709,22 +886,76 @@ export default function AlarmForm({
 
   return (
     <>
-      <View style={styles.header}>
-        <BackButton onPress={handleBack} style={styles.backBtn} />
-        <Text style={styles.title}>{title}</Text>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.bg,
+          },
+        ]}
+      >
+        <BackButton
+          onPress={handleBack}
+          style={styles.backBtn}
+        />
+
+        <Text
+          style={[
+            styles.title,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
+        style={{
+          backgroundColor: colors.bg,
+        }}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: onDelete ? 132 + insets.bottom : 104 + insets.bottom },
+          {
+            paddingBottom: onDelete
+              ? 132 + insets.bottom
+              : 104 + insets.bottom,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Hora</Text>
-          <View style={styles.timePickerPanel}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Hora
+          </Text>
+
+          <View
+            style={[
+              styles.timePickerPanel,
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TimeWheel
               label="Hora"
               values={HOUR_VALUES}
@@ -732,7 +963,16 @@ export default function AlarmForm({
               onChange={updateHour}
             />
 
-            <Text style={styles.timeSeparator}>:</Text>
+            <Text
+              style={[
+                styles.timeSeparator,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              :
+            </Text>
 
             <TimeWheel
               label="Min"
@@ -741,13 +981,41 @@ export default function AlarmForm({
               onChange={updateMinute}
             />
           </View>
-          <View style={styles.directTimeRow}>
-            <Text style={styles.directTimeLabel}>Hora exacta</Text>
+
+          <View
+            style={[
+              styles.directTimeRow,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.directTimeLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              Hora exacta
+            </Text>
+
             <View style={styles.directTimeInputs}>
               <TextInput
-                style={styles.directTimeInput}
+                style={[
+                  styles.directTimeInput,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 value={hourText}
-                onChangeText={text => setHourText(sanitizeTimeText(text))}
+                onChangeText={(text) =>
+                  setHourText(sanitizeTimeText(text))
+                }
                 onBlur={commitHourText}
                 onSubmitEditing={commitHourText}
                 keyboardType="number-pad"
@@ -755,11 +1023,31 @@ export default function AlarmForm({
                 selectTextOnFocus
                 returnKeyType="done"
               />
-              <Text style={styles.directTimeSeparator}>:</Text>
+
+              <Text
+                style={[
+                  styles.directTimeSeparator,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                :
+              </Text>
+
               <TextInput
-                style={styles.directTimeInput}
+                style={[
+                  styles.directTimeInput,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 value={minuteText}
-                onChangeText={text => setMinuteText(sanitizeTimeText(text))}
+                onChangeText={(text) =>
+                  setMinuteText(sanitizeTimeText(text))
+                }
                 onBlur={commitMinuteText}
                 onSubmitEditing={commitMinuteText}
                 keyboardType="number-pad"
@@ -771,46 +1059,130 @@ export default function AlarmForm({
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Nombre (opcional)</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Nombre (opcional)
+          </Text>
+
           <TextInput
             placeholder="Ej. Clase de programacion"
-            placeholderTextColor={Colors.textMuted}
-            style={styles.input}
+            placeholderTextColor={colors.textMuted}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             value={label}
             onChangeText={setLabel}
             maxLength={40}
           />
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Repeticion</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Repeticion
+          </Text>
+
           <TouchableOpacity
-            style={styles.allDaysToggle}
+            style={[
+              styles.allDaysToggle,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={toggleAllDays}
             activeOpacity={0.85}
           >
             <Ionicons
               name={allDaysSelected ? 'checkbox' : 'square-outline'}
               size={22}
-              color={allDaysSelected ? Colors.primary : Colors.textSecondary}
+              color={
+                allDaysSelected
+                  ? colors.primary
+                  : colors.textSecondary
+              }
             />
-            <Text style={[styles.allDaysText, allDaysSelected && styles.allDaysTextActive]}>
+
+            <Text
+              style={[
+                styles.allDaysText,
+                {
+                  color: allDaysSelected
+                    ? colors.text
+                    : colors.textSecondary,
+                },
+              ]}
+            >
               Todos los dias
             </Text>
           </TouchableOpacity>
+
           <View style={styles.daysRow}>
             {DAY_LABELS_SHORT.map((day, index) => {
               const dayValue = index as RepeatDay;
               const active = repeatDays.includes(dayValue);
+
               return (
                 <TouchableOpacity
                   key={day + index}
-                  style={[styles.dayBtn, active && styles.dayBtnActive]}
+                  style={[
+                    styles.dayBtn,
+                    {
+                      backgroundColor: active
+                        ? colors.primary
+                        : colors.bgElevated,
+                      borderColor: active
+                        ? colors.primary
+                        : colors.border,
+                    },
+                  ]}
                   onPress={() => toggleDay(dayValue)}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.dayText, active && styles.dayTextActive]}>
+                  <Text
+                    style={[
+                      styles.dayText,
+                      {
+                        color: active
+                          ? colors.white
+                          : colors.textSecondary,
+                      },
+                    ]}
+                  >
                     {day}
                   </Text>
                 </TouchableOpacity>
@@ -819,20 +1191,61 @@ export default function AlarmForm({
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Sonido</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Sonido
+          </Text>
+
           <View style={styles.soundWrap}>
-            {ALARM_SOUND_OPTIONS.map(sound => {
+            {ALARM_SOUND_OPTIONS.map((sound) => {
               const active = soundUri === sound.uri;
+
               return (
                 <TouchableOpacity
                   key={sound.id}
-                  style={[styles.soundBtn, active && styles.soundBtnActive]}
+                  style={[
+                    styles.soundBtn,
+                    {
+                      backgroundColor: active
+                        ? colors.primary + '22'
+                        : colors.bgElevated,
+                      borderColor: active
+                        ? colors.primary
+                        : colors.border,
+                    },
+                  ]}
                   onPress={() => setSoundUri(sound.uri)}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.soundEmoji}>{sound.emoji}</Text>
-                  <Text style={[styles.soundText, active && styles.soundTextActive]}>
+                  <Text style={styles.soundEmoji}>
+                    {sound.emoji}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.soundText,
+                      {
+                        color: active
+                          ? colors.text
+                          : colors.textSecondary,
+                      },
+                    ]}
+                  >
                     {sound.label}
                   </Text>
                 </TouchableOpacity>
@@ -852,23 +1265,63 @@ export default function AlarmForm({
         />
       </ScrollView>
 
-      <View style={[styles.actionShell, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View
+        style={[
+          styles.actionShell,
+          {
+            backgroundColor: colors.bg,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, 10),
+          },
+        ]}
+      >
         <View style={styles.actionBar}>
           <TouchableOpacity
-            style={[styles.saveBtn, onDelete && styles.saveBtnWithDelete]}
+            style={[
+              styles.saveBtn,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primaryDeep,
+              },
+              onDelete && styles.saveBtnWithDelete,
+            ]}
             onPress={saveAlarm}
             activeOpacity={0.9}
           >
-            <Text style={styles.saveBtnText}>{submitLabel}</Text>
+            <Text
+              style={[
+                styles.saveBtnText,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
+              {submitLabel}
+            </Text>
           </TouchableOpacity>
 
           {onDelete ? (
             <TouchableOpacity
-              style={styles.deleteBtn}
+              style={[
+                styles.deleteBtn,
+                {
+                  backgroundColor: colors.dangerDim,
+                  borderColor: colors.danger,
+                },
+              ]}
               onPress={handleDelete}
               activeOpacity={0.9}
             >
-              <Text style={styles.deleteBtnText}>Eliminar</Text>
+              <Text
+                style={[
+                  styles.deleteBtnText,
+                  {
+                    color: colors.danger,
+                  },
+                ]}
+              >
+                Eliminar
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -903,17 +1356,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   backBtn: {
     minWidth: 76,
   },
+
   headerSpacer: {
     width: 76,
   },
+
   title: {
-    color: Colors.text,
     fontSize: 20,
     fontWeight: Typography.title.fontWeight,
   },
+
   content: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -922,73 +1378,70 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 12,
   },
+
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 14,
     gap: 10,
   },
+
   sectionTitle: {
-    color: Colors.text,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
   },
+
   timePickerPanel: {
     minHeight: 154,
     borderRadius: 14,
-    backgroundColor: Colors.bg,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
+
   timeStepper: {
     flex: 1,
     maxWidth: 120,
     alignItems: 'center',
     gap: 7,
   },
+
   timeStepperLabel: {
-    color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '800',
   },
+
   timeStepperButton: {
     width: '100%',
     minHeight: 38,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   timeStepperValue: {
     width: '100%',
-    color: Colors.white,
     fontSize: 44,
     lineHeight: 52,
     fontWeight: '900',
     textAlign: 'center',
   },
+
   timeSeparator: {
-    color: Colors.white,
     fontSize: 40,
     lineHeight: 48,
     fontWeight: '900',
     marginTop: 18,
   },
+
   directTimeRow: {
     minHeight: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -996,272 +1449,147 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+
   directTimeLabel: {
-    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '800',
   },
+
   directTimeInputs: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
+
   directTimeInput: {
     width: 48,
     minHeight: 36,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bg,
-    color: Colors.text,
     fontSize: 18,
     fontWeight: '900',
     textAlign: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
+
   directTimeSeparator: {
-    color: Colors.text,
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '900',
   },
+
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bg,
-    color: Colors.text,
     fontSize: 15,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+
   allDaysToggle: {
     minHeight: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
   },
+
   allDaysText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '800',
   },
-  allDaysTextActive: {
-    color: Colors.text,
-  },
+
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 6,
   },
+
   dayBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.bgElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  dayBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+
   dayText: {
-    color: Colors.textSecondary,
     fontWeight: '600',
   },
-  dayTextActive: {
-    color: Colors.white,
-  },
+
   soundWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
+
   soundBtn: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  soundBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '22',
-  },
+
   soundEmoji: {
     fontSize: 12,
   },
+
   soundText: {
-    color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '500',
   },
-  soundTextActive: {
-    color: Colors.text,
-  },
-  helper: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  configBadge: {
-    alignSelf: 'flex-start',
-    color: Colors.primaryLight,
-    fontSize: 13,
-    fontWeight: '900',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: Colors.primary + '22',
-    overflow: 'hidden',
-  },
-  difficultyRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  difficultyBtn: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  difficultyBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '22',
-  },
-  difficultyText: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  difficultyTextActive: {
-    color: Colors.text,
-  },
-  quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
-    overflow: 'hidden',
-  },
-  quantityBtn: {
-    width: 44,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary + '22',
-  },
-  quantityBtnText: {
-    color: Colors.primaryLight,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  quantityValue: {
-    minWidth: 54,
-    color: Colors.text,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  operationGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  operationBtn: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgElevated,
-    paddingVertical: 10,
-    alignItems: 'center',
-    gap: 2,
-  },
-  operationBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '22',
-  },
-  operationSymbol: {
-    color: Colors.text,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  operationSymbolActive: {
-    color: Colors.primaryLight,
-  },
-  operationLabel: {
-    color: Colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  operationLabelActive: {
-    color: Colors.text,
-  },
+
   saveBtn: {
     flex: 1,
     minHeight: 52,
-    backgroundColor: Colors.primary,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.primaryDeep,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 14,
   },
+
   saveBtnWithDelete: {
     flex: 1.35,
   },
+
   saveBtnText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
   },
+
   deleteBtn: {
     minWidth: 104,
     minHeight: 52,
-    backgroundColor: Colors.dangerDim,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.danger,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   deleteBtnText: {
-    color: Colors.danger,
     fontSize: 15,
     fontWeight: '700',
   },
+
   actionShell: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.bg + 'F2',
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     paddingTop: 10,
     paddingHorizontal: Layout.screenPadding,
   },
+
   actionBar: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,

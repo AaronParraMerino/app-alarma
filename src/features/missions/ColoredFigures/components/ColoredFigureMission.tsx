@@ -1,3 +1,4 @@
+// src/features/missions/ColoredFigures/components/ColoredFigureMission.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -8,6 +9,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 
 import { Difficulty, FigureType } from '../types/ColoredFigures.types';
@@ -16,8 +18,8 @@ import { useColoredFigures } from '../hooks/useColoredFigures';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -51,6 +53,7 @@ export function ColoredFiguresMission({
   onComplete,
   alarmLabel,
 }: Props) {
+  const { colors, statusBarStyle } = useAppTheme();
   const { user, isAuthenticated, isGuest } = useAuth();
 
   const [currentDifficulty, setCurrentDifficulty] =
@@ -71,13 +74,14 @@ export function ColoredFiguresMission({
   } = useColoredFigures(currentDifficulty);
 
   const { time, day } = useCurrentTime();
-  const style = DIFFICULTY_STYLES[currentDifficulty];
+
+  const difficultyStyle = DIFFICULTY_STYLES[currentDifficulty];
   const totalQuantity = Math.max(1, quantity);
 
   React.useEffect(() => {
     setErrorCount(0);
     reset();
-  }, [currentDifficulty]);
+  }, [currentDifficulty, reset]);
 
   const saveMissionHistory = React.useCallback(
     (success: boolean, nextErrorCount: number) => {
@@ -202,7 +206,10 @@ export function ColoredFiguresMission({
           style={[
             styles.figureBase,
             styles.circle,
-            { backgroundColor: color },
+            {
+              backgroundColor: color,
+              borderColor: colors.border,
+            },
           ]}
         />
       );
@@ -214,7 +221,10 @@ export function ColoredFiguresMission({
           style={[
             styles.figureBase,
             styles.square,
-            { backgroundColor: color },
+            {
+              backgroundColor: color,
+              borderColor: colors.border,
+            },
           ]}
         />
       );
@@ -225,7 +235,10 @@ export function ColoredFiguresMission({
         <View
           style={[
             styles.rectangle,
-            { backgroundColor: color },
+            {
+              backgroundColor: color,
+              borderColor: colors.border,
+            },
           ]}
         />
       );
@@ -236,7 +249,10 @@ export function ColoredFiguresMission({
         <View
           style={[
             styles.diamond,
-            { backgroundColor: color },
+            {
+              backgroundColor: color,
+              borderColor: colors.border,
+            },
           ]}
         />
       );
@@ -246,7 +262,9 @@ export function ColoredFiguresMission({
       <View
         style={[
           styles.triangle,
-          { borderBottomColor: color },
+          {
+            borderBottomColor: color,
+          },
         ]}
       />
     );
@@ -254,35 +272,74 @@ export function ColoredFiguresMission({
 
   const feedbackColor =
     feedbackType === 'success'
-      ? Colors.success
+      ? colors.success
       : feedbackType === 'warning'
-      ? style.accentColor
-      : Colors.danger;
+        ? difficultyStyle.accentColor
+        : colors.danger;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.container}>
           <View style={styles.header}>
-            <View style={[styles.badge, { backgroundColor: style.bgColor }]}>
-              <Text style={[styles.badgeText, { color: style.accentColor }]}>
-                {style.label}
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: difficultyStyle.bgColor,
+                  borderColor: difficultyStyle.accentColor + '40',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.badgeText,
+                  {
+                    color: difficultyStyle.accentColor,
+                  },
+                ]}
+              >
+                {difficultyStyle.label}
               </Text>
             </View>
 
-            <Text style={styles.time}>{time}</Text>
-            <Text style={styles.day}>{day}</Text>
+            <Text style={[styles.time, { color: colors.text }]}>
+              {time}
+            </Text>
+
+            <Text style={[styles.day, { color: colors.textSecondary }]}>
+              {day}
+            </Text>
 
             {alarmLabel ? (
-              <Text style={styles.alarmLabel}>{alarmLabel}</Text>
+              <Text
+                style={[
+                  styles.alarmLabel,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {alarmLabel}
+              </Text>
             ) : null}
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.instruction}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.bgCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.instruction, { color: colors.text }]}>
               Escribe el color de la figura
             </Text>
 
@@ -301,14 +358,22 @@ export function ColoredFiguresMission({
               }
             }}
             placeholder="Escribe el color"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             style={[
               styles.input,
-              { borderColor: style.accentColor },
-              state.hasError ? styles.inputError : null,
-              state.isCompleted ? styles.inputSuccess : null,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: difficultyStyle.accentColor,
+                color: colors.text,
+              },
+              state.hasError && {
+                borderColor: colors.danger,
+              },
+              state.isCompleted && {
+                borderColor: colors.success,
+              },
             ]}
             onSubmitEditing={handleSubmit}
           />
@@ -322,10 +387,18 @@ export function ColoredFiguresMission({
           <View style={styles.spacer} />
 
           <TouchableOpacity
-            style={[styles.confirmBtn, { backgroundColor: style.accentColor }]}
+            style={[
+              styles.confirmBtn,
+              {
+                backgroundColor: difficultyStyle.accentColor,
+              },
+            ]}
             onPress={handleSubmit}
+            activeOpacity={0.85}
           >
-            <Text style={styles.confirmBtnText}>Confirmar</Text>
+            <Text style={[styles.confirmBtnText, { color: colors.black }]}>
+              Confirmar
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -336,7 +409,6 @@ export function ColoredFiguresMission({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   flex: {
@@ -364,6 +436,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
+    borderWidth: 1,
     marginBottom: 6,
   },
 
@@ -375,31 +448,25 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 52,
     fontWeight: '700',
-    color: Colors.text,
     lineHeight: 56,
   },
 
   day: {
     fontSize: 14,
-    color: Colors.textSecondary,
   },
 
   alarmLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 2,
   },
 
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     padding: 22,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
 
   instruction: {
-    color: Colors.text,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
@@ -416,7 +483,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderWidth: 1,
-    borderColor: Colors.white + '30',
   },
 
   circle: {
@@ -432,7 +498,6 @@ const styles = StyleSheet.create({
     height: 95,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.white + '30',
   },
 
   diamond: {
@@ -441,7 +506,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     transform: [{ rotate: '45deg' }],
     borderWidth: 1,
-    borderColor: Colors.white + '30',
   },
 
   triangle: {
@@ -457,21 +521,11 @@ const styles = StyleSheet.create({
   input: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: Colors.bgElevated,
     borderWidth: 2,
-    color: Colors.text,
     paddingHorizontal: 14,
     fontSize: 15,
     marginTop: 16,
     marginBottom: 6,
-  },
-
-  inputError: {
-    borderColor: Colors.danger,
-  },
-
-  inputSuccess: {
-    borderColor: Colors.success,
   },
 
   feedbackText: {
@@ -493,7 +547,6 @@ const styles = StyleSheet.create({
   },
 
   confirmBtnText: {
-    color: Colors.bg,
     fontSize: 15,
     fontWeight: '700',
   },

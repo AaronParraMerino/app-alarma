@@ -1,3 +1,4 @@
+// src/features/alarm/screens/AlarmRingingScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AppState,
@@ -6,14 +7,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors } from '../../../shared/theme/colors';
+
 import { Layout } from '../../../shared/theme/layout';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { getAlarmsLocal } from '../../../shared/services/storage/localDB.service';
+
 import { MathExercisesMission } from '../../missions/Math Exercises/components/MathExercisesMission';
 import { OperationType } from '../../missions/Math Exercises/types/mathExercises.types';
 import { WordCompletionMission } from '../../missions/wordCompletion/components/WordCompletionMission';
@@ -21,6 +25,7 @@ import { MovementMissionScreen } from '../../missions/MovementMission/screens/Mo
 import { ColoredFiguresMission } from '../../missions/ColoredFigures/components/ColoredFigureMission';
 import { ColorFindMission } from '../../missions/ColorFind/components/ColorFindMission';
 import { ObjectRecognitionMissionContent } from '../../missions/ObjectRecognition/screens/ObjectRecognitionMissionScreen';
+
 import {
   closeNativeAlarmScreen,
   dismissRingingAlarmByAlarmId,
@@ -45,6 +50,7 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
   const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
+
   return {
     type: RANDOM_MISSION_TYPES[index],
     difficulty: config.difficulty,
@@ -54,7 +60,9 @@ function resolveRandomMission(config: AlarmMission): AlarmMission {
 }
 
 function formatTime(hour: number, minute: number): string {
-  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  return `${hour.toString().padStart(2, '0')}:${minute
+    .toString()
+    .padStart(2, '0')}`;
 }
 
 function toMissionDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard' {
@@ -62,20 +70,33 @@ function toMissionDifficulty(difficulty: Difficulty): 'easy' | 'medium' | 'hard'
 }
 
 export default function AlarmRingingScreen({ route, navigation }: Props) {
+  const { colors, statusBarStyle } = useAppTheme();
+
   const { alarms, updateAlarm } = useAlarmStore();
+
   const alarmId = route.params.alarmId;
+
   const alarm = useMemo(
-    () => alarms.find(a => a.id === alarmId) ?? getAlarmsLocal().find(a => a.id === alarmId),
+    () =>
+      alarms.find((a) => a.id === alarmId) ??
+      getAlarmsLocal().find((a) => a.id === alarmId),
     [alarms, alarmId],
   );
+
   const shouldUseJsAudio = !isNativeAndroidAlarmAvailable();
-  const alarmSoundAsset = shouldUseJsAudio ? getAlarmSoundAsset(alarm?.soundUri ?? null) : null;
+
+  const alarmSoundAsset = shouldUseJsAudio
+    ? getAlarmSoundAsset(alarm?.soundUri ?? null)
+    : null;
+
   const player = useAudioPlayer(alarmSoundAsset, {
     keepAudioSessionActive: shouldUseJsAudio,
   });
+
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [canRenderAlarm, setCanRenderAlarm] = useState(false);
   const [isStoppingAlarm, setIsStoppingAlarm] = useState(false);
+
   const stoppingAlarmRef = React.useRef(false);
   const mountedRef = React.useRef(true);
 
@@ -85,9 +106,10 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     }
 
     if (alarm.randomMissions) {
-      const randomConfigs = alarm.missions.length > 0
-        ? alarm.missions
-        : [{ type: 'math', difficulty: 'normal', quantity: 3 } as AlarmMission];
+      const randomConfigs =
+        alarm.missions.length > 0
+          ? alarm.missions
+          : [{ type: 'math', difficulty: 'normal', quantity: 3 } as AlarmMission];
 
       return randomConfigs.map(resolveRandomMission);
     }
@@ -96,7 +118,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
       return [];
     }
 
-    return alarm.missions.map(mission => {
+    return alarm.missions.map((mission) => {
       if (mission.type === 'random') {
         return resolveRandomMission(mission);
       }
@@ -127,6 +149,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     mountedRef.current = true;
+
     return () => {
       mountedRef.current = false;
     };
@@ -166,6 +189,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
     return () => {
       mounted = false;
+
       try {
         player.pause();
         void player.seekTo(0);
@@ -177,7 +201,11 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
   useFocusEffect(
     React.useCallback(() => {
-      const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => true,
+      );
+
       return () => subscription.remove();
     }, []),
   );
@@ -195,6 +223,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     setCanRenderAlarm(false);
 
     const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
+
     if (!mountedRef.current) return false;
 
     if (!shouldOpen) {
@@ -211,12 +240,13 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   useFocusEffect(
     React.useCallback(() => {
       void validateAlarmStillActive();
+
       return undefined;
     }, [validateAlarmStillActive]),
   );
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', state => {
+    const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         void validateAlarmStillActive();
         return;
@@ -236,6 +266,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     setCanRenderAlarm(false);
 
     const targetAlarmId = alarm?.id ?? alarmId;
+
     await dismissRingingAlarmByAlarmId(targetAlarmId);
 
     if (!alarm) {
@@ -250,6 +281,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
     }
 
     const shouldRemainEnabled = !shouldDisableAfterAlarmResolution(alarm);
+
     if (alarm.enabled !== shouldRemainEnabled) {
       updateAlarm(alarm.id, { enabled: shouldRemainEnabled });
     }
@@ -260,6 +292,7 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
   const completeMission = React.useCallback(() => {
     const nextMissionIndex = currentMissionIndex + 1;
+
     if (nextMissionIndex < missionSequence.length) {
       setCurrentMissionIndex(nextMissionIndex);
       return;
@@ -269,21 +302,47 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
   }, [currentMissionIndex, missionSequence.length, stopAlarm]);
 
   if (isStoppingAlarm || !canRenderAlarm) {
-    return <SafeAreaView style={styles.safe} />;
+    return (
+      <SafeAreaView
+        style={[styles.safe, { backgroundColor: colors.bg }]}
+        edges={['top', 'left', 'right']}
+      >
+        <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      </SafeAreaView>
+    );
   }
 
   if (!alarm) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView
+        style={[styles.safe, { backgroundColor: colors.bg }]}
+        edges={['top', 'left', 'right']}
+      >
+        <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
         <View style={styles.centered}>
-          <Text style={styles.title}>Alarma no encontrada</Text>
-          <Text style={styles.subtitle}>Vuelve e intenta de nuevo.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Alarma no encontrada
+          </Text>
+
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Vuelve e intenta de nuevo.
+          </Text>
+
           <TouchableOpacity
-            style={styles.stopButton}
+            style={[
+              styles.stopButton,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primaryDeep,
+              },
+            ]}
             onPress={() => void stopAlarm()}
             activeOpacity={0.88}
           >
-            <Text style={styles.stopButtonText}>Cerrar alarma</Text>
+            <Text style={[styles.stopButtonText, { color: colors.white }]}>
+              Cerrar alarma
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -292,21 +351,57 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 
   if (!activeMission) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.topSection}>
-          <Text style={styles.badge}>ALARMA</Text>
-          <Text style={styles.time}>{formatTime(alarm.hour, alarm.minute)}</Text>
-          {alarm.label ? <Text style={styles.label}>{alarm.label}</Text> : null}
+      <SafeAreaView
+        style={[styles.safe, { backgroundColor: colors.bg }]}
+        edges={['top', 'left', 'right']}
+      >
+        <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
+        <View
+          style={[
+            styles.topSection,
+            {
+              backgroundColor: colors.bgCard,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.badge, { color: colors.warning }]}>ALARMA</Text>
+
+          <Text style={[styles.time, { color: colors.text }]}>
+            {formatTime(alarm.hour, alarm.minute)}
+          </Text>
+
+          {alarm.label ? (
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              {alarm.label}
+            </Text>
+          ) : null}
         </View>
+
         <View style={styles.normalAlarmSection}>
-          <Text style={styles.title}>Alarma activa</Text>
-          <Text style={styles.subtitle}>No hay misiones configuradas.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Alarma activa
+          </Text>
+
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            No hay misiones configuradas.
+          </Text>
+
           <TouchableOpacity
-            style={styles.stopButton}
+            style={[
+              styles.stopButton,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primaryDeep,
+              },
+            ]}
             onPress={() => void stopAlarm()}
             activeOpacity={0.88}
           >
-            <Text style={styles.stopButtonText}>Detener alarma</Text>
+            <Text style={[styles.stopButtonText, { color: colors.white }]}>
+              Detener alarma
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -389,8 +484,8 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
+
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -398,16 +493,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
   },
+
   topSection: {
     flex: 1,
     minHeight: 110,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.bgCard,
     paddingHorizontal: 20,
   },
+
   missionSection: {
     flex: 5,
     justifyContent: 'center',
@@ -415,6 +510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
+
   normalAlarmSection: {
     flex: 5,
     width: '100%',
@@ -426,48 +522,47 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     gap: 10,
   },
+
   badge: {
-    color: Colors.warning,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.1,
     marginBottom: 8,
   },
+
   time: {
-    color: Colors.text,
     fontSize: 48,
     fontWeight: '800',
     letterSpacing: -1.2,
     lineHeight: 54,
   },
+
   title: {
-    color: Colors.text,
     fontSize: 20,
     fontWeight: '700',
   },
+
   subtitle: {
-    color: Colors.textSecondary,
     fontSize: 14,
   },
+
   label: {
-    color: Colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
   },
+
   stopButton: {
     marginTop: 18,
     minWidth: 210,
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
     borderWidth: 1,
-    borderColor: Colors.primaryDeep,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 22,
   },
+
   stopButtonText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: '800',
   },

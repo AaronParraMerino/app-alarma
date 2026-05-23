@@ -1,3 +1,4 @@
+// src/features/missions/ObjectRecognition/screens/ObjectRecognitionMissionScreen.tsx
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Image,
@@ -13,9 +14,12 @@ import { CameraCapturedPicture } from 'expo-camera/build/Camera.types';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ObjectBankService } from '../services/objectBank.service';
 import {
@@ -80,6 +84,7 @@ function pickReplacementObject(
 ): RecognizableObject | null {
   const candidates = objects.filter(object => object.id !== currentObjectId);
   const pool = candidates.length > 0 ? candidates : objects;
+
   return pool[Math.floor(Math.random() * pool.length)] ?? null;
 }
 
@@ -97,13 +102,18 @@ export function ObjectRecognitionMissionContent({
   onBack,
   onComplete,
 }: ObjectRecognitionMissionContentProps) {
+  const { colors, statusBarStyle } = useAppTheme();
+
   const cameraRef = React.useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { config, detector } = useObjectRecognitionStore();
+
   const initialDifficulty = difficulty ?? config.difficulty;
   const targetObjectIds = routeTargetObjectIds ?? config.targetObjectIds;
+
   const [activeDifficulty, setActiveDifficulty] =
     useState<ObjectDifficulty>(initialDifficulty);
+
   const [objectPool, setObjectPool] = useState<RecognizableObject[]>([]);
   const [targetObjects, setTargetObjects] = useState<RecognizableObject[]>([]);
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0);
@@ -112,18 +122,25 @@ export function ObjectRecognitionMissionContent({
   const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [validating, setValidating] = useState(false);
+
   const [recognitionResult, setRecognitionResult] =
     useState<ObjectRecognitionResult | null>(null);
+
   const targetObject = targetObjects[currentTargetIndex] ?? null;
   const isLastTarget = currentTargetIndex >= targetObjects.length - 1;
   const difficultyStyle = DIFFICULTY_STYLES[activeDifficulty];
+
   const handleComplete = useCallback(() => {
     onComplete?.();
   }, [onComplete]);
 
   useEffect(() => {
     const objectPool = ObjectBankService.getEnabled();
-    const selectedPool = objectPool.filter(object => targetObjectIds.includes(object.id));
+
+    const selectedPool = objectPool.filter(object =>
+      targetObjectIds.includes(object.id),
+    );
+
     const pool = selectedPool.length > 0 ? selectedPool : objectPool;
     const quantity = DIFFICULTY_QUANTITY[initialDifficulty];
 
@@ -152,8 +169,10 @@ export function ObjectRecognitionMissionContent({
         DIFFICULTY_QUANTITY[nextDifficulty],
         currentTargetIndex + 1,
       );
+
       const nextObjects = [...current];
       nextObjects[currentTargetIndex] = replacement;
+
       return nextObjects.slice(0, desiredTotal);
     });
   }, [activeDifficulty, currentTargetIndex, objectPool, targetObject?.id]);
@@ -163,12 +182,14 @@ export function ObjectRecognitionMissionContent({
       if (!targetObject || validating || !detector.isReady) return;
 
       setValidating(true);
+
       try {
         const detections = await detector.forward(picture.uri, {
           detectionThreshold: Math.max(targetObject.minConfidence - 0.15, 0.25),
           inputSize: 640,
           classesOfInterest: [targetObject.modelLabel as never],
         });
+
         const result = await ObjectRecognitionService.validateObject({
           detections,
           targetObject,
@@ -176,6 +197,7 @@ export function ObjectRecognitionMissionContent({
 
         if (!result.matched) {
           const nextFailedAttempts = failedAttempts + 1;
+
           if (nextFailedAttempts >= 3) {
             changeTargetAfterFailures();
             return;
@@ -188,12 +210,21 @@ export function ObjectRecognitionMissionContent({
 
         setRecognitionResult(result);
       } catch (error) {
-        console.log('[ObjectRecognitionMission] No se pudo validar el objeto:', error);
+        console.log(
+          '[ObjectRecognitionMission] No se pudo validar el objeto:',
+          error,
+        );
       } finally {
         setValidating(false);
       }
     },
-    [changeTargetAfterFailures, detector, failedAttempts, targetObject, validating],
+    [
+      changeTargetAfterFailures,
+      detector,
+      failedAttempts,
+      targetObject,
+      validating,
+    ],
   );
 
   useEffect(() => {
@@ -206,11 +237,13 @@ export function ObjectRecognitionMissionContent({
     if (!cameraRef.current || !cameraReady || capturing || !targetObject) return;
 
     setCapturing(true);
+
     try {
       const picture = await cameraRef.current.takePictureAsync({
         quality: 0.7,
         skipProcessing: false,
       });
+
       setPhoto(picture);
       setRecognitionResult(null);
     } catch (error) {
@@ -221,19 +254,31 @@ export function ObjectRecognitionMissionContent({
   };
 
   if (!permission) {
-    return <SafeAreaView style={styles.safe} />;
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+        <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      </SafeAreaView>
+    );
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+        <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
         <View style={styles.permissionContent}>
-          <Ionicons name="camera-outline" size={58} color={difficultyStyle.accentColor} />
+          <Ionicons
+            name="camera-outline"
+            size={58}
+            color={difficultyStyle.accentColor}
+          />
+
           <Text style={styles.title}>Permiso de camara</Text>
+
           <Text style={styles.note}>
             Necesitamos usar la camara para iniciar la mision de objetos.
           </Text>
+
           <TouchableOpacity
             style={[
               styles.completeBtn,
@@ -251,6 +296,7 @@ export function ObjectRecognitionMissionContent({
               Permitir camara
             </Text>
           </TouchableOpacity>
+
           <BackButton onPress={onBack ?? (() => {})} />
         </View>
       </SafeAreaView>
@@ -258,8 +304,9 @@ export function ObjectRecognitionMissionContent({
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
       <Modal
         visible={Boolean(recognitionResult?.matched)}
         transparent
@@ -276,9 +323,11 @@ export function ObjectRecognitionMissionContent({
             >
               <Ionicons name="checkmark" size={38} color={Colors.white} />
             </View>
+
             <Text style={styles.modalTitle}>
               {isLastTarget ? 'Mision completada' : 'Objeto reconocido'}
             </Text>
+
             <Text
               style={[
                 styles.modalObject,
@@ -287,10 +336,12 @@ export function ObjectRecognitionMissionContent({
             >
               {targetObject?.label ?? 'Objeto'}
             </Text>
+
             <Text style={styles.modalNote}>
               {currentTargetIndex + 1} de {targetObjects.length} - Confianza{' '}
               {Math.round((recognitionResult?.confidence ?? 0) * 100)}%
             </Text>
+
             <TouchableOpacity
               style={[
                 styles.modalBtn,
@@ -321,6 +372,7 @@ export function ObjectRecognitionMissionContent({
           </View>
         </View>
       </Modal>
+
       <View style={styles.content}>
         <BackButton onPress={onBack ?? (() => {})} />
 
@@ -331,7 +383,11 @@ export function ObjectRecognitionMissionContent({
           ]}
         >
           {photo ? (
-            <Image source={{ uri: photo.uri }} style={styles.camera} resizeMode="cover" />
+            <Image
+              source={{ uri: photo.uri }}
+              style={styles.camera}
+              resizeMode="cover"
+            />
           ) : (
             <>
               <CameraView
@@ -340,6 +396,7 @@ export function ObjectRecognitionMissionContent({
                 facing="back"
                 onCameraReady={() => setCameraReady(true)}
               />
+
               <View style={styles.cameraOverlay}>
                 <View
                   style={[
@@ -362,7 +419,11 @@ export function ObjectRecognitionMissionContent({
           ]}
         >
           <Text style={styles.title}>Busca este objeto</Text>
-          <Text style={styles.objectName}>{targetObject?.label ?? 'Objeto'}</Text>
+
+          <Text style={styles.objectName}>
+            {targetObject?.label ?? 'Objeto'}
+          </Text>
+
           <Text
             style={[
               styles.progressText,
@@ -370,9 +431,12 @@ export function ObjectRecognitionMissionContent({
             ]}
           >
             {targetObjects.length > 0
-              ? `${currentTargetIndex + 1} de ${targetObjects.length} - ${activeDifficulty.toUpperCase()}`
+              ? `${currentTargetIndex + 1} de ${
+                  targetObjects.length
+                } - ${activeDifficulty.toUpperCase()}`
               : 'Sin objetos'}
           </Text>
+
           <Text style={styles.note}>
             {recognitionResult
               ? `Detectado: ${recognitionResult.detectedLabel} (${Math.round(
@@ -381,14 +445,14 @@ export function ObjectRecognitionMissionContent({
               : validating
                 ? 'Analizando la foto...'
                 : detector.error
-                ? 'No se pudo cargar el modelo local de reconocimiento.'
-                : !detector.isReady
-                  ? `Preparando IA local ${Math.round(
-                      detector.downloadProgress * 100,
-                    )}%`
-                  : failedAttempts > 0
-                    ? `Intentos fallidos ${failedAttempts}/3. Toma otra foto.`
-                    : 'Toma una foto y valida el objeto antes de completar.'}
+                  ? 'No se pudo cargar el modelo local de reconocimiento.'
+                  : !detector.isReady
+                    ? `Preparando IA local ${Math.round(
+                        detector.downloadProgress * 100,
+                      )}%`
+                    : failedAttempts > 0
+                      ? `Intentos fallidos ${failedAttempts}/3. Toma otra foto.`
+                      : 'Toma una foto y valida el objeto antes de completar.'}
           </Text>
         </View>
 
@@ -414,19 +478,24 @@ export function ObjectRecognitionMissionContent({
                 Repetir
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.completeBtn,
                 styles.actionBtn,
                 { backgroundColor: difficultyStyle.accentColor },
-                (validating || !detector.isReady || recognitionResult?.matched) &&
+                (validating ||
+                  !detector.isReady ||
+                  recognitionResult?.matched) &&
                   styles.disabledBtn,
               ]}
               onPress={() => {
                 if (photo) void validatePhoto(photo);
               }}
               activeOpacity={0.85}
-              disabled={validating || !detector.isReady || recognitionResult?.matched}
+              disabled={
+                validating || !detector.isReady || recognitionResult?.matched
+              }
             >
               <Text
                 style={[
@@ -486,8 +555,8 @@ export default function ObjectRecognitionMissionScreen({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
+
   permissionContent: {
     flex: 1,
     alignItems: 'center',
@@ -495,6 +564,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     gap: 16,
   },
+
   content: {
     flex: 1,
     width: '100%',
@@ -504,6 +574,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     gap: 18,
   },
+
   cameraCard: {
     flex: 1,
     borderRadius: Layout.cardRadius,
@@ -513,15 +584,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     minHeight: 340,
   },
+
   camera: {
     flex: 1,
   },
+
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 36,
   },
+
   scanFrame: {
     width: '100%',
     aspectRatio: 1,
@@ -530,6 +604,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
     backgroundColor: 'transparent',
   },
+
   targetInfo: {
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
@@ -539,24 +614,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+
   title: {
     color: Colors.textSecondary,
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
   },
+
   objectName: {
     color: Colors.text,
     fontSize: 32,
     fontWeight: '900',
     textAlign: 'center',
   },
+
   progressText: {
     color: Colors.primary,
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
   },
+
   note: {
     color: Colors.textMuted,
     fontSize: 13,
@@ -564,6 +643,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+
   completeBtn: {
     height: 54,
     borderRadius: 16,
@@ -571,21 +651,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   disabledBtn: {
     opacity: 0.6,
   },
+
   completeText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: '800',
   },
+
   actionsRow: {
     flexDirection: 'row',
     gap: 12,
   },
+
   actionBtn: {
     flex: 1,
   },
+
   secondaryBtn: {
     flex: 1,
     height: 54,
@@ -596,11 +681,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.bgCard,
   },
+
   secondaryText: {
     color: Colors.primary,
     fontSize: 16,
     fontWeight: '800',
   },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.68)',
@@ -608,6 +695,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Layout.screenPadding,
   },
+
   successModal: {
     width: '100%',
     maxWidth: 360,
@@ -619,6 +707,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+
   successIcon: {
     width: 70,
     height: 70,
@@ -628,24 +717,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
   },
+
   modalTitle: {
     color: Colors.text,
     fontSize: 22,
     fontWeight: '900',
     textAlign: 'center',
   },
+
   modalObject: {
     color: Colors.primary,
     fontSize: 28,
     fontWeight: '900',
     textAlign: 'center',
   },
+
   modalNote: {
     color: Colors.textMuted,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 10,
   },
+
   modalBtn: {
     width: '100%',
     height: 52,
@@ -654,6 +747,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   modalBtnText: {
     color: Colors.white,
     fontSize: 16,

@@ -1,3 +1,4 @@
+// src/features/missions/Math Exercises/components/MathExercisesMission.tsx
 import React from 'react';
 import {
   SafeAreaView,
@@ -9,6 +10,7 @@ import {
   Platform,
   TouchableOpacity,
   useWindowDimensions,
+  StatusBar,
 } from 'react-native';
 
 import { Difficulty, OperationType } from '../types/mathExercises.types';
@@ -17,8 +19,8 @@ import { useMathExercises } from '../hooks/useMathExercises';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -55,6 +57,7 @@ export function MathExercisesMission({
   operationType,
 }: Props) {
   const { width } = useWindowDimensions();
+  const { colors, statusBarStyle } = useAppTheme();
   const { user, isAuthenticated, isGuest } = useAuth();
 
   const [missionCount, setMissionCount] = React.useState(0);
@@ -65,7 +68,7 @@ export function MathExercisesMission({
   const [feedbackType, setFeedbackType] =
     React.useState<'error' | 'warning' | 'success'>('error');
 
-  const style = DIFFICULTY_STYLES[difficulty];
+  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
   const totalQuantity = Math.max(1, quantity);
 
   const {
@@ -291,29 +294,38 @@ export function MathExercisesMission({
 
   const feedbackColor =
     feedbackType === 'success'
-      ? Colors.success
+      ? colors.success
       : feedbackType === 'warning'
-      ? style.accentColor
-      : Colors.danger;
+        ? difficultyStyle.accentColor
+        : colors.danger;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.screen}>
+        <View style={[styles.screen, { backgroundColor: colors.bg }]}>
           <View
             style={[
               styles.pill,
               {
-                backgroundColor: style.bgColor,
-                borderColor: style.accentColor + '40',
+                backgroundColor: difficultyStyle.bgColor,
+                borderColor: difficultyStyle.accentColor + '40',
               },
             ]}
           >
-            <Text style={[styles.pillText, { color: style.accentColor }]}>
-              {style.label}
+            <Text
+              style={[
+                styles.pillText,
+                {
+                  color: difficultyStyle.accentColor,
+                },
+              ]}
+            >
+              {difficultyStyle.label}
             </Text>
           </View>
 
@@ -321,21 +333,31 @@ export function MathExercisesMission({
             <Text
               style={[
                 styles.time,
-                { fontSize: width < 380 ? 44 : 52 },
+                {
+                  color: colors.text,
+                  fontSize: width < 380 ? 44 : 52,
+                },
               ]}
             >
               {time}
             </Text>
 
-            <Text style={styles.dateLabel}>
+            <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
               {day} - {alarmLabel ?? 'Hora de levantarse'}
             </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.border,
+              },
+            ]}
+          />
 
           <View style={styles.body}>
-            <Text style={styles.instruction}>
+            <Text style={[styles.instruction, { color: colors.textSecondary }]}>
               Resuelve la operación matemática
             </Text>
 
@@ -343,8 +365,8 @@ export function MathExercisesMission({
               style={[
                 styles.mathBox,
                 {
-                  backgroundColor: style.bgColor,
-                  borderColor: style.accentColor + '30',
+                  backgroundColor: difficultyStyle.bgColor,
+                  borderColor: difficultyStyle.accentColor + '30',
                 },
               ]}
             >
@@ -352,7 +374,7 @@ export function MathExercisesMission({
                 style={[
                   styles.mathExpression,
                   {
-                    color: style.accentColor,
+                    color: difficultyStyle.accentColor,
                     fontSize: width < 380 ? 22 : 26,
                   },
                 ]}
@@ -361,7 +383,14 @@ export function MathExercisesMission({
               </Text>
             </View>
 
-            <Text style={[styles.hint, { color: style.accentColor + '80' }]}>
+            <Text
+              style={[
+                styles.hint,
+                {
+                  color: difficultyStyle.accentColor + '80',
+                },
+              ]}
+            >
               Ingresa tu respuesta numérica
             </Text>
 
@@ -369,10 +398,11 @@ export function MathExercisesMission({
               style={[
                 styles.input,
                 {
+                  backgroundColor: colors.bgCard,
                   borderColor: state.hasError
-                    ? Colors.danger
-                    : style.accentColor + '60',
-                  color: style.accentColor,
+                    ? colors.danger
+                    : difficultyStyle.accentColor + '60',
+                  color: difficultyStyle.accentColor,
                   fontSize: width < 380 ? 18 : 22,
                 },
               ]}
@@ -385,7 +415,7 @@ export function MathExercisesMission({
                 }
               }}
               placeholder="0"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
               maxLength={8}
             />
@@ -399,12 +429,21 @@ export function MathExercisesMission({
             <TouchableOpacity
               style={[
                 styles.confirmBtn,
-                { backgroundColor: style.accentColor },
+                {
+                  backgroundColor: difficultyStyle.accentColor,
+                },
               ]}
               onPress={handleConfirm}
               activeOpacity={0.85}
             >
-              <Text style={[styles.confirmText, { color: style.textColor }]}>
+              <Text
+                style={[
+                  styles.confirmText,
+                  {
+                    color: difficultyStyle.textColor,
+                  },
+                ]}
+              >
                 Confirmar
               </Text>
             </TouchableOpacity>
@@ -418,7 +457,6 @@ export function MathExercisesMission({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   flex: {
@@ -427,7 +465,6 @@ const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: Colors.bg,
     paddingTop: 40,
   },
 
@@ -453,20 +490,17 @@ const styles = StyleSheet.create({
 
   time: {
     fontWeight: '500',
-    color: Colors.text,
     letterSpacing: -1,
     lineHeight: 56,
   },
 
   dateLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 2,
   },
 
   divider: {
     height: 0.5,
-    backgroundColor: Colors.border,
     marginHorizontal: 16,
     marginVertical: 10,
   },
@@ -482,7 +516,6 @@ const styles = StyleSheet.create({
 
   instruction: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginBottom: 12,
   },
 
@@ -504,7 +537,6 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    backgroundColor: Colors.bgCard,
     borderWidth: 0.5,
     borderRadius: Layout.controlRadius,
     height: 52,
