@@ -432,17 +432,29 @@ export default function MissionSelectorScreen() {
         </View>
 
         {/* Mision encontrar pares */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Mision encontrar pares</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Mision encontrar pares
+          </Text>
 
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('ConfigParesMission', {})}
           >
-            <Text style={styles.btnText}>Configurar encontrar pares</Text>
+            <Text style={[styles.btnText, { color: colors.white }]}>
+              Configurar encontrar pares
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.summary}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {pairsStyle.label} - {pairsConfig.quantity} vec
             {pairsConfig.quantity > 1 ? 'es' : ''}
           </Text>
