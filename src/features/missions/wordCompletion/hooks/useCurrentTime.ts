@@ -1,28 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AppLanguage } from '../../../../shared/i18n/useTranslation';
 
-function getFormattedTime() {
+function getNowParts(language: AppLanguage) {
   const now = new Date();
-  const h = now.getHours().toString().padStart(2, '0');
-  const m = now.getMinutes().toString().padStart(2, '0');
-  return `${h}:${m}`;
+  const locale = language === 'es' ? 'es' : 'en';
+
+  return {
+    time: now.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    day: now.toLocaleDateString(locale, {
+      weekday: 'long',
+    }),
+  };
 }
 
-function getFormattedDate() {
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  return days[new Date().getDay()];
-}
-
-export function useCurrentTime() {
-  const [time, setTime] = useState(getFormattedTime);
-  const [day,  setDay]  = useState(getFormattedDate);
+export function useCurrentTime(language: AppLanguage = 'es') {
+  const [nowParts, setNowParts] = useState(() => getNowParts(language));
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(getFormattedTime());
-      setDay(getFormattedDate());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    setNowParts(getNowParts(language));
 
-  return { time, day };
+    const interval = setInterval(() => {
+      setNowParts(getNowParts(language));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [language]);
+
+  return nowParts;
 }

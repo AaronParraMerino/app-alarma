@@ -62,14 +62,14 @@ function getDifficultyLabel(
   isSpanish: boolean,
 ): string {
   if (difficulty === 'easy') {
-    return isSpanish ? 'fácil' : 'easy';
+    return isSpanish ? 'facil' : 'easy';
   }
 
   if (difficulty === 'medium') {
     return isSpanish ? 'normal' : 'normal';
   }
 
-  return isSpanish ? 'difícil' : 'hard';
+  return isSpanish ? 'dificil' : 'hard';
 }
 
 function getDifficultyPillLabel(
@@ -77,14 +77,14 @@ function getDifficultyPillLabel(
   isSpanish: boolean,
 ): string {
   if (difficulty === 'easy') {
-    return isSpanish ? 'FÁCIL' : 'EASY';
+    return isSpanish ? 'FACIL' : 'EASY';
   }
 
   if (difficulty === 'medium') {
     return isSpanish ? 'NORMAL' : 'NORMAL';
   }
 
-  return isSpanish ? 'DIFÍCIL' : 'HARD';
+  return isSpanish ? 'DIFICIL' : 'HARD';
 }
 
 function translateDay(
@@ -195,12 +195,12 @@ export function WordCompletionMission({
     handleInputChange,
     handleConfirm,
     handleReplace,
-  } = useWordCompletion(difficulty);
+  } = useWordCompletion(difficulty, language);
 
   const {
     time,
     day,
-  } = useCurrentTime();
+  } = useCurrentTime(language);
 
   const isHard = difficulty === 'hard';
 
@@ -257,6 +257,7 @@ export function WordCompletionMission({
         content: {
           word: current.word,
           missingIndexes: current.missingIndexes,
+          language,
         },
         correctAnswer:
           WordCompletionService.getExpectedAnswer(current),
@@ -275,6 +276,7 @@ export function WordCompletionMission({
       current,
       difficulty,
       state.userInput,
+      language,
     ],
   );
 
@@ -420,6 +422,7 @@ export function WordCompletionMission({
         content: {
           word: current.word,
           missingIndexes: current.missingIndexes,
+          language,
         },
         correctAnswer:
           WordCompletionService.getExpectedAnswer(current),
@@ -456,6 +459,7 @@ export function WordCompletionMission({
     quantity,
     onComplete,
     handleReplace,
+    language,
   ]);
 
   const feedbackColor =
@@ -548,7 +552,7 @@ export function WordCompletionMission({
                 day,
                 isSpanish,
               )}
-              {' — '}
+              {' - '}
               {alarmLabel ??
                 (
                   isSpanish
@@ -600,6 +604,7 @@ export function WordCompletionMission({
                 accentBg={
                   difficultyStyle.bgColor
                 }
+                isSpanish={isSpanish}
               />
             ) : (
               current && (

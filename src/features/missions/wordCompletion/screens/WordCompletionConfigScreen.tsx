@@ -123,7 +123,7 @@ export function WordCompletionConfigScreen({
     LEVELS.indexOf(difficulty);
 
   const previews =
-    EXAMPLE_PREVIEWS[difficulty];
+    EXAMPLE_PREVIEWS[language][difficulty];
 
   const isSmall =
     width < 360;
