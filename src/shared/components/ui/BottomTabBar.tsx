@@ -16,14 +16,13 @@ import {
   useAppTheme,
   type AppThemeColors,
 } from '../../theme/useAppTheme';
-
-// ─── Configuración de tabs ────────────────────────────────────────────────────
+import { useTranslation } from '../../i18n/useTranslation';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface TabConfig {
   routeName: string;
-  label: string;
+  labelKey: string;
   icon: IoniconName;
   iconActive: IoniconName;
 }
@@ -31,34 +30,33 @@ interface TabConfig {
 const TAB_CONFIG: TabConfig[] = [
   {
     routeName: 'AlarmTab',
-    label: 'Alarma',
+    labelKey: 'tabs.alarm',
     icon: 'alarm-outline',
     iconActive: 'alarm',
   },
   {
     routeName: 'StopwatchTab',
-    label: 'Cronómetro',
+    labelKey: 'tabs.stopwatch',
     icon: 'timer-outline',
     iconActive: 'timer',
   },
   {
     routeName: 'MissionsTab',
-    label: 'Misiones',
+    labelKey: 'tabs.missions',
     icon: 'trophy-outline',
     iconActive: 'trophy',
   },
   {
     routeName: 'SettingsTab',
-    label: 'Ajustes',
+    labelKey: 'tabs.settings',
     icon: 'settings-outline',
     iconActive: 'settings',
   },
 ];
 
-// ─── Tab individual ───────────────────────────────────────────────────────────
-
 interface TabItemProps {
   config: TabConfig;
+  label: string;
   isActive: boolean;
   onPress: () => void;
   onLongPress: () => void;
@@ -67,6 +65,7 @@ interface TabItemProps {
 
 function TabItem({
   config,
+  label,
   isActive,
   onPress,
   onLongPress,
@@ -98,12 +97,17 @@ function TabItem({
       onLongPress={onLongPress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={config.label}
+      accessibilityLabel={label}
     >
       <Animated.View
-        style={[styles.iconWrap, { transform: [{ scale: scaleAnim }] }]}
+        style={[
+          styles.iconWrap,
+          {
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
       >
-        {isActive && (
+        {isActive ? (
           <View
             style={[
               styles.activeBackground,
@@ -113,7 +117,7 @@ function TabItem({
               },
             ]}
           />
-        )}
+        ) : null}
 
         <Ionicons
           name={isActive ? config.iconActive : config.icon}
@@ -142,13 +146,11 @@ function TabItem({
         ]}
         numberOfLines={1}
       >
-        {config.label}
+        {label}
       </Text>
     </TouchableOpacity>
   );
 }
-
-// ─── BottomTabBar ─────────────────────────────────────────────────────────────
 
 export function BottomTabBar({
   state,
@@ -157,6 +159,7 @@ export function BottomTabBar({
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useAppTheme();
+  const { t } = useTranslation();
 
   const focusedRoute = state.routes[state.index];
   const focusedOptions = descriptors[focusedRoute.key].options;
@@ -187,10 +190,14 @@ export function BottomTabBar({
 
       <View style={styles.inner}>
         {state.routes.map((route, index) => {
-          const config = TAB_CONFIG.find((t) => t.routeName === route.name);
+          const config = TAB_CONFIG.find(
+            (tab) => tab.routeName === route.name,
+          );
+
           if (!config) return null;
 
           const isActive = state.index === index;
+          const label = t(config.labelKey);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -215,6 +222,7 @@ export function BottomTabBar({
             <TabItem
               key={route.key}
               config={config}
+              label={label}
               isActive={isActive}
               onPress={onPress}
               onLongPress={onLongPress}
@@ -227,8 +235,6 @@ export function BottomTabBar({
   );
 }
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: {
     borderTopWidth: 0,
@@ -237,7 +243,10 @@ const styles = StyleSheet.create({
         elevation: 16,
       },
       ios: {
-        shadowOffset: { width: 0, height: -4 },
+        shadowOffset: {
+          width: 0,
+          height: -4,
+        },
         shadowOpacity: 0.18,
         shadowRadius: 12,
       },

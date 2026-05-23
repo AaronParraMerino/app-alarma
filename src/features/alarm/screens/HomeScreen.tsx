@@ -1,5 +1,10 @@
 // src/features/alarm/screens/HomeScreen.tsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -20,6 +25,7 @@ import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { Modal as AppModal } from '../../../shared/components/ui/Modal';
 
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
@@ -34,82 +40,125 @@ import {
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const MISSION_ICON_META: Record<MissionType, { icon: IconName; color: string }> = {
+const DAY_LABELS_SHORT_EN = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+];
+
+const MISSION_ICON_META: Record<
+  MissionType,
+  {
+    icon: IconName;
+    color: string;
+  }
+> = {
   random: {
     icon: 'shuffle-outline',
     color: Colors.missionColors.random ?? Colors.primaryLight,
   },
+
   math: {
     icon: 'calculator-outline',
     color: Colors.missionColors.math,
   },
+
   memory: {
     icon: 'albums-outline',
     color: Colors.missionColors.memory,
   },
+
   physical: {
     icon: 'footsteps-outline',
     color: Colors.missionColors.physical,
   },
+
   photo: {
     icon: 'scan-outline',
     color: Colors.missionColors.photo,
   },
+
   trivia: {
     icon: 'help-circle-outline',
     color: Colors.missionColors.trivia,
   },
+
   writing: {
     icon: 'create-outline',
     color: Colors.missionColors.writing,
   },
+
   color: {
     icon: 'color-palette-outline',
     color: Colors.missionColors.color,
   },
+
   colorFind: {
     icon: 'grid-outline',
     color: Colors.missionColors.colorFind ?? Colors.primaryLight,
   },
+
   shapes: {
     icon: 'grid-outline',
     color: Colors.missionColors.shapes,
   },
+
   sequence: {
     icon: 'keypad-outline',
     color: Colors.missionColors.sequence,
   },
+
   wordCompletion: {
     icon: 'text-outline',
     color: Colors.missionColors.wordCompletion ?? Colors.primaryLight,
   },
 };
 
-// ─── Utilidades ───────────────────────────────────────────────────────────────
-
 function padZero(n: number): string {
   return n.toString().padStart(2, '0');
 }
 
-function formatTime(hour: number, minute: number): string {
+function formatTime(
+  hour: number,
+  minute: number,
+): string {
   return `${padZero(hour)}:${padZero(minute)}`;
 }
 
-function formatRepeat(repeatDays: number[]): string {
-  if (repeatDays.length === 0) return 'Solo una vez';
-  if (repeatDays.length === 7) return 'Todos los días';
-
-  if (
-    repeatDays.length === 5 &&
-    [1, 2, 3, 4, 5].every((d) => repeatDays.includes(d))
-  ) {
-    return 'Lun – Vie';
+function formatRepeat(
+  repeatDays: number[],
+  isSpanish: boolean,
+): string {
+  if (repeatDays.length === 0) {
+    return isSpanish ? 'Solo una vez' : 'Once';
   }
+
+  if (repeatDays.length === 7) {
+    return isSpanish ? 'Todos los días' : 'Every day';
+  }
+
+  const isWeekdays =
+    repeatDays.length === 5 &&
+    [1, 2, 3, 4, 5].every((day) =>
+      repeatDays.includes(day),
+    );
+
+  if (isWeekdays) {
+    return isSpanish ? 'Lun – Vie' : 'Mon – Fri';
+  }
+
+  const labels = isSpanish
+    ? DAY_LABELS_SHORT
+    : DAY_LABELS_SHORT_EN;
 
   return repeatDays
     .slice()
     .sort((a, b) => a - b)
-    .map((d) => DAY_LABELS_SHORT[d])
+    .map((day) => labels[day])
     .join(' · ');
 }
 
@@ -117,32 +166,48 @@ function formatSound(soundUri: string | null): string {
   return getAlarmSoundLabel(soundUri);
 }
 
-function minutesUntilNextAlarm(alarms: Alarm[]): number | null {
+function minutesUntilNextAlarm(
+  alarms: Alarm[],
+): number | null {
   const now = new Date();
   let min = Infinity;
 
   for (const alarm of alarms) {
-    const nextOccurrence = getNextAlarmOccurrence(alarm, now);
-    if (!nextOccurrence) continue;
+    const nextOccurrence = getNextAlarmOccurrence(
+      alarm,
+      now,
+    );
 
-    const diff = Math.ceil((nextOccurrence.getTime() - now.getTime()) / 60_000);
-    if (diff < min) min = diff;
+    if (!nextOccurrence) {
+      continue;
+    }
+
+    const diff = Math.ceil(
+      (nextOccurrence.getTime() - now.getTime()) / 60_000,
+    );
+
+    if (diff < min) {
+      min = diff;
+    }
   }
 
   return min === Infinity ? null : min;
 }
 
 function formatCountdown(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
 
-  if (h === 0) return `${m} min`;
-  if (m === 0) return `${h} h`;
+  if (hours === 0) {
+    return `${mins} min`;
+  }
 
-  return `${h} h ${m} min`;
+  if (mins === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${mins} min`;
 }
-
-// ─── AlarmCard ────────────────────────────────────────────────────────────────
 
 interface AlarmCardProps {
   alarm: Alarm;
@@ -152,39 +217,64 @@ interface AlarmCardProps {
 }
 
 const AlarmCard = React.memo(
-  ({ alarm, onToggle, onPress, onLongPress }: AlarmCardProps) => {
+  ({
+    alarm,
+    onToggle,
+    onPress,
+    onLongPress,
+  }: AlarmCardProps) => {
     const { colors } = useAppTheme();
+    const { language } = useTranslation();
 
-    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const isSpanish = language === 'es';
+    const scaleAnim = React.useRef(
+      new Animated.Value(1),
+    ).current;
+
     const switchOn = shouldShowAlarmSwitchOn(alarm);
 
-    const handlePressIn = () =>
+    const handlePressIn = () => {
       Animated.spring(scaleAnim, {
         toValue: 0.97,
         useNativeDriver: true,
         speed: 50,
         bounciness: 0,
       }).start();
+    };
 
-    const handlePressOut = () =>
+    const handlePressOut = () => {
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
         speed: 50,
         bounciness: 4,
       }).start();
+    };
 
     return (
       <Animated.View
-        style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}
+        style={[
+          styles.cardWrap,
+          {
+            transform: [
+              {
+                scale: scaleAnim,
+              },
+            ],
+          },
+        ]}
       >
         <TouchableOpacity
           activeOpacity={1}
           style={[
             styles.card,
             {
-              backgroundColor: switchOn ? colors.bgCard : colors.bg,
-              borderColor: switchOn ? colors.border : colors.borderMuted,
+              backgroundColor: switchOn
+                ? colors.bgCard
+                : colors.bg,
+              borderColor: switchOn
+                ? colors.border
+                : colors.borderMuted,
               opacity: switchOn ? 1 : 0.55,
             },
           ]}
@@ -193,7 +283,7 @@ const AlarmCard = React.memo(
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
-          {switchOn && (
+          {switchOn ? (
             <View
               style={[
                 styles.cardAccentBar,
@@ -202,7 +292,7 @@ const AlarmCard = React.memo(
                 },
               ]}
             />
-          )}
+          ) : null}
 
           <View style={styles.cardTop}>
             <View>
@@ -210,14 +300,19 @@ const AlarmCard = React.memo(
                 style={[
                   styles.alarmTime,
                   {
-                    color: switchOn ? colors.cream : colors.textMuted,
+                    color: switchOn
+                      ? colors.cream
+                      : colors.textMuted,
                   },
                 ]}
               >
-                {formatTime(alarm.hour, alarm.minute)}
+                {formatTime(
+                  alarm.hour,
+                  alarm.minute,
+                )}
               </Text>
 
-              {alarm.label.length > 0 && (
+              {alarm.label.length > 0 ? (
                 <Text
                   style={[
                     styles.alarmLabel,
@@ -231,7 +326,7 @@ const AlarmCard = React.memo(
                 >
                   {alarm.label}
                 </Text>
-              )}
+              ) : null}
             </View>
 
             <Switch
@@ -241,14 +336,25 @@ const AlarmCard = React.memo(
                 false: colors.borderFocus + '33',
                 true: colors.primary,
               }}
-              thumbColor={switchOn ? colors.primaryLight : colors.textMuted}
+              thumbColor={
+                switchOn
+                  ? colors.primaryLight
+                  : colors.textMuted
+              }
               ios_backgroundColor={colors.border}
             />
           </View>
 
           <View style={styles.cardBottom}>
             <View style={styles.repeatRow}>
-              <Text style={[styles.repeatDot, { color: colors.primary }]}>
+              <Text
+                style={[
+                  styles.repeatDot,
+                  {
+                    color: colors.primary,
+                  },
+                ]}
+              >
                 ◈
               </Text>
 
@@ -262,7 +368,10 @@ const AlarmCard = React.memo(
                   },
                 ]}
               >
-                {formatRepeat(alarm.repeatDays)}
+                {formatRepeat(
+                  alarm.repeatDays,
+                  isSpanish,
+                )}
               </Text>
 
               <Text
@@ -302,36 +411,52 @@ const AlarmCard = React.memo(
                       },
                     ]}
                   >
-                    Aleatorio
+                    {isSpanish ? 'Aleatorio' : 'Random'}
                   </Text>
                 </View>
               ) : (
-                alarm.missions.slice(0, 3).map((m, i) => {
-                  const meta = MISSION_ICON_META[m.type] ?? MISSION_ICON_META.random;
+                alarm.missions
+                  .slice(0, 3)
+                  .map((mission, index) => {
+                    const meta =
+                      MISSION_ICON_META[mission.type] ??
+                      MISSION_ICON_META.random;
 
-                  return (
-                    <View
-                      key={i}
-                      style={[
-                        styles.missionBadge,
-                        {
-                          backgroundColor: colors.bgElevated,
-                          borderColor: colors.border,
-                          opacity: switchOn ? 1 : 0.4,
-                        },
-                      ]}
-                    >
-                      <Ionicons name={meta.icon} size={16} color={meta.color} />
-                    </View>
-                  );
-                })
+                    return (
+                      <View
+                        key={index}
+                        style={[
+                          styles.missionBadge,
+                          {
+                            backgroundColor: colors.bgElevated,
+                            borderColor: colors.border,
+                            opacity: switchOn ? 1 : 0.4,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={meta.icon}
+                          size={16}
+                          color={meta.color}
+                        />
+                      </View>
+                    );
+                  })
               )}
 
-              {!alarm.randomMissions && alarm.missions.length > 3 && (
-                <Text style={[styles.moreMissions, { color: colors.textMuted }]}>
+              {!alarm.randomMissions &&
+              alarm.missions.length > 3 ? (
+                <Text
+                  style={[
+                    styles.moreMissions,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
                   +{alarm.missions.length - 3}
                 </Text>
-              )}
+              ) : null}
             </View>
           </View>
         </TouchableOpacity>
@@ -340,14 +465,20 @@ const AlarmCard = React.memo(
   },
 );
 
-// ─── Banner próxima alarma ────────────────────────────────────────────────────
-
-function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
+function NextAlarmBanner({
+  alarms,
+}: {
+  alarms: Alarm[];
+}) {
   const { colors } = useAppTheme();
+  const { language } = useTranslation();
 
-  const [minutes, setMinutes] = useState<number | null>(() =>
-    minutesUntilNextAlarm(alarms),
-  );
+  const isSpanish = language === 'es';
+
+  const [minutes, setMinutes] =
+    useState<number | null>(() =>
+      minutesUntilNextAlarm(alarms),
+    );
 
   useEffect(() => {
     const updateMinutes = () => {
@@ -357,23 +488,36 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
     updateMinutes();
 
     const now = new Date();
-    const msUntilNextMinute =
-      (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
 
-    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const msUntilNextMinute =
+      (60 - now.getSeconds()) * 1000 -
+      now.getMilliseconds();
+
+    let intervalId:
+      | ReturnType<typeof setInterval>
+      | undefined;
 
     const timeoutId = setTimeout(() => {
       updateMinutes();
-      intervalId = setInterval(updateMinutes, 60 * 1000);
+
+      intervalId = setInterval(
+        updateMinutes,
+        60 * 1000,
+      );
     }, msUntilNextMinute);
 
     return () => {
       clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
+
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [alarms]);
 
-  if (minutes === null) return null;
+  if (minutes === null) {
+    return null;
+  }
 
   return (
     <View
@@ -386,12 +530,26 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
       ]}
     >
       <View>
-        <Text style={[styles.bannerLabel, { color: colors.textAccent }]}>
-          Próxima alarma
+        <Text
+          style={[
+            styles.bannerLabel,
+            {
+              color: colors.textAccent,
+            },
+          ]}
+        >
+          {isSpanish ? 'Próxima alarma' : 'Next alarm'}
         </Text>
 
-        <Text style={[styles.bannerSub, { color: colors.textMuted }]}>
-          Sonará pronto
+        <Text
+          style={[
+            styles.bannerSub,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Sonará pronto' : 'It will ring soon'}
         </Text>
       </View>
 
@@ -404,7 +562,14 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
           },
         ]}
       >
-        <Text style={[styles.bannerTime, { color: colors.primaryLight }]}>
+        <Text
+          style={[
+            styles.bannerTime,
+            {
+              color: colors.primaryLight,
+            },
+          ]}
+        >
           {formatCountdown(minutes)}
         </Text>
       </View>
@@ -412,10 +577,15 @@ function NextAlarmBanner({ alarms }: { alarms: Alarm[] }) {
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({
+  onAdd,
+}: {
+  onAdd: () => void;
+}) {
   const { colors } = useAppTheme();
+  const { language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   return (
     <View style={styles.empty}>
@@ -431,12 +601,28 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <Text style={styles.emptyIcon}>⏰</Text>
       </View>
 
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        Sin alarmas
+      <Text
+        style={[
+          styles.emptyTitle,
+          {
+            color: colors.text,
+          },
+        ]}
+      >
+        {isSpanish ? 'Sin alarmas' : 'No alarms'}
       </Text>
 
-      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-        Crea tu primera alarma con misiones{'\n'}para despertar de verdad
+      <Text
+        style={[
+          styles.emptySubtitle,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        {isSpanish
+          ? 'Crea tu primera alarma con misiones\npara despertar de verdad'
+          : 'Create your first alarm with missions\nto truly wake up'}
       </Text>
 
       <TouchableOpacity
@@ -450,24 +636,47 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         onPress={onAdd}
         activeOpacity={0.85}
       >
-        <Text style={[styles.emptyBtnText, { color: colors.white }]}>
-          + Crear alarma
+        <Text
+          style={[
+            styles.emptyBtnText,
+            {
+              color: colors.white,
+            },
+          ]}
+        >
+          {isSpanish ? '+ Crear alarma' : '+ Create alarm'}
         </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ─── HomeScreen ───────────────────────────────────────────────────────────────
-
 export default function HomeScreen() {
   const navigation =
-    useNavigation<NativeStackNavigationProp<AlarmStackParamList, 'Home'>>();
+    useNavigation<
+      NativeStackNavigationProp<
+        AlarmStackParamList,
+        'Home'
+      >
+    >();
 
-  const { colors, statusBarStyle } = useAppTheme();
-  const { alarms, toggleAlarm, deleteAlarm } = useAlarmStore();
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [alarmToDelete, setAlarmToDelete] = useState<Alarm | null>(null);
+  const { language } = useTranslation();
+
+  const {
+    alarms,
+    toggleAlarm,
+    deleteAlarm,
+  } = useAlarmStore();
+
+  const isSpanish = language === 'es';
+
+  const [alarmToDelete, setAlarmToDelete] =
+    useState<Alarm | null>(null);
 
   const handleAdd = useCallback(() => {
     navigation.navigate('AlarmCreate');
@@ -475,21 +684,31 @@ export default function HomeScreen() {
 
   const handlePress = useCallback(
     (alarm: Alarm) => {
-      navigation.navigate('AlarmEdit', { alarmId: alarm.id });
+      navigation.navigate('AlarmEdit', {
+        alarmId: alarm.id,
+      });
     },
     [navigation],
   );
 
-  const handleLongPress = useCallback((alarm: Alarm) => {
-    setAlarmToDelete(alarm);
-  }, []);
+  const handleLongPress = useCallback(
+    (alarm: Alarm) => {
+      setAlarmToDelete(alarm);
+    },
+    [],
+  );
 
   const confirmDeleteAlarm = useCallback(() => {
-    if (!alarmToDelete) return;
+    if (!alarmToDelete) {
+      return;
+    }
 
     deleteAlarm(alarmToDelete.id);
     setAlarmToDelete(null);
-  }, [alarmToDelete, deleteAlarm]);
+  }, [
+    alarmToDelete,
+    deleteAlarm,
+  ]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<Alarm>) => (
@@ -500,10 +719,17 @@ export default function HomeScreen() {
         onLongPress={handleLongPress}
       />
     ),
-    [toggleAlarm, handlePress, handleLongPress],
+    [
+      toggleAlarm,
+      handlePress,
+      handleLongPress,
+    ],
   );
 
-  const keyExtractor = useCallback((item: Alarm) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: Alarm) => item.id,
+    [],
+  );
 
   const sortedAlarms = useMemo(
     () =>
@@ -511,45 +737,85 @@ export default function HomeScreen() {
         const aEnabled = shouldShowAlarmSwitchOn(a);
         const bEnabled = shouldShowAlarmSwitchOn(b);
 
-        if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
+        if (aEnabled !== bEnabled) {
+          return aEnabled ? -1 : 1;
+        }
 
-        return a.hour * 60 + a.minute - (b.hour * 60 + b.minute);
+        return (
+          a.hour * 60 +
+          a.minute -
+          (b.hour * 60 + b.minute)
+        );
       }),
     [alarms],
   );
 
+  const activeAlarmCount = sortedAlarms.filter(
+    shouldShowAlarmSwitchOn,
+  ).length;
+
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor: colors.bg }]}
-      edges={['top', 'left', 'right']}
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+      edges={[
+        'top',
+        'left',
+        'right',
+      ]}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.headerEyebrow, { color: colors.textAccent }]}>
-            Buenos días
+          <Text
+            style={[
+              styles.headerEyebrow,
+              {
+                color: colors.textAccent,
+              },
+            ]}
+          >
+            {isSpanish ? 'Buenos días' : 'Good morning'}
           </Text>
 
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.headerTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
             Neuro Wake
           </Text>
         </View>
       </View>
 
-      {/* Banner */}
       <NextAlarmBanner alarms={alarms} />
 
-      {/* Contador */}
-      {sortedAlarms.length > 0 && (
-        <Text style={[styles.alarmCount, { color: colors.textMuted }]}>
-          {sortedAlarms.filter(shouldShowAlarmSwitchOn).length} de{' '}
-          {sortedAlarms.length} activas
+      {sortedAlarms.length > 0 ? (
+        <Text
+          style={[
+            styles.alarmCount,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish
+            ? `${activeAlarmCount} de ${sortedAlarms.length} activas`
+            : `${activeAlarmCount} of ${sortedAlarms.length} active`}
         </Text>
-      )}
+      ) : null}
 
-      {/* Lista */}
       {sortedAlarms.length === 0 ? (
         <EmptyState onAdd={handleAdd} />
       ) : (
@@ -563,8 +829,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* FAB */}
-      {sortedAlarms.length > 0 && (
+      {sortedAlarms.length > 0 ? (
         <TouchableOpacity
           style={[
             styles.fab,
@@ -577,30 +842,54 @@ export default function HomeScreen() {
           onPress={handleAdd}
           activeOpacity={0.85}
         >
-          <Text style={[styles.fabIcon, { color: colors.white }]}>+</Text>
+          <Text
+            style={[
+              styles.fabIcon,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            +
+          </Text>
         </TouchableOpacity>
-      )}
+      ) : null}
 
       <AppModal
         visible={Boolean(alarmToDelete)}
         type="warning"
-        title="Eliminar alarma"
+        title={
+          isSpanish
+            ? 'Eliminar alarma'
+            : 'Delete alarm'
+        }
         message={
           alarmToDelete
-            ? `¿Eliminar "${
-                alarmToDelete.label ||
-                formatTime(alarmToDelete.hour, alarmToDelete.minute)
-              }"?`
+            ? isSpanish
+              ? `¿Eliminar "${
+                  alarmToDelete.label ||
+                  formatTime(
+                    alarmToDelete.hour,
+                    alarmToDelete.minute,
+                  )
+                }"?`
+              : `Delete "${
+                  alarmToDelete.label ||
+                  formatTime(
+                    alarmToDelete.hour,
+                    alarmToDelete.minute,
+                  )
+                }"?`
             : undefined
         }
         closeOnBackdropPress
         onClose={() => setAlarmToDelete(null)}
         cancelAction={{
-          label: 'Cancelar',
+          label: isSpanish ? 'Cancelar' : 'Cancel',
           onPress: () => setAlarmToDelete(null),
         }}
         confirmAction={{
-          label: 'Eliminar',
+          label: isSpanish ? 'Eliminar' : 'Delete',
           onPress: confirmDeleteAlarm,
         }}
       />
@@ -608,14 +897,11 @@ export default function HomeScreen() {
   );
 }
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
 
-  // Header
   header: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -639,10 +925,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
-  // Banner
   banner: {
     width: '90%',
-    maxWidth: Layout.maxWideContentWidth - Layout.screenPadding * 2,
+    maxWidth:
+      Layout.maxWideContentWidth -
+      Layout.screenPadding * 2,
     alignSelf: 'center',
     marginTop: 4,
     marginBottom: 16,
@@ -678,7 +965,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Contador
   alarmCount: {
     fontSize: 12,
     width: '100%',
@@ -689,7 +975,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Lista
   listFrame: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -701,7 +986,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // Card
   cardWrap: {
     marginBottom: 10,
   },
@@ -795,7 +1079,6 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
 
-  // Empty state
   empty: {
     flex: 1,
     alignItems: 'center',
@@ -843,7 +1126,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // FAB
   fab: {
     position: 'absolute',
     bottom: 28,
@@ -854,7 +1136,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.5,
     shadowRadius: 10,
     borderWidth: 1,

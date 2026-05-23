@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from 'react';
+// src/features/missions/ObjectRecognition/screens/ObjectRecognitionConfigScreen.tsx
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -10,10 +14,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { BackButton } from '../../../../shared/components/ui/BackButton';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
+
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 import { ObjectBankService } from '../services/objectBank.service';
@@ -25,8 +32,8 @@ type Props = NativeStackScreenProps<
   'ConfigObjectRecognitionMission'
 >;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  bathroom: 'Bano',
+const CATEGORY_LABELS_ES: Record<string, string> = {
+  bathroom: 'Baño',
   home: 'Casa',
   kitchen: 'Cocina',
   other: 'Otros',
@@ -34,28 +41,59 @@ const CATEGORY_LABELS: Record<string, string> = {
   school: 'Estudio',
 };
 
+const CATEGORY_LABELS_EN: Record<string, string> = {
+  bathroom: 'Bathroom',
+  home: 'Home',
+  kitchen: 'Kitchen',
+  other: 'Other',
+  personal: 'Personal',
+  school: 'School',
+};
+
 const DIFFICULTY_OPTIONS = [
-  { value: 'easy', label: 'Facil', quantity: 1 },
-  { value: 'medium', label: 'Medio', quantity: 2 },
-  { value: 'hard', label: 'Dificil', quantity: 3 },
+  {
+    value: 'easy',
+    labelEs: 'Fácil',
+    labelEn: 'Easy',
+    quantity: 1,
+  },
+  {
+    value: 'medium',
+    labelEs: 'Medio',
+    labelEn: 'Medium',
+    quantity: 2,
+  },
+  {
+    value: 'hard',
+    labelEs: 'Difícil',
+    labelEn: 'Hard',
+    quantity: 3,
+  },
 ] as const;
 
-type ObjectDifficulty = typeof DIFFICULTY_OPTIONS[number]['value'];
+type ObjectDifficulty =
+  (typeof DIFFICULTY_OPTIONS)[number]['value'];
 
 const DIFFICULTY_STYLES: Record<
   ObjectDifficulty,
-  { accentColor: string; bgColor: string; textColor: string }
+  {
+    accentColor: string;
+    bgColor: string;
+    textColor: string;
+  }
 > = {
   easy: {
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
     textColor: '#052010',
   },
+
   medium: {
     accentColor: '#FBBF24',
     bgColor: '#3D2E0A',
     textColor: '#1A0E00',
   },
+
   hard: {
     accentColor: '#F87171',
     bgColor: '#3D1010',
@@ -63,196 +101,575 @@ const DIFFICULTY_STYLES: Record<
   },
 };
 
-function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
+function normalizeText(
+  value: string,
+): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    );
 }
 
-function toAlarmDifficulty(difficulty: ObjectDifficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+function categoryLabel(
+  category: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return CATEGORY_LABELS_ES[category] ?? category;
+  }
+
+  return CATEGORY_LABELS_EN[category] ?? category;
 }
 
-export function ObjectRecognitionConfigScreen({ navigation, route }: Props) {
-  const { config, setConfig } = useObjectRecognitionStore();
-  const [objects, setObjects] = useState<RecognizableObject[]>([]);
-  const [difficulty, setDifficulty] = useState<ObjectDifficulty>(
-    ((route.params as any)?.difficulty as ObjectDifficulty | undefined) ??
-      config.difficulty,
+function toAlarmDifficulty(
+  difficulty: ObjectDifficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
+}
+
+function getDifficultyLabel(
+  difficulty: ObjectDifficulty,
+  isSpanish: boolean,
+): string {
+  const option =
+    DIFFICULTY_OPTIONS.find(
+      (item) => item.value === difficulty,
+    );
+
+  if (!option) {
+    return difficulty;
+  }
+
+  return isSpanish
+    ? option.labelEs
+    : option.labelEn;
+}
+
+function translateObjectLabel(
+  label: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return label;
+  }
+
+  const normalized =
+    normalizeText(label);
+
+  const objectLabels: Record<string, string> = {
+    cepillo: 'Brush',
+    'cepillo de dientes': 'Toothbrush',
+    pasta: 'Toothpaste',
+    'pasta dental': 'Toothpaste',
+    jabon: 'Soap',
+    shampoo: 'Shampoo',
+    toalla: 'Towel',
+
+    taza: 'Cup',
+    vaso: 'Glass',
+    plato: 'Plate',
+    cuchara: 'Spoon',
+    tenedor: 'Fork',
+    cuchillo: 'Knife',
+    botella: 'Bottle',
+
+    libro: 'Book',
+    cuaderno: 'Notebook',
+    lapiz: 'Pencil',
+    boligrafo: 'Pen',
+    marcador: 'Marker',
+    regla: 'Ruler',
+    mochila: 'Backpack',
+
+    llave: 'Key',
+    llaves: 'Keys',
+    celular: 'Phone',
+    telefono: 'Phone',
+    cargador: 'Charger',
+    billetera: 'Wallet',
+    reloj: 'Watch',
+    lentes: 'Glasses',
+
+    zapato: 'Shoe',
+    zapatos: 'Shoes',
+    ropa: 'Clothes',
+    control: 'Remote control',
+    'control remoto': 'Remote control',
+  };
+
+  return objectLabels[normalized] ?? label;
+}
+
+export function ObjectRecognitionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useObjectRecognitionStore();
+
+  const [
+    objects,
+    setObjects,
+  ] = useState<RecognizableObject[]>([]);
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<ObjectDifficulty>(
+    ((route.params as any)?.difficulty as
+      | ObjectDifficulty
+      | undefined) ?? config.difficulty,
   );
-  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>(
-    ((route.params as any)?.targetObjectIds as string[] | undefined) ??
-      config.targetObjectIds,
+
+  const [
+    selectedObjectIds,
+    setSelectedObjectIds,
+  ] = useState<string[]>(
+    ((route.params as any)?.targetObjectIds as
+      | string[]
+      | undefined) ?? config.targetObjectIds,
   );
 
   useEffect(() => {
-    const enabledObjects = ObjectBankService.getEnabled();
+    const enabledObjects =
+      ObjectBankService.getEnabled();
+
     setObjects(enabledObjects);
-    setSelectedObjectIds(current =>
-      current.length > 0 ? current : enabledObjects.slice(0, 3).map(object => object.id),
+
+    setSelectedObjectIds((current) =>
+      current.length > 0
+        ? current
+        : enabledObjects
+            .slice(
+              0,
+              3,
+            )
+            .map((object) => object.id),
     );
   }, []);
 
   const requiredQuantity =
-    DIFFICULTY_OPTIONS.find(option => option.value === difficulty)?.quantity ?? 1;
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const canSave = selectedObjectIds.length >= requiredQuantity;
+    DIFFICULTY_OPTIONS.find(
+      (option) => option.value === difficulty,
+    )?.quantity ?? 1;
 
-  const toggleObject = (objectId: string) => {
-    setSelectedObjectIds(current =>
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const canSave =
+    selectedObjectIds.length >= requiredQuantity;
+
+  const toggleObject = (
+    objectId: string,
+  ) => {
+    setSelectedObjectIds((current) =>
       current.includes(objectId)
-        ? current.filter(id => id !== objectId)
-        : [...current, objectId],
+        ? current.filter(
+            (id) => id !== objectId,
+          )
+        : [
+            ...current,
+            objectId,
+          ],
     );
   };
 
   const handleSave = () => {
-    if (!canSave) return;
-    setConfig({ difficulty, targetObjectIds: selectedObjectIds });
-    const alarmConfigSessionId = (route.params as any)?.alarmConfigSessionId as
-      | string
-      | undefined;
+    if (!canSave) {
+      return;
+    }
 
-    completeAlarmMissionConfigSession(alarmConfigSessionId, {
-      type: 'photo',
-      difficulty: toAlarmDifficulty(difficulty),
-      quantity: requiredQuantity,
+    setConfig({
+      difficulty,
       targetObjectIds: selectedObjectIds,
     });
 
+    const alarmConfigSessionId =
+      (route.params as any)?.alarmConfigSessionId as
+        | string
+        | undefined;
+
+    completeAlarmMissionConfigSession(
+      alarmConfigSessionId,
+      {
+        type: 'photo',
+        difficulty: toAlarmDifficulty(difficulty),
+        quantity: requiredQuantity,
+        targetObjectIds: selectedObjectIds,
+      },
+    );
+
     if (alarmConfigSessionId) {
       navigation.goBack();
+
       return;
     }
 
     navigation.navigate('MissionSelector');
   };
 
+  const previewObjectText =
+    isSpanish
+      ? `${requiredQuantity} objeto${
+          requiredQuantity > 1
+            ? 's'
+            : ''
+        }`
+      : `${requiredQuantity} object${
+          requiredQuantity > 1
+            ? 's'
+            : ''
+        }`;
+
+  const selectedPreviewText =
+    isSpanish
+      ? `Se elegirán al azar entre ${
+          selectedObjectIds.length
+        } seleccionado${
+          selectedObjectIds.length === 1
+            ? ''
+            : 's'
+        }`
+      : `They will be randomly chosen from ${
+          selectedObjectIds.length
+        } selected object${
+          selectedObjectIds.length === 1
+            ? ''
+            : 's'
+        }`;
+
+  const confirmText =
+    canSave
+      ? isSpanish
+        ? 'Guardar'
+        : 'Save'
+      : isSpanish
+        ? `Selecciona mínimo ${requiredQuantity}`
+        : `Select at least ${requiredQuantity}`;
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <BackButton onPress={() => navigation.goBack()} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
+          onPress={() => navigation.goBack()}
+        />
 
         <View
           style={[
             styles.headerPill,
-            { backgroundColor: difficultyStyle.accentColor },
+            {
+              backgroundColor:
+                difficultyStyle.accentColor,
+            },
           ]}
         >
-          <Ionicons name="scan-outline" size={22} color={Colors.white} />
-          <Text style={styles.headerText}>MISION{'\n'}DE OBJETOS</Text>
+          <Ionicons
+            name="scan-outline"
+            size={22}
+            color={colors.white}
+          />
+
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'MISIÓN\nDE OBJETOS'
+              : 'MISSION\nOBJECTS'}
+          </Text>
         </View>
 
         <View
           style={[
             styles.previewBox,
             {
-              borderColor: difficultyStyle.accentColor + '55',
-              backgroundColor: difficultyStyle.bgColor,
+              borderColor:
+                difficultyStyle.accentColor +
+                '55',
+              backgroundColor:
+                difficultyStyle.bgColor,
             },
           ]}
         >
-          <Ionicons name="cube-outline" size={54} color={difficultyStyle.accentColor} />
-          <Text style={styles.previewLabel}>
-            {requiredQuantity} objeto{requiredQuantity > 1 ? 's' : ''}
+          <Ionicons
+            name="cube-outline"
+            size={54}
+            color={
+              difficultyStyle.accentColor
+            }
+          />
+
+          <Text
+            style={[
+              styles.previewLabel,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {previewObjectText}
           </Text>
-          <Text style={styles.previewCategory}>
-            Se elegiran al azar entre {selectedObjectIds.length} seleccionado
-            {selectedObjectIds.length === 1 ? '' : 's'}
+
+          <Text
+            style={[
+              styles.previewCategory,
+              {
+                color: colors.white + 'CC',
+              },
+            ]}
+          >
+            {selectedPreviewText}
           </Text>
         </View>
 
-        <Text style={styles.sectionLabel}>Dificultad</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Dificultad'
+            : 'Difficulty'}
+        </Text>
+
         <View style={styles.sliderWrapper}>
-          <View style={styles.trackBg}>
+          <View
+            style={[
+              styles.trackBg,
+              {
+                backgroundColor:
+                  colors.bgElevated,
+              },
+            ]}
+          >
             <View
               style={[
                 styles.trackFill,
                 {
-                  width: `${(DIFFICULTY_OPTIONS.findIndex(
-                    option => option.value === difficulty,
-                  ) / 2) * 100}%`,
-                  backgroundColor: difficultyStyle.accentColor,
+                  width: `${
+                    (DIFFICULTY_OPTIONS.findIndex(
+                      (option) =>
+                        option.value === difficulty,
+                    ) /
+                      2) *
+                    100
+                  }%`,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
             />
-            {DIFFICULTY_OPTIONS.map((option, index) => {
-              const active = option.value === difficulty;
 
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[styles.thumbHit, { left: `${(index / 2) * 100}%` }]}
-                  onPress={() => setDifficulty(option.value)}
-                  activeOpacity={0.85}
-                >
-                  <View
+            {DIFFICULTY_OPTIONS.map(
+              (
+                option,
+                index,
+              ) => {
+                const active =
+                  option.value === difficulty;
+
+                return (
+                  <TouchableOpacity
+                    key={option.value}
                     style={[
-                      styles.thumb,
-                      { borderColor: difficultyStyle.accentColor },
-                      active && { backgroundColor: difficultyStyle.accentColor },
+                      styles.thumbHit,
+                      {
+                        left: `${(index / 2) * 100}%`,
+                      },
                     ]}
-                  />
-                </TouchableOpacity>
-              );
-            })}
+                    onPress={() =>
+                      setDifficulty(option.value)
+                    }
+                    activeOpacity={0.85}
+                  >
+                    <View
+                      style={[
+                        styles.thumb,
+                        {
+                          borderColor:
+                            difficultyStyle.accentColor,
+                          backgroundColor: active
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        },
+                      ]}
+                    />
+                  </TouchableOpacity>
+                );
+              },
+            )}
           </View>
+
           <View style={styles.sliderLabels}>
-            {DIFFICULTY_OPTIONS.map(option => {
-              const active = option.value === difficulty;
+            {DIFFICULTY_OPTIONS.map((option) => {
+              const active =
+                option.value === difficulty;
 
               return (
                 <TouchableOpacity
                   key={option.value}
                   style={styles.labelBtn}
-                  onPress={() => setDifficulty(option.value)}
+                  onPress={() =>
+                    setDifficulty(option.value)
+                  }
                   activeOpacity={0.85}
                 >
                   <Text
                     style={[
                       styles.labelText,
-                      active && {
-                        color: difficultyStyle.accentColor,
-                        fontWeight: '700',
+                      {
+                        color: active
+                          ? difficultyStyle.accentColor
+                          : colors.textMuted,
+                        fontWeight: active
+                          ? '700'
+                          : '500',
                       },
                     ]}
                   >
-                    {option.label}
+                    {getDifficultyLabel(
+                      option.value,
+                      isSpanish,
+                    )}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
-        <Text style={styles.sectionLabel}>Objetos posibles</Text>
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Objetos posibles'
+            : 'Possible objects'}
+        </Text>
 
         <View style={styles.objectList}>
-          {objects.map(object => {
-            const active = selectedObjectIds.includes(object.id);
+          {objects.map((object) => {
+            const active =
+              selectedObjectIds.includes(
+                object.id,
+              );
 
             return (
               <TouchableOpacity
                 key={object.id}
                 style={[
                   styles.objectCard,
-                  active && {
-                    borderColor: difficultyStyle.accentColor,
-                    backgroundColor: difficultyStyle.bgColor,
+                  {
+                    borderColor: active
+                      ? difficultyStyle.accentColor
+                      : colors.border,
+                    backgroundColor: active
+                      ? difficultyStyle.bgColor
+                      : colors.bgCard,
                   },
                 ]}
-                onPress={() => toggleObject(object.id)}
+                onPress={() =>
+                  toggleObject(object.id)
+                }
                 activeOpacity={0.85}
               >
                 <Ionicons
-                  name={active ? 'checkbox' : 'square-outline'}
+                  name={
+                    active
+                      ? 'checkbox'
+                      : 'square-outline'
+                  }
                   size={18}
-                  color={active ? difficultyStyle.accentColor : Colors.textMuted}
+                  color={
+                    active
+                      ? difficultyStyle.accentColor
+                      : colors.textMuted
+                  }
                 />
+
                 <View style={styles.objectTextWrap}>
-                  <Text style={[styles.objectLabel, active && styles.objectLabelActive]}>
-                    {object.label}
+                  <Text
+                    style={[
+                      styles.objectLabel,
+                      {
+                        color: active
+                          ? colors.white
+                          : colors.text,
+                      },
+                    ]}
+                  >
+                    {translateObjectLabel(
+                      object.label,
+                      isSpanish,
+                    )}
                   </Text>
-                  <Text style={styles.objectCategory}>
-                    {categoryLabel(object.category)}
+
+                  <Text
+                    style={[
+                      styles.objectCategory,
+                      {
+                        color: active
+                          ? colors.white + 'CC'
+                          : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {categoryLabel(
+                      object.category,
+                      isSpanish,
+                    )}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -263,15 +680,27 @@ export function ObjectRecognitionConfigScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={[
             styles.confirmBtn,
-            { backgroundColor: difficultyStyle.accentColor },
-            !canSave && styles.confirmBtnDisabled,
+            {
+              backgroundColor:
+                difficultyStyle.accentColor,
+            },
+            !canSave &&
+              styles.confirmBtnDisabled,
           ]}
           onPress={handleSave}
           activeOpacity={0.85}
           disabled={!canSave}
         >
-          <Text style={[styles.confirmText, { color: difficultyStyle.textColor }]}>
-            {canSave ? 'Guardar' : `Selecciona minimo ${requiredQuantity}`}
+          <Text
+            style={[
+              styles.confirmText,
+              {
+                color:
+                  difficultyStyle.textColor,
+              },
+            ]}
+          >
+            {confirmText}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -282,8 +711,8 @@ export function ObjectRecognitionConfigScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
+
   scroll: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -293,8 +722,8 @@ const styles = StyleSheet.create({
     paddingBottom: 42,
     gap: 14,
   },
+
   headerPill: {
-    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -305,58 +734,61 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 14,
   },
+
   headerText: {
-    color: Colors.white,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
+
   previewBox: {
     minHeight: 150,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.primary + '55',
-    backgroundColor: Colors.primary + '18',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
+
   previewLabel: {
-    color: Colors.text,
     fontSize: 24,
     fontWeight: '800',
   },
+
   previewCategory: {
-    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
+    textAlign: 'center',
   },
+
   sectionLabel: {
-    color: Colors.text,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
   },
+
   sliderWrapper: {
     marginBottom: 4,
   },
+
   trackBg: {
     height: 4,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
     justifyContent: 'center',
     marginBottom: 14,
   },
+
   trackFill: {
     position: 'absolute',
     left: 0,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
   },
+
   thumbHit: {
     position: 'absolute',
     width: 30,
@@ -366,81 +798,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   thumb: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.bgElevated,
   },
-  thumbActive: {
-    backgroundColor: Colors.primary,
-  },
+
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 4,
   },
+
   labelBtn: {
     flex: 1,
     alignItems: 'center',
   },
+
   labelText: {
-    color: Colors.textMuted,
     fontSize: 13,
   },
-  labelTextActive: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
+
   objectList: {
     gap: 10,
   },
+
   objectCard: {
     minHeight: 58,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  objectCardActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '14',
-  },
+
   objectTextWrap: {
     flex: 1,
     gap: 2,
   },
+
   objectLabel: {
-    color: Colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
-  objectLabelActive: {
-    color: Colors.white,
-  },
+
   objectCategory: {
-    color: Colors.textSecondary,
     fontSize: 12,
   },
+
   confirmBtn: {
-    backgroundColor: Colors.primary,
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
+
   confirmBtnDisabled: {
     opacity: 0.5,
   },
+
   confirmText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
   },

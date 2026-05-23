@@ -14,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 import { useMissionHistory } from '../hooks/useMissionHistory';
 import { HistoryFilterChips } from '../components/HistoryFilterChips';
@@ -23,14 +24,29 @@ import { MissionTypeStatsCard } from '../components/MissionTypeStatsCard';
 import { MissionHistoryCard } from '../components/MissionHistoryCard';
 import { EmptyHistoryState } from '../components/EmptyHistoryState';
 
-type Props = NativeStackScreenProps<any, 'MissionHistory'>;
+type Props = NativeStackScreenProps<
+  any,
+  'MissionHistory'
+>;
 
 const TEXT_SIZE = 14;
 const TEXT_WEIGHT = '700' as const;
 const CARD_MIN_HEIGHT = 64;
 
-export default function MissionHistoryScreen({ navigation, route }: Props) {
-  const { colors, statusBarStyle } = useAppTheme();
+export default function MissionHistoryScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const userId: string = route.params?.userId ?? '';
 
@@ -54,10 +70,22 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor: colors.bg }]}
-      edges={['top', 'left', 'right']}
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+      edges={[
+        'top',
+        'left',
+        'right',
+      ]}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <View style={styles.page}>
         <View style={styles.header}>
@@ -66,20 +94,44 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
             onPress={handleGoBack}
             activeOpacity={0.75}
           >
-            <Text style={[styles.backArrow, { color: colors.text }]}>‹</Text>
-            <Text style={[styles.backText, { color: colors.text }]}>
-              Volver
+            <Text
+              style={[
+                styles.backArrow,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              ‹
+            </Text>
+
+            <Text
+              style={[
+                styles.backText,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {isSpanish ? 'Volver' : 'Back'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.titleWrap}>
             <Text
-              style={[styles.title, { color: colors.text }]}
+              style={[
+                styles.title,
+                {
+                  color: colors.text,
+                },
+              ]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.82}
             >
-              Historial de misiones
+              {isSpanish
+                ? 'Historial de misiones'
+                : 'Mission history'}
             </Text>
           </View>
 
@@ -87,14 +139,30 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.filtersWrap}>
-          <HistoryFilterChips filtroActivo={filtroActivo} onSelect={setFiltro} />
+          <HistoryFilterChips
+            filtroActivo={filtroActivo}
+            onSelect={setFiltro}
+          />
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.primary} size="small" />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              Cargando historial...
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+            />
+
+            <Text
+              style={[
+                styles.loadingText,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Cargando historial...'
+                : 'Loading history...'}
             </Text>
           </View>
         ) : error ? (
@@ -107,7 +175,14 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <Text style={[styles.errorText, { color: colors.danger }]}>
+            <Text
+              style={[
+                styles.errorText,
+                {
+                  color: colors.danger,
+                },
+              ]}
+            >
               {error}
             </Text>
 
@@ -122,8 +197,17 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
               ]}
               activeOpacity={0.75}
             >
-              <Text style={[styles.retryText, { color: colors.text }]}>
-                Reintentar
+              <Text
+                style={[
+                  styles.retryText,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Reintentar'
+                  : 'Try again'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -144,17 +228,24 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
             <Text
               style={[
                 styles.sectionLabel,
-                { color: colors.textSecondary },
+                {
+                  color: colors.textSecondary,
+                },
               ]}
             >
-              RECIENTES
+              {isSpanish
+                ? 'RECIENTES'
+                : 'RECENT'}
             </Text>
 
             {registros.length === 0 ? (
               <EmptyHistoryState />
             ) : (
               registros.map((item) => (
-                <MissionHistoryCard key={String(item.id)} item={item} />
+                <MissionHistoryCard
+                  key={String(item.id)}
+                  item={item}
+                />
               ))
             )}
 

@@ -22,6 +22,11 @@ import {
   type ThemeMode,
 } from '../../../shared/theme/useAppTheme';
 
+import {
+  useTranslation,
+  type AppLanguage,
+} from '../../../shared/i18n/useTranslation';
+
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { useAuth } from '../../auth/store/authStore';
 import { ProfileStackParamList } from '../../profile/navigation/ProfileNavigator';
@@ -30,12 +35,16 @@ type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 };
 
-// ─── Avatar con iniciales ─────────────────────────────────────────────────────
-
-function AvatarInitials({ name, size = 52 }: { name: string; size?: number }) {
+function AvatarInitials({
+  name,
+  size = 52,
+}: {
+  name: string;
+  size?: number;
+}) {
   const initials = name
     .split(' ')
-    .map(w => w[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -51,14 +60,19 @@ function AvatarInitials({ name, size = 52 }: { name: string; size?: number }) {
         },
       ]}
     >
-      <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>
+      <Text
+        style={[
+          styles.avatarText,
+          {
+            fontSize: size * 0.38,
+          },
+        ]}
+      >
         {initials || 'U'}
       </Text>
     </View>
   );
 }
-
-// ─── Fila de menú ─────────────────────────────────────────────────────────────
 
 interface MenuRowProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -85,33 +99,67 @@ function MenuRow({
 
   return (
     <TouchableOpacity
-      style={[styles.menuRow, disabled && { opacity: 0.4 }]}
+      style={[
+        styles.menuRow,
+        disabled && {
+          opacity: 0.4,
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.65}
       disabled={disabled}
     >
-      <View style={[styles.menuIconWrap, { backgroundColor: iconColor + '1A' }]}>
-        <Ionicons name={icon} size={18} color={iconColor} />
+      <View
+        style={[
+          styles.menuIconWrap,
+          {
+            backgroundColor: iconColor + '1A',
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={iconColor}
+        />
       </View>
 
       <View style={styles.menuText}>
-        <Text style={[styles.menuLabel, { color: colors.text }]}>{label}</Text>
+        <Text
+          style={[
+            styles.menuLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {label}
+        </Text>
 
         {sublabel ? (
-          <Text style={[styles.menuSublabel, { color: colors.textMuted }]}>
+          <Text
+            style={[
+              styles.menuSublabel,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
             {sublabel}
           </Text>
         ) : null}
       </View>
 
-      {showChevron && (
-        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-      )}
+      {showChevron ? (
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={colors.textMuted}
+        />
+      ) : null}
     </TouchableOpacity>
   );
 }
-
-// ─── SettingsScreen ───────────────────────────────────────────────────────────
 
 export default function SettingsScreen({ navigation }: Props) {
   const { isAuthenticated, user, exitGuest } = useAuth();
@@ -124,29 +172,58 @@ export default function SettingsScreen({ navigation }: Props) {
     isDark,
   } = useAppTheme();
 
+  const {
+    t,
+    language,
+    setLanguage,
+  } = useTranslation();
+
   const [appearanceVisible, setAppearanceVisible] = useState(false);
+  const [languageVisible, setLanguageVisible] = useState(false);
 
   const handleSelectTheme = (mode: ThemeMode) => {
     setThemeMode(mode);
     setAppearanceVisible(false);
   };
 
+  const handleSelectLanguage = (nextLanguage: AppLanguage) => {
+    setLanguage(nextLanguage);
+    setLanguageVisible(false);
+  };
+
+  const isSpanish = language === 'es';
+
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor: colors.bg }]}
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
       edges={['top', 'left', 'right']}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Ajustes</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {t('settings.title')}
+          </Text>
         </View>
-
-        {/* ── PERFIL ─────────────────────────────────────────────────────── */}
 
         {isAuthenticated && user ? (
           <TouchableOpacity
@@ -164,14 +241,24 @@ export default function SettingsScreen({ navigation }: Props) {
 
             <View style={styles.profileInfo}>
               <Text
-                style={[styles.profileName, { color: colors.text }]}
+                style={[
+                  styles.profileName,
+                  {
+                    color: colors.text,
+                  },
+                ]}
                 numberOfLines={1}
               >
                 {user.username || 'Usuario'}
               </Text>
 
               <Text
-                style={[styles.profileEmail, { color: colors.textSecondary }]}
+                style={[
+                  styles.profileEmail,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
                 numberOfLines={1}
               >
                 {user.email}
@@ -181,26 +268,41 @@ export default function SettingsScreen({ navigation }: Props) {
             <View
               style={[
                 styles.profileChevronWrap,
-                { backgroundColor: colors.accentGlow },
+                {
+                  backgroundColor: colors.accentGlow,
+                },
               ]}
             >
-              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.primary}
+              />
             </View>
           </TouchableOpacity>
         ) : (
           <Menssage
             type="info"
-            title="Modo invitado"
-            message="Inicia sesion para guardar tus alarmas y ver tu progreso."
+            title={isSpanish ? 'Modo invitado' : 'Guest mode'}
+            message={
+              isSpanish
+                ? 'Inicia sesion para guardar tus alarmas y ver tu progreso.'
+                : 'Log in to save your alarms and view your progress.'
+            }
             onPress={exitGuest}
             style={styles.message}
           />
         )}
 
-        {/* ── PREFERENCIAS ───────────────────────────────────────────────── */}
-
-        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-          Preferencias
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {t('settings.preferences')}
         </Text>
 
         <View
@@ -214,8 +316,8 @@ export default function SettingsScreen({ navigation }: Props) {
         >
           <MenuRow
             icon="notifications-outline"
-            label="Notificaciones"
-            sublabel="Próximamente"
+            label={t('settings.notifications')}
+            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
             tintColor={colors.warning}
             disabled
             colors={colors}
@@ -232,8 +334,12 @@ export default function SettingsScreen({ navigation }: Props) {
 
           <MenuRow
             icon="color-palette"
-            label="Apariencia"
-            sublabel={themeMode === 'dark' ? 'Oscuro' : 'Claro'}
+            label={t('settings.appearance')}
+            sublabel={
+              themeMode === 'dark'
+                ? t('settings.dark')
+                : t('settings.light')
+            }
             tintColor={colors.purple}
             onPress={() => setAppearanceVisible(true)}
             colors={colors}
@@ -250,18 +356,27 @@ export default function SettingsScreen({ navigation }: Props) {
 
           <MenuRow
             icon="language-outline"
-            label="Idioma"
-            sublabel="Español"
+            label={t('settings.language')}
+            sublabel={
+              language === 'es'
+                ? t('settings.spanish')
+                : t('settings.english')
+            }
             tintColor={colors.primary}
-            disabled
+            onPress={() => setLanguageVisible(true)}
             colors={colors}
           />
         </View>
 
-        {/* ── INFO ───────────────────────────────────────────────────────── */}
-
-        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-          Información
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Información' : 'Information'}
         </Text>
 
         <View
@@ -275,7 +390,7 @@ export default function SettingsScreen({ navigation }: Props) {
         >
           <MenuRow
             icon="information-circle-outline"
-            label="Acerca de Neuro Wake"
+            label={isSpanish ? 'Acerca de Neuro Wake' : 'About Neuro Wake'}
             sublabel="v1.0.0"
             tintColor={colors.textSecondary}
             showChevron={false}
@@ -285,8 +400,6 @@ export default function SettingsScreen({ navigation }: Props) {
 
         <View style={{ height: 32 }} />
       </ScrollView>
-
-      {/* ── MODAL DE APARIENCIA ─────────────────────────────────────────── */}
 
       <Modal
         visible={appearanceVisible}
@@ -313,12 +426,28 @@ export default function SettingsScreen({ navigation }: Props) {
               },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              Apariencia
+            <Text
+              style={[
+                styles.modalTitle,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {t('settings.appearance')}
             </Text>
 
-            <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
-              Selecciona el tema visual de la aplicación.
+            <Text
+              style={[
+                styles.modalSubtitle,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Selecciona el tema visual de la aplicación.'
+                : 'Select the visual theme of the application.'}
             </Text>
 
             <TouchableOpacity
@@ -326,7 +455,9 @@ export default function SettingsScreen({ navigation }: Props) {
                 styles.themeOption,
                 {
                   borderColor:
-                    themeMode === 'dark' ? colors.primary : colors.border,
+                    themeMode === 'dark'
+                      ? colors.primary
+                      : colors.border,
                   backgroundColor:
                     themeMode === 'dark'
                       ? colors.accentGlow
@@ -339,34 +470,51 @@ export default function SettingsScreen({ navigation }: Props) {
               <View
                 style={[
                   styles.themeIconWrap,
-                  { backgroundColor: colors.primary + '1A' },
+                  {
+                    backgroundColor: colors.primary + '1A',
+                  },
                 ]}
               >
-                <Ionicons name="moon" size={20} color={colors.primary} />
+                <Ionicons
+                  name="moon"
+                  size={20}
+                  color={colors.primary}
+                />
               </View>
 
               <View style={styles.themeTextWrap}>
-                <Text style={[styles.themeOptionTitle, { color: colors.text }]}>
-                  Oscuro
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  {t('settings.dark')}
                 </Text>
 
                 <Text
                   style={[
                     styles.themeOptionDescription,
-                    { color: colors.textMuted },
+                    {
+                      color: colors.textMuted,
+                    },
                   ]}
                 >
-                  Usa el diseño oscuro por defecto.
+                  {isSpanish
+                    ? 'Usa el diseño oscuro por defecto.'
+                    : 'Use the default dark design.'}
                 </Text>
               </View>
 
-              {themeMode === 'dark' && (
+              {themeMode === 'dark' ? (
                 <Ionicons
                   name="checkmark-circle"
                   size={22}
                   color={colors.primary}
                 />
-              )}
+              ) : null}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -374,7 +522,9 @@ export default function SettingsScreen({ navigation }: Props) {
                 styles.themeOption,
                 {
                   borderColor:
-                    themeMode === 'light' ? colors.primary : colors.border,
+                    themeMode === 'light'
+                      ? colors.primary
+                      : colors.border,
                   backgroundColor:
                     themeMode === 'light'
                       ? colors.accentGlow
@@ -387,34 +537,51 @@ export default function SettingsScreen({ navigation }: Props) {
               <View
                 style={[
                   styles.themeIconWrap,
-                  { backgroundColor: colors.warning + '1A' },
+                  {
+                    backgroundColor: colors.warning + '1A',
+                  },
                 ]}
               >
-                <Ionicons name="sunny" size={20} color={colors.warning} />
+                <Ionicons
+                  name="sunny"
+                  size={20}
+                  color={colors.warning}
+                />
               </View>
 
               <View style={styles.themeTextWrap}>
-                <Text style={[styles.themeOptionTitle, { color: colors.text }]}>
-                  Claro
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  {t('settings.light')}
                 </Text>
 
                 <Text
                   style={[
                     styles.themeOptionDescription,
-                    { color: colors.textMuted },
+                    {
+                      color: colors.textMuted,
+                    },
                   ]}
                 >
-                  Usa fondos claros y textos oscuros.
+                  {isSpanish
+                    ? 'Usa fondos claros y textos oscuros.'
+                    : 'Use light backgrounds and dark text.'}
                 </Text>
               </View>
 
-              {themeMode === 'light' && (
+              {themeMode === 'light' ? (
                 <Ionicons
                   name="checkmark-circle"
                   size={22}
                   color={colors.primary}
                 />
-              )}
+              ) : null}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -425,10 +592,211 @@ export default function SettingsScreen({ navigation }: Props) {
               <Text
                 style={[
                   styles.cancelButtonText,
-                  { color: colors.textSecondary },
+                  {
+                    color: colors.textSecondary,
+                  },
                 ]}
               >
-                Cancelar
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={languageVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageVisible(false)}
+      >
+        <View
+          style={[
+            styles.modalOverlay,
+            {
+              backgroundColor: isDark
+                ? 'rgba(0,0,0,0.55)'
+                : 'rgba(15,23,42,0.35)',
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.bgCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.modalTitle,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {t('settings.language')}
+            </Text>
+
+            <Text
+              style={[
+                styles.modalSubtitle,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Selecciona el idioma de la aplicación.'
+                : 'Select the application language.'}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                {
+                  borderColor:
+                    language === 'es'
+                      ? colors.primary
+                      : colors.border,
+                  backgroundColor:
+                    language === 'es'
+                      ? colors.accentGlow
+                      : colors.bgCard,
+                },
+              ]}
+              activeOpacity={0.75}
+              onPress={() => handleSelectLanguage('es')}
+            >
+              <View
+                style={[
+                  styles.themeIconWrap,
+                  {
+                    backgroundColor: colors.primary + '1A',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="language-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+
+              <View style={styles.themeTextWrap}>
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  Español
+                </Text>
+
+                <Text
+                  style={[
+                    styles.themeOptionDescription,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  Idioma español
+                </Text>
+              </View>
+
+              {language === 'es' ? (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={22}
+                  color={colors.primary}
+                />
+              ) : null}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                {
+                  borderColor:
+                    language === 'en'
+                      ? colors.primary
+                      : colors.border,
+                  backgroundColor:
+                    language === 'en'
+                      ? colors.accentGlow
+                      : colors.bgCard,
+                },
+              ]}
+              activeOpacity={0.75}
+              onPress={() => handleSelectLanguage('en')}
+            >
+              <View
+                style={[
+                  styles.themeIconWrap,
+                  {
+                    backgroundColor: colors.primary + '1A',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="language-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+
+              <View style={styles.themeTextWrap}>
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  English
+                </Text>
+
+                <Text
+                  style={[
+                    styles.themeOptionDescription,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  English language
+                </Text>
+              </View>
+
+              {language === 'en' ? (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={22}
+                  color={colors.primary}
+                />
+              ) : null}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              activeOpacity={0.7}
+              onPress={() => setLanguageVisible(false)}
+            >
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -437,8 +805,6 @@ export default function SettingsScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
-
-// ─── Estilos ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safe: {
