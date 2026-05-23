@@ -14,45 +14,55 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Colors } from '../../../shared/theme/colors';
-import { Layout } from '../../../shared/theme/layout';
-import { Typography } from '../../../shared/theme/typography';
-import { AuthStackParamList } from '../navigation/AuthNavigator';
-import { authService } from '../services/authService';
 import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
-
+import { Layout } from '../../../shared/theme/layout';
+import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
+import { AuthStackParamList } from '../navigation/AuthNavigator';
+import { authService } from '../services/authService';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
 export default function ResetPasswordScreen({ navigation, route }: Props) {
   const { email } = route.params;
-
+  const { colors } = useAppTheme();
+  const { language } = useTranslation();
+  const isSpanish = language === 'es';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [completed, setCompleted] = useState(false);
-  const [message, setMessage] = useState(`Código verificado para ${email}.`);
+  const [message, setMessage] = useState(
+    isSpanish ? `Codigo verificado para ${email}.` : `Code verified for ${email}.`,
+  );
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('success');
+
+  const canNavigateToLogin = () =>
+    navigation.getState().routeNames.includes('Login');
 
   const handleUpdatePassword = async () => {
     if (!password.trim() || !confirmPassword.trim()) {
       setMessageType('error');
-      setMessage('Completa ambos campos.');
+      setMessage(isSpanish ? 'Completa ambos campos.' : 'Complete both fields.');
       return;
     }
 
     if (password.length < 6) {
       setMessageType('error');
-      setMessage('La contraseña debe tener al menos 6 caracteres.');
+      setMessage(
+        isSpanish
+          ? 'La contrasena debe tener al menos 6 caracteres.'
+          : 'Password must have at least 6 characters.',
+      );
       return;
     }
 
     if (password !== confirmPassword) {
       setMessageType('error');
-      setMessage('Las contraseñas no coinciden.');
+      setMessage(isSpanish ? 'Las contrasenas no coinciden.' : 'Passwords do not match.');
       return;
     }
 
@@ -64,16 +74,27 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
 
       setCompleted(true);
       setMessageType('success');
-      setMessage('Tu contraseña fue actualizada correctamente.');
+      setMessage(
+        isSpanish
+          ? 'Tu contrasena fue actualizada correctamente.'
+          : 'Your password was updated successfully.',
+      );
     } catch (error: any) {
       setMessageType('error');
-      setMessage(error.message ?? 'No se pudo actualizar la contraseña.');
+      setMessage(
+        error.message ??
+          (isSpanish ? 'No se pudo actualizar la contrasena.' : 'Could not update password.'),
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const goToLogin = () => {
+    if (!canNavigateToLogin()) {
+      return;
+    }
+
     navigation.reset({
       index: 0,
       routes: [{ name: 'Login' }],
@@ -83,6 +104,10 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   const cancelRecovery = async () => {
     await authService.cancelPasswordRecovery();
 
+    if (!canNavigateToLogin()) {
+      return;
+    }
+
     navigation.reset({
       index: 0,
       routes: [{ name: 'Login' }],
@@ -91,48 +116,94 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {!completed ? (
-          <BackButton style={styles.backBtn} onPress={cancelRecovery} />
-        ) : null}
+        {!completed ? <BackButton style={styles.backBtn} onPress={cancelRecovery} /> : null}
 
-        <View style={styles.card}>
-          <View style={styles.iconCircle}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconCircle,
+              {
+                backgroundColor: colors.accentGlow,
+                borderColor: colors.primary + '55',
+              },
+            ]}
+          >
             <Ionicons
               name={completed ? 'checkmark-circle-outline' : 'lock-closed-outline'}
               size={32}
-              color={completed ? Colors.success : Colors.primaryLight}
+              color={completed ? colors.success : colors.primaryLight}
             />
           </View>
 
-          <Text style={styles.title}>
-            {completed ? 'Contraseña actualizada' : 'Nueva contraseña'}
+          <Text style={[styles.title, { color: colors.text }]}>
+            {completed
+              ? isSpanish
+                ? 'Contrasena actualizada'
+                : 'Password updated'
+              : isSpanish
+                ? 'Nueva contrasena'
+                : 'New password'}
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {completed
-              ? 'Ahora puedes iniciar sesión con tu nueva contraseña.'
-              : 'Crea una nueva contraseña para recuperar el acceso a tu cuenta.'}
+              ? isSpanish
+                ? 'Ahora puedes iniciar sesion con tu nueva contrasena.'
+                : 'You can now log in with your new password.'
+              : isSpanish
+                ? 'Crea una nueva contrasena para recuperar el acceso a tu cuenta.'
+                : 'Create a new password to recover access to your account.'}
           </Text>
 
           <Menssage type={messageType} message={message} />
 
           {completed ? (
-            <TouchableOpacity style={styles.btnPrimary} onPress={goToLogin} activeOpacity={0.85}>
-              <Text style={styles.btnPrimaryText}>Ir al inicio de sesión</Text>
+            <TouchableOpacity
+              style={[
+                styles.btnPrimary,
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primaryDeep,
+                },
+              ]}
+              onPress={goToLogin}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
+                {isSpanish ? 'Ir al inicio de sesion' : 'Go to login'}
+              </Text>
             </TouchableOpacity>
           ) : (
             <>
-              <Text style={styles.label}>Nueva contraseña:</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                {isSpanish ? 'Nueva contrasena:' : 'New password:'}
+              </Text>
 
-              <View style={styles.inputWrap}>
+              <View
+                style={[
+                  styles.inputWrap,
+                  {
+                    backgroundColor: colors.bgElevated,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.inputInner}
-                  placeholder="••••••••"
-                  placeholderTextColor={Colors.textMuted}
+                  style={[styles.inputInner, { color: colors.text }]}
+                  placeholder="********"
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
@@ -146,18 +217,28 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Confirmar contraseña:</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                {isSpanish ? 'Confirmar contrasena:' : 'Confirm password:'}
+              </Text>
 
-              <View style={styles.inputWrap}>
+              <View
+                style={[
+                  styles.inputWrap,
+                  {
+                    backgroundColor: colors.bgElevated,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.inputInner}
-                  placeholder="••••••••"
-                  placeholderTextColor={Colors.textMuted}
+                  style={[styles.inputInner, { color: colors.text }]}
+                  placeholder="********"
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -165,20 +246,31 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
               </View>
 
               <TouchableOpacity
-                style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                style={[
+                  styles.btnPrimary,
+                  {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primaryDeep,
+                  },
+                  loading && styles.btnDisabled,
+                ]}
                 onPress={handleUpdatePassword}
                 disabled={loading}
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color={Colors.white} />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
-                  <Text style={styles.btnPrimaryText}>Actualizar contraseña</Text>
+                  <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
+                    {isSpanish ? 'Actualizar contrasena' : 'Update password'}
+                  </Text>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.cancelBtn} onPress={cancelRecovery} activeOpacity={0.75}>
-                <Text style={styles.cancelText}>Cancelar recuperación</Text>
+                <Text style={[styles.cancelText, { color: colors.textSecondary }]}>
+                  {isSpanish ? 'Cancelar recuperacion' : 'Cancel recovery'}
+                </Text>
               </TouchableOpacity>
             </>
           )}
@@ -189,10 +281,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
+  root: { flex: 1 },
   scroll: {
     flexGrow: 1,
     width: '100%',
@@ -202,37 +291,29 @@ const styles = StyleSheet.create({
     paddingTop: 58,
     paddingBottom: 40,
   },
-  backBtn: {
-    marginBottom: 22,
-  },
+  backBtn: { marginBottom: 22 },
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     padding: Layout.screenPaddingWide,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   iconCircle: {
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: Colors.accentGlow,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: Colors.primary + '55',
   },
   title: {
     fontSize: Typography.title.fontSize,
     fontWeight: Typography.title.fontWeight,
-    color: Colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
-    color: Colors.textSecondary,
     fontSize: Typography.body.fontSize,
     textAlign: 'center',
     lineHeight: 20,
@@ -240,22 +321,18 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: Typography.label.fontSize,
-    color: Colors.textSecondary,
     marginBottom: 6,
     fontWeight: Typography.label.fontWeight,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bgElevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginBottom: 14,
   },
   inputInner: {
     flex: 1,
-    color: Colors.text,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
@@ -265,18 +342,13 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   btnPrimary: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primaryDeep,
   },
-  btnDisabled: {
-    opacity: 0.65,
-  },
+  btnDisabled: { opacity: 0.65 },
   btnPrimaryText: {
-    color: Colors.white,
     fontWeight: '800',
     fontSize: 15,
   },
@@ -286,7 +358,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },

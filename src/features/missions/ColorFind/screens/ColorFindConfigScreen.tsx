@@ -9,11 +9,13 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ColorFindGrid } from '../components/ColorFindGrid';
@@ -35,8 +37,22 @@ function toAlarmDifficulty(difficulty: Difficulty) {
   return difficulty === 'medium' ? 'normal' : difficulty;
 }
 
+function getDifficultyDisplayLabel(difficulty: Difficulty, isSpanish: boolean): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'Facil' : 'Easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'Medio' : 'Medium';
+  }
+
+  return isSpanish ? 'Dificil' : 'Hard';
+}
+
 export function ColorFindConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
+  const { colors, statusBarStyle } = useAppTheme();
+  const { language } = useTranslation();
   const { config, setConfig } = useColorFindStore();
   const [difficulty, setDifficulty] = useState<Difficulty>(
     route.params?.difficulty ?? config.difficulty ?? DEFAULT_CONFIG.difficulty,
@@ -50,6 +66,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
   const preview = EXAMPLE_PREVIEWS[difficulty];
   const isSmall = width < 360;
   const isShort = height < 680;
+  const isSpanish = language === 'es';
   const fontBase = isSmall ? 12 : 14;
   const pillPadV = isShort ? 7 : 10;
   const sectionGap = isShort ? 10 : 16;
@@ -75,8 +92,8 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.bg} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: isSmall ? 14 : 20 }]}
@@ -85,30 +102,67 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
       >
         <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
 
-        <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
-          <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
-            MISION{'\n'}COLOR DIFERENTE
+        <View
+          style={[
+            styles.headerPill,
+            {
+              backgroundColor: colors.primary,
+              paddingVertical: pillPadV,
+              marginBottom: sectionGap,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+                fontSize: isSmall ? 12 : 14,
+              },
+            ]}
+          >
+            {isSpanish ? 'MISION' : 'MISSION'}
+            {'\n'}
+            {isSpanish ? 'COLOR DIFERENTE' : 'DIFFERENT COLOR'}
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
-          Seleccione la dificultad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+              fontSize: fontBase,
+              marginBottom: 6,
+            },
+          ]}
+        >
+          {isSpanish ? 'Seleccione la dificultad' : 'Select difficulty'}
         </Text>
-        <Text style={[styles.subLabel, { fontSize: isSmall ? 11 : 12 }]}>
-          Ejemplo - toca el cuadro marcado
+        <Text
+          style={[
+            styles.subLabel,
+            {
+              color: colors.textSecondary,
+              fontSize: isSmall ? 11 : 12,
+            },
+          ]}
+        >
+          {isSpanish ? 'Ejemplo - toca el cuadro marcado' : 'Example - tap the marked square'}
         </Text>
 
         <View
           style={[
             styles.previewBox,
             {
+              backgroundColor: colors.bgCard,
               marginBottom: sectionGap,
               borderColor: style.accentColor + '40',
             },
           ]}
         >
           <Text style={[styles.previewTitle, { color: style.accentColor }]}>
-            {style.gridSize * style.gridSize} cuadros
+            {style.gridSize * style.gridSize} {isSpanish ? 'cuadros' : 'squares'}
           </Text>
           <ColorFindGrid
             challenge={preview}
@@ -119,7 +173,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
         </View>
 
         <View style={[styles.sliderWrapper, { marginBottom: isShort ? 4 : 8 }]}>
-          <View style={styles.trackBg}>
+          <View style={[styles.trackBg, { backgroundColor: colors.bgElevated }]}>
             <View
               style={[
                 styles.trackFill,
@@ -139,8 +193,8 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
                   style={[
                     styles.thumb,
                     {
-                      backgroundColor: sliderIdx >= index ? style.accentColor : Colors.bgElevated,
-                      borderColor: sliderIdx >= index ? style.accentColor : Colors.textMuted,
+                      backgroundColor: sliderIdx >= index ? style.accentColor : colors.bgElevated,
+                      borderColor: sliderIdx >= index ? style.accentColor : colors.textMuted,
                     },
                   ]}
                 />
@@ -156,24 +210,58 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
                     styles.labelText,
                     { fontSize: isSmall ? 11 : 13 },
                     difficulty === level && { color: style.accentColor, fontWeight: '500' },
+                    difficulty !== level && { color: colors.textMuted },
                   ]}
                 >
-                  {DIFFICULTY_STYLES[level].label.charAt(0) +
-                    DIFFICULTY_STYLES[level].label.slice(1).toLowerCase()}
+                  {getDifficultyDisplayLabel(level, isSpanish)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={[styles.divider, { marginVertical: sectionGap }]} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colors.border,
+              marginVertical: sectionGap,
+            },
+          ]}
+        />
 
-        <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
-          Seleccione la cantidad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+              fontSize: fontBase,
+              marginBottom: 6,
+            },
+          ]}
+        >
+          {isSpanish ? 'Seleccione la cantidad' : 'Select quantity'}
         </Text>
         <View style={styles.quantityRow}>
-          <View style={[styles.quantityBox, { paddingVertical: isShort ? 8 : 10 }]}>
-            <Text style={[styles.quantityNum, { fontSize: isSmall ? 18 : 22 }]}>
+          <View
+            style={[
+              styles.quantityBox,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+                paddingVertical: isShort ? 8 : 10,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.quantityNum,
+                {
+                  color: colors.text,
+                  fontSize: isSmall ? 18 : 22,
+                },
+              ]}
+            >
               {quantity}
             </Text>
             <View style={styles.arrows}>
@@ -181,17 +269,27 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
                 onPress={() => setQuantity(q => Math.min(MAX_QUANTITY, q + 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>▲</Text>
+                <Ionicons name="chevron-up" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setQuantity(q => Math.max(MIN_QUANTITY, q - 1))}
                 style={styles.arrowBtn}
               >
-                <Text style={styles.arrowText}>▼</Text>
+                <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>veces</Text>
+          <Text
+            style={[
+              styles.vecesText,
+              {
+                color: colors.textSecondary,
+                fontSize: isSmall ? 13 : 15,
+              },
+            ]}
+          >
+            {isSpanish ? 'veces' : 'times'}
+          </Text>
         </View>
 
         <View style={{ height: isShort ? 16 : 32 }} />
@@ -205,7 +303,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
           activeOpacity={0.85}
         >
           <Text style={[styles.confirmText, { color: style.textColor, fontSize: isSmall ? 14 : 16 }]}>
-            Confirmar
+            {isSpanish ? 'Confirmar' : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -214,7 +312,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1 },
   scroll: {
     flexGrow: 1,
     width: '100%',
@@ -227,22 +325,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   headerPill: {
-    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
     marginTop: 8,
   },
   headerText: {
-    color: Colors.white,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { color: Colors.text },
-  subLabel: { color: Colors.textSecondary, marginBottom: 8 },
+  sectionLabel: {},
+  subLabel: { marginBottom: 8 },
   previewBox: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 12,
@@ -254,7 +349,6 @@ const styles = StyleSheet.create({
   sliderWrapper: {},
   trackBg: {
     height: 4,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
@@ -274,24 +368,21 @@ const styles = StyleSheet.create({
   thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { color: Colors.textMuted },
-  divider: { height: 0.5, backgroundColor: Colors.border },
+  labelText: {},
+  divider: { height: 0.5 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quantityBox: {
-    backgroundColor: Colors.bgElevated,
     borderRadius: Layout.controlRadius,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.5,
-    borderColor: Colors.border,
   },
-  quantityNum: { fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
+  quantityNum: { fontWeight: '500', minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 11, color: Colors.textSecondary },
-  vecesText: { color: Colors.textSecondary },
+  vecesText: {},
   confirmBtn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontWeight: '500' },
 });

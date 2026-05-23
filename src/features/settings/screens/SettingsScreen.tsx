@@ -674,15 +674,13 @@ export default function SettingsScreen({ navigation }: Props) {
                 style={[
                   styles.themeIconWrap,
                   {
-                    backgroundColor: colors.primary + '1A',
+                    backgroundColor: colors.warning + '26',
                   },
                 ]}
               >
-                <Ionicons
-                  name="language-outline"
-                  size={20}
-                  color={colors.primary}
-                />
+                <Text style={[styles.languageBadgeText, { color: colors.warning }]}>
+                  ES
+                </Text>
               </View>
 
               <View style={styles.themeTextWrap}>
@@ -743,11 +741,9 @@ export default function SettingsScreen({ navigation }: Props) {
                   },
                 ]}
               >
-                <Ionicons
-                  name="language-outline"
-                  size={20}
-                  color={colors.primary}
-                />
+                <Text style={[styles.languageBadgeText, { color: colors.primary }]}>
+                  EN
+                </Text>
               </View>
 
               <View style={styles.themeTextWrap}>
@@ -976,6 +972,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  languageBadgeText: {
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
 
   themeTextWrap: {

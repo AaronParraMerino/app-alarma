@@ -61,7 +61,13 @@ const DIFFICULTY_META: Record<
   },
 };
 
-const MISSION_ICONS = ['calculator-outline', 'text-outline'] as const;
+const MISSION_ICONS = [
+  'calculator-outline',
+  'text-outline',
+  'color-palette-outline',
+  'grid-outline',
+  'scan-outline',
+] as const;
 
 export function RandomMissionConfig({
   initialDifficulty = RANDOM_MISSION_DEFAULT_CONFIG.difficulty,

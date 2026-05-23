@@ -20,4 +20,16 @@ export const RANDOM_AVAILABLE_MISSIONS = [
     title: 'Completa palabras',
     description: 'Palabras con letras ocultas para completar.',
   },
+  {
+    title: 'Figuras y colores',
+    description: 'Identificar el color correcto de una figura.',
+  },
+  {
+    title: 'Color diferente',
+    description: 'Encontrar el cuadro distinto dentro de la grilla.',
+  },
+  {
+    title: 'Detectar objetos',
+    description: 'Validar objetos con la camara cuando suena la alarma.',
+  },
 ] as const;

@@ -24,6 +24,7 @@ import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { Modal } from '../../../shared/components/ui/Modal';
+import { deleteCurrentAccountData } from '../../../shared/services/profile/profile.service';
 
 import { useAuth } from '../../auth/store/authStore';
 import { useProfile } from '../hooks/useProfile';
@@ -262,6 +263,9 @@ export default function ProfileScreen({
   const [isLoggingOut, setIsLoggingOut] =
     useState(false);
 
+  const [isDeletingAccount, setIsDeletingAccount] =
+    useState(false);
+
   const [activeModal, setActiveModal] =
     useState<'logout' | 'delete-account' | null>(null);
 
@@ -289,6 +293,7 @@ export default function ProfileScreen({
   const email = currentUser.email ?? '';
 
   const displayName =
+    profile?.username ??
     currentUser.username ??
     currentUser.full_name ??
     currentUser.name ??
@@ -305,13 +310,29 @@ export default function ProfileScreen({
   };
 
   const closeModal = () => {
-    if (!isLoggingOut) {
+    if (!isLoggingOut && !isDeletingAccount) {
       setActiveModal(null);
     }
   };
 
   const handleDeleteAccount = () => {
     setActiveModal('delete-account');
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      setIsDeletingAccount(true);
+      await deleteCurrentAccountData(userId);
+      await logout();
+    } catch (error) {
+      console.log('[Profile] No se pudo eliminar la cuenta:', error);
+      setIsDeletingAccount(false);
+      setActiveModal(null);
+    }
   };
 
   const handleOpenAlarmHistory = () => {
@@ -403,6 +424,19 @@ export default function ProfileScreen({
             {email}
           </Text>
 
+          {profile?.bio ? (
+            <Text
+              style={[
+                styles.heroBio,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {profile.bio}
+            </Text>
+          ) : null}
+
           {loading ? (
             <ActivityIndicator
               size="small"
@@ -483,8 +517,32 @@ export default function ProfileScreen({
           <ActionRow
             icon="create-outline"
             label={isSpanish ? 'Editar perfil' : 'Edit profile'}
-            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
-            disabled
+            sublabel={
+              isSpanish
+                ? 'Cambiar nombre y bio'
+                : 'Change name and bio'
+            }
+            onPress={() => navigation.navigate('EditProfile')}
+          />
+
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
+
+          <ActionRow
+            icon="lock-closed-outline"
+            label={isSpanish ? 'Cambiar contrasena' : 'Change password'}
+            sublabel={
+              isSpanish
+                ? 'Actualizar o restablecer acceso'
+                : 'Update or recover access'
+            }
+            onPress={() => navigation.navigate('ChangePassword')}
           />
 
           <View
@@ -641,13 +699,20 @@ export default function ProfileScreen({
         }
         message={
           isSpanish
-            ? 'Esta opción estará disponible cuando integremos el borrado seguro de datos.'
-            : 'This option will be available when we integrate secure data deletion.'
+            ? 'Se eliminaran tus alarmas, historial y perfil guardados en la app. Esta accion cerrara tu sesion.'
+            : 'Your alarms, mission history, and app profile will be deleted. This action will log you out.'
         }
-        onClose={() => setActiveModal(null)}
+        onClose={closeModal}
+        closeOnBackdropPress={!isDeletingAccount}
         cancelAction={{
-          label: isSpanish ? 'Entendido' : 'Got it',
-          onPress: () => setActiveModal(null),
+          label: isSpanish ? 'Cancelar' : 'Cancel',
+          onPress: closeModal,
+          disabled: isDeletingAccount,
+        }}
+        confirmAction={{
+          label: isSpanish ? 'Eliminar' : 'Delete',
+          onPress: confirmDeleteAccount,
+          loading: isDeletingAccount,
         }}
       />
     </SafeAreaView>
@@ -734,6 +799,14 @@ const styles = StyleSheet.create({
 
   heroEmail: {
     fontSize: 13,
+  },
+
+  heroBio: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 10,
+    maxWidth: 300,
   },
 
   profileLoader: {
