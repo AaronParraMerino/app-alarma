@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 import { useAuth } from '../../../auth/hooks/useAuth';
@@ -37,6 +38,34 @@ const MAX_GAME_ERRORS = 3;
 const MISMATCH_REVEAL_DELAY_MS = 450;
 const MISMATCH_HIDE_DELAY_MS = 1150;
 
+const PAIR_NAME_TRANSLATIONS: Record<string, string> = {
+  arbol: 'Tree',
+  astronauta: 'Astronaut',
+  avion: 'Plane',
+  balon: 'Ball',
+  barco: 'Boat',
+  bombilla: 'Light bulb',
+  castillo: 'Castle',
+  coche: 'Car',
+  cofre: 'Chest',
+  cohete: 'Rocket',
+  conejo: 'Rabbit',
+  corona: 'Crown',
+  elefante: 'Elephant',
+  estrella: 'Star',
+  gato: 'Cat',
+  llave: 'Key',
+  manzana: 'Apple',
+  perro: 'Dog',
+  regalo: 'Gift',
+  sol: 'Sun',
+  tierra: 'Earth',
+};
+
+function getPairName(id: string, name: string, isSpanish: boolean) {
+  return isSpanish ? name : PAIR_NAME_TRANSLATIONS[id] ?? name;
+}
+
 // Obtiene la dificultad anterior
 function getPreviousDifficulty(difficulty: PairsDifficulty): PairsDifficulty | null {
   const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
@@ -44,28 +73,43 @@ function getPreviousDifficulty(difficulty: PairsDifficulty): PairsDifficulty | n
 }
 
 // Obtiene la etiqueta de dificultad
-function getDifficultyLabel(difficulty: PairsDifficulty) {
-  return DIFFICULTY_STYLES[difficulty].label.toLowerCase();
+function getDifficultyLabel(difficulty: PairsDifficulty, isSpanish: boolean) {
+  const labels: Record<PairsDifficulty, { es: string; en: string }> = {
+    easy: { es: 'facil', en: 'easy' },
+    medium: { es: 'medio', en: 'medium' },
+    hard: { es: 'dificil', en: 'hard' },
+  };
+
+  return labels[difficulty][isSpanish ? 'es' : 'en'];
 }
 
 // Construye el mensaje de fallo de juego segun la dificultad
 function getGameFailureMessage(
   nextGameErrorCount: number,
   previousDifficulty: PairsDifficulty | null,
+  isSpanish: boolean,
 ) {
   const remainingErrors = MAX_GAME_ERRORS - nextGameErrorCount;
 
   if (remainingErrors === 1 && previousDifficulty) {
-    return `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`;
+    return isSpanish
+      ? `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty, true)}.`
+      : `1 more miss and you drop to ${getDifficultyLabel(previousDifficulty, false)}.`;
   }
 
   if (previousDifficulty) {
-    return `Juego fallido. Te quedan ${remainingErrors} intento${
-      remainingErrors === 1 ? '' : 's'
-    } antes de bajar de nivel.`;
+    return isSpanish
+      ? `Juego fallido. Te quedan ${remainingErrors} intento${
+          remainingErrors === 1 ? '' : 's'
+        } antes de bajar de nivel.`
+      : `Board failed. You have ${remainingErrors} attempt${
+          remainingErrors === 1 ? '' : 's'
+        } before dropping a level.`;
   }
 
-  return 'Juego fallido. Intenta nuevamente.';
+  return isSpanish
+    ? 'Juego fallido. Intenta nuevamente.'
+    : 'Board failed. Try again.';
 }
 
 // Obtiene los pares resueltos del tablero
@@ -91,7 +135,9 @@ export function ParesMissionScreen({
   alarmLabel,
 }: Props) {
   const { width, height } = useWindowDimensions();
-  const { time, day } = useCurrentTime();
+  const { language } = useTranslation();
+  const isSpanish = language === 'es';
+  const { time, day } = useCurrentTime(language);
   const { user, isAuthenticated, isGuest } = useAuth();
   const [difficulty, setDifficulty] = useState<PairsDifficulty>(initialDifficulty);
   const [board, setBoard] = useState<PairCard[]>(() => buildPairsBoard(initialDifficulty));
@@ -108,12 +154,14 @@ export function ParesMissionScreen({
   const startedAtRef = React.useRef(Date.now());
 
   const style = DIFFICULTY_STYLES[difficulty];
+  const difficultyLabel = getDifficultyLabel(difficulty, isSpanish).toUpperCase();
   const gridSize = GRID_SIZE[difficulty];
   const boardCells = BOARD_CELLS_BY_DIFFICULTY[difficulty];
   const maxMisses = MAX_BOARD_MISSES[difficulty];
   const remaining = maxMisses - misses;
+  const defaultAlarmLabel = isSpanish ? 'Hora de levantarse' : 'Time to wake up';
   const displayAlarmLabel = !alarmLabel || alarmLabel === 'Alarma'
-    ? 'Hora de levantarse'
+    ? defaultAlarmLabel
     : alarmLabel;
   const matchedPairs = useMemo(() => getMatchedPairs(board), [board]);
   const totalPairs = PAIRS_BY_DIFFICULTY[difficulty];
@@ -191,7 +239,9 @@ export function ParesMissionScreen({
       setGameErrorCount(0);
       setFeedbackType('warning');
       setFeedbackMessage(
-        `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty)}.`,
+        isSpanish
+          ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty, true)}.`
+          : `You missed 3 times. You dropped to ${getDifficultyLabel(previousDifficulty, false)}.`,
       );
       resetBoard(previousDifficulty);
       return;
@@ -201,7 +251,9 @@ export function ParesMissionScreen({
       setGameErrorCount(0);
       setFeedbackType('error');
       setFeedbackMessage(
-        'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+        isSpanish
+          ? 'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.'
+          : 'You missed 3 times, but you are already on the lowest level. Try again.',
       );
       resetBoard(difficulty);
       return;
@@ -210,10 +262,10 @@ export function ParesMissionScreen({
     setGameErrorCount(nextGameErrorCount);
 
     setFeedbackType(previousDifficulty ? 'warning' : 'error');
-    setFeedbackMessage(getGameFailureMessage(nextGameErrorCount, previousDifficulty));
+    setFeedbackMessage(getGameFailureMessage(nextGameErrorCount, previousDifficulty, isSpanish));
 
     resetBoard(difficulty);
-  }, [difficulty, gameErrorCount, resetBoard, saveMissionHistory]);
+  }, [difficulty, gameErrorCount, isSpanish, resetBoard, saveMissionHistory]);
 
   // Maneja la seleccion de cartas
   const handleSelectCard = (card: PairCard) => {
@@ -240,7 +292,7 @@ export function ParesMissionScreen({
       );
       setSelectedIds([]);
       setFeedbackType('success');
-      setFeedbackMessage('Correcto.');
+      setFeedbackMessage(isSpanish ? 'Correcto.' : 'Correct.');
       return;
     }
 
@@ -297,10 +349,12 @@ export function ParesMissionScreen({
       <CenteredState color={style.accentColor}>
         <Text style={[styles.stateIcon, { color: style.accentColor }]}>OK</Text>
         <Text style={[styles.stateTitle, { color: style.accentColor }]}>
-          Mision completada
+          {isSpanish ? 'Mision completada' : 'Mission complete'}
         </Text>
         <Text style={styles.stateText}>
-          {quantity} tablero{quantity === 1 ? '' : 's'} completado{quantity === 1 ? '' : 's'}.
+          {isSpanish
+            ? `${quantity} tablero${quantity === 1 ? '' : 's'} completado${quantity === 1 ? '' : 's'}.`
+            : `${quantity} board${quantity === 1 ? '' : 's'} completed.`}
         </Text>
       </CenteredState>
     );
@@ -310,7 +364,7 @@ export function ParesMissionScreen({
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
         <View style={[styles.pill, { backgroundColor: style.bgColor, borderColor: style.accentColor + '40' }]}>
-          <Text style={[styles.pillText, { color: style.accentColor }]}>{style.label}</Text>
+          <Text style={[styles.pillText, { color: style.accentColor }]}>{difficultyLabel}</Text>
         </View>
 
         <View style={styles.timeBlock}>
@@ -323,14 +377,16 @@ export function ParesMissionScreen({
         <View style={styles.progressWrap}>
           <OpportunityBar remaining={remaining} total={maxMisses} color={style.accentColor} />
           <Text style={[styles.progressText, { color: style.accentColor + 'AA' }]}>
-            {remaining} oportunidades
+            {remaining} {isSpanish ? 'oportunidades' : 'chances'}
           </Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.body}>
-          <Text style={styles.instruction}>Encuentra los pares:</Text>
+          <Text style={styles.instruction}>
+            {isSpanish ? 'Encuentra los pares:' : 'Find the pairs:'}
+          </Text>
           <Text style={[styles.pairCounter, { color: style.accentColor }]}>
             {matchedPairs}/{totalPairs}
           </Text>
@@ -351,7 +407,7 @@ export function ParesMissionScreen({
                 {row.map(card => (
                   <PairCardTile
                     key={card.id}
-                    name={card.name}
+                    name={getPairName(card.pairId, card.name, isSpanish)}
                     source={card.source}
                     fixed={card.fixed}
                     revealed={card.matched || selectedIds.includes(card.id)}

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
@@ -33,6 +34,44 @@ type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigParesMission'
 
 const LEVELS: PairsDifficulty[] = ['easy', 'medium', 'hard'];
 
+const PAIR_NAME_TRANSLATIONS: Record<string, string> = {
+  arbol: 'Tree',
+  astronauta: 'Astronaut',
+  avion: 'Plane',
+  balon: 'Ball',
+  barco: 'Boat',
+  bombilla: 'Light bulb',
+  castillo: 'Castle',
+  coche: 'Car',
+  cofre: 'Chest',
+  cohete: 'Rocket',
+  conejo: 'Rabbit',
+  corona: 'Crown',
+  elefante: 'Elephant',
+  estrella: 'Star',
+  gato: 'Cat',
+  llave: 'Key',
+  manzana: 'Apple',
+  perro: 'Dog',
+  regalo: 'Gift',
+  sol: 'Sun',
+  tierra: 'Earth',
+};
+
+function getPairName(id: string, name: string, isSpanish: boolean) {
+  return isSpanish ? name : PAIR_NAME_TRANSLATIONS[id] ?? name;
+}
+
+function getDifficultyLabel(difficulty: PairsDifficulty, isSpanish: boolean) {
+  const labels: Record<PairsDifficulty, { es: string; en: string }> = {
+    easy: { es: 'Fácil', en: 'Easy' },
+    medium: { es: 'Medio', en: 'Medium' },
+    hard: { es: 'Difícil', en: 'Hard' },
+  };
+
+  return labels[difficulty][isSpanish ? 'es' : 'en'];
+}
+
 // Convierte la dificultad a formato de alarma
 function toAlarmDifficulty(difficulty: PairsDifficulty) {
   return difficulty === 'medium' ? 'normal' : difficulty;
@@ -46,6 +85,8 @@ function getPreviewCards(difficulty: PairsDifficulty) {
 
 export function ParesMissionConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
+  const { language } = useTranslation();
+  const isSpanish = language === 'es';
   const { config, setConfig } = usePairsMissionStore();
   const [difficulty, setDifficulty] = useState<PairsDifficulty>(
     route.params?.difficulty ?? config.difficulty ?? DEFAULT_CONFIG.difficulty,
@@ -97,14 +138,17 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
 
         <View style={[styles.headerPill, { paddingVertical: pillPadV, marginBottom: sectionGap }]}>
           <Text style={[styles.headerText, { fontSize: isSmall ? 12 : 14 }]}>
-            MISION{'\n'}ENCONTRAR PARES
+            {isSpanish ? 'MISION' : 'FIND'}{'\n'}
+            {isSpanish ? 'ENCONTRAR PARES' : 'PAIRS'}
           </Text>
         </View>
 
         <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
-          Seleccione la dificultad
+          {isSpanish ? 'Seleccione la dificultad' : 'Select difficulty'}
         </Text>
-        <Text style={[styles.subLabel, { fontSize: isSmall ? 11 : 12 }]}>Ejemplo</Text>
+        <Text style={[styles.subLabel, { fontSize: isSmall ? 11 : 12 }]}>
+          {isSpanish ? 'Ejemplo' : 'Example'}
+        </Text>
 
         <View
           style={[
@@ -117,13 +161,14 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           ]}
         >
           <Text style={[styles.previewTitle, { color: style.accentColor }]}>
-            {gridSize} x {gridSize} - {boardCells} casillas
+            {gridSize} x {gridSize} - {boardCells}{' '}
+            {isSpanish ? 'casillas' : 'tiles'}
           </Text>
           <View style={styles.previewRow}>
             {previews.map(card => (
               <PairCardTile
                 key={card.id}
-                name={card.name}
+                name={getPairName(card.id, card.name, isSpanish)}
                 source={card.source}
                 revealed
                 accentColor={style.accentColor}
@@ -175,8 +220,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
                     difficulty === level && { color: style.accentColor, fontWeight: '500' },
                   ]}
                 >
-                  {DIFFICULTY_STYLES[level].label.charAt(0) +
-                    DIFFICULTY_STYLES[level].label.slice(1).toLowerCase()}
+                  {getDifficultyLabel(level, isSpanish)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -186,7 +230,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
         <View style={[styles.divider, { marginVertical: sectionGap }]} />
 
         <Text style={[styles.sectionLabel, { fontSize: fontBase, marginBottom: 6 }]}>
-          Seleccione la cantidad
+          {isSpanish ? 'Seleccione la cantidad' : 'Select quantity'}
         </Text>
         <View style={styles.quantityRow}>
           <View style={[styles.quantityBox, { paddingVertical: isShort ? 8 : 10 }]}>
@@ -208,7 +252,9 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>veces</Text>
+          <Text style={[styles.vecesText, { fontSize: isSmall ? 13 : 15 }]}>
+            {isSpanish ? 'veces' : 'times'}
+          </Text>
         </View>
 
         <View style={{ height: isShort ? 16 : 32 }} />
@@ -222,7 +268,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           activeOpacity={0.85}
         >
           <Text style={[styles.confirmText, { color: style.textColor, fontSize: isSmall ? 14 : 16 }]}>
-            Confirmar
+            {isSpanish ? 'Confirmar' : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
