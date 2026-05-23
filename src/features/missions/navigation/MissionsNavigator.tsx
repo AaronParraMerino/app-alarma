@@ -26,6 +26,9 @@ import ColoredMissionScreen from '../ColoredFigures/screens/ColoredMissionScreen
 import { ColoredFiguresProvider } from '../ColoredFigures/store/ColoredFiguresStore';
 import { ObjectRecognitionConfigScreen } from '../ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import ObjectRecognitionMissionScreen from '../ObjectRecognition/screens/ObjectRecognitionMissionScreen';
+import { ParesMissionConfigScreen } from '../ParesMission/screens/ParesMissionConfigScreen';
+import ParesMissionRouteScreen from '../ParesMission/screens/ParesMissionRouteScreen';
+import { PairsMissionProvider } from '../ParesMission/store/paresMissionStore';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -57,6 +60,18 @@ export type MissionsStackParamList = {
   };
 
   WordCompletionMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    alarmLabel?: string;
+  };
+
+  ConfigParesMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId?: string;
+  };
+
+  ParesMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
@@ -168,7 +183,8 @@ export default function MissionsNavigator() {
       <MathExercisesProvider>
         <MovementMissionProvider>
           <ColoredFiguresProvider>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <PairsMissionProvider>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen
                 name="MissionSelector"
                 component={MissionSelectorScreen}
@@ -182,6 +198,16 @@ export default function MissionsNavigator() {
               <Stack.Screen
                 name="WordCompletionMissionScreen"
                 component={WordCompletionMissionScreen}
+              />
+
+              <Stack.Screen
+                name="ConfigParesMission"
+                component={ParesMissionConfigScreen}
+              />
+
+              <Stack.Screen
+                name="ParesMissionScreen"
+                component={ParesMissionRouteScreen}
               />
 
               <Stack.Screen
@@ -223,7 +249,8 @@ export default function MissionsNavigator() {
                 name="ObjectRecognitionMissionScreen"
                 component={ObjectRecognitionMissionScreen}
               />
-            </Stack.Navigator>
+              </Stack.Navigator>
+            </PairsMissionProvider>
           </ColoredFiguresProvider>
         </MovementMissionProvider>
       </MathExercisesProvider>

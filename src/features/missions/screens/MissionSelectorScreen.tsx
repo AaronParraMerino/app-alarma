@@ -17,6 +17,8 @@ import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 // Palabras
 import { useWordCompletionStore } from '../wordCompletion/store/wordCompletionStore';
 import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/constants/wordCompletion.config';
+import { usePairsMissionStore } from '../ParesMission/store/paresMissionStore';
+import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/constants/paresMission.config';
 
 // Matemáticas
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
@@ -87,6 +89,10 @@ export default function MissionSelectorScreen() {
   // Config de palabras
   const { config: wordConfig } = useWordCompletionStore();
   const wordStyle = WORD_DIFFICULTY_STYLES[wordConfig.difficulty];
+
+  // Config de pares
+  const { config: pairsConfig } = usePairsMissionStore();
+  const pairsStyle = PAIRS_DIFFICULTY_STYLES[pairsConfig.difficulty];
 
   // Config de matemáticas
   const { config: mathConfig } = useMathExercisesStore();
@@ -348,6 +354,48 @@ export default function MissionSelectorScreen() {
               ]}
             >
               Ejecutar mision de objetos
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Mision encontrar pares */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Mision encontrar pares</Text>
+
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('ConfigParesMission', {})}
+          >
+            <Text style={styles.btnText}>Configurar encontrar pares</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.summary}>
+            {pairsStyle.label} - {pairsConfig.quantity} vec
+            {pairsConfig.quantity > 1 ? 'es' : ''}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.executeBtn,
+              {
+                backgroundColor: pairsStyle.bgColor,
+                borderColor: pairsStyle.accentColor + '50',
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate('ParesMissionScreen', {
+                difficulty: pairsConfig.difficulty,
+                quantity: pairsConfig.quantity,
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.executeBtnText,
+                { color: pairsStyle.accentColor },
+              ]}
+            >
+              Ejecutar encontrar pares
             </Text>
           </TouchableOpacity>
         </View>
