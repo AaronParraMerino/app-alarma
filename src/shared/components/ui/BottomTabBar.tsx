@@ -11,15 +11,18 @@ import {
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../theme/colors';
 
-// ─── Configuración de tabs ────────────────────────────────────────────────────
+import {
+  useAppTheme,
+  type AppThemeColors,
+} from '../../theme/useAppTheme';
+import { useTranslation } from '../../i18n/useTranslation';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface TabConfig {
   routeName: string;
-  label: string;
+  labelKey: string;
   icon: IoniconName;
   iconActive: IoniconName;
 }
@@ -27,40 +30,47 @@ interface TabConfig {
 const TAB_CONFIG: TabConfig[] = [
   {
     routeName: 'AlarmTab',
-    label: 'Alarma',
+    labelKey: 'tabs.alarm',
     icon: 'alarm-outline',
     iconActive: 'alarm',
   },
   {
     routeName: 'StopwatchTab',
-    label: 'Cronómetro',
+    labelKey: 'tabs.stopwatch',
     icon: 'timer-outline',
     iconActive: 'timer',
   },
   {
     routeName: 'MissionsTab',
-    label: 'Misiones',
+    labelKey: 'tabs.missions',
     icon: 'trophy-outline',
     iconActive: 'trophy',
   },
   {
     routeName: 'SettingsTab',
-    label: 'Ajustes',
+    labelKey: 'tabs.settings',
     icon: 'settings-outline',
     iconActive: 'settings',
   },
 ];
 
-// ─── Tab individual ───────────────────────────────────────────────────────────
-
 interface TabItemProps {
   config: TabConfig;
+  label: string;
   isActive: boolean;
   onPress: () => void;
   onLongPress: () => void;
+  colors: AppThemeColors;
 }
 
-function TabItem({ config, isActive, onPress, onLongPress }: TabItemProps) {
+function TabItem({
+  config,
+  label,
+  isActive,
+  onPress,
+  onLongPress,
+  colors,
+}: TabItemProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const dotOpacity = useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
@@ -78,7 +88,7 @@ function TabItem({ config, isActive, onPress, onLongPress }: TabItemProps) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [isActive]);
+  }, [isActive, scaleAnim, dotOpacity]);
 
   return (
     <TouchableOpacity
@@ -87,40 +97,70 @@ function TabItem({ config, isActive, onPress, onLongPress }: TabItemProps) {
       onLongPress={onLongPress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={config.label}
+      accessibilityLabel={label}
     >
       <Animated.View
-        style={[styles.iconWrap, { transform: [{ scale: scaleAnim }] }]}
+        style={[
+          styles.iconWrap,
+          {
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
       >
-        {/* Fondo activo */}
-        {isActive && <View style={styles.activeBackground} />}
+        {isActive ? (
+          <View
+            style={[
+              styles.activeBackground,
+              {
+                backgroundColor: colors.accentGlow,
+                borderColor: colors.primary + '33',
+              },
+            ]}
+          />
+        ) : null}
 
         <Ionicons
           name={isActive ? config.iconActive : config.icon}
           size={22}
-          color={isActive ? Colors.primary : Colors.textMuted}
+          color={isActive ? colors.primary : colors.textMuted}
         />
       </Animated.View>
 
-      {/* Indicador dot */}
-      <Animated.View style={[styles.activeDot, { opacity: dotOpacity }]} />
+      <Animated.View
+        style={[
+          styles.activeDot,
+          {
+            opacity: dotOpacity,
+            backgroundColor: colors.primary,
+          },
+        ]}
+      />
 
       <Text
-        style={[styles.label, isActive ? styles.labelActive : styles.labelInactive]}
+        style={[
+          styles.label,
+          {
+            color: isActive ? colors.primary : colors.textMuted,
+            fontWeight: isActive ? '600' : '500',
+          },
+        ]}
         numberOfLines={1}
       >
-        {config.label}
+        {label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-// ─── BottomTabBar ─────────────────────────────────────────────────────────────
-
-export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function BottomTabBar({
+  state,
+  descriptors,
+  navigation,
+}: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useAppTheme();
+  const { t } = useTranslation();
 
-  // Revisar si la tab activa quiere ocultar la barra
   const focusedRoute = state.routes[state.index];
   const focusedOptions = descriptors[focusedRoute.key].options;
   const tabBarStyle = focusedOptions.tabBarStyle as any;
@@ -132,18 +172,32 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     <View
       style={[
         styles.container,
-        { paddingBottom: Math.max(insets.bottom, 8) },
+        {
+          backgroundColor: colors.bgCard,
+          paddingBottom: Math.max(insets.bottom, 8),
+          shadowColor: isDark ? '#000' : '#64748B',
+        },
       ]}
     >
-      {/* Línea superior decorativa */}
-      <View style={styles.topBorder} />
+      <View
+        style={[
+          styles.topBorder,
+          {
+            backgroundColor: colors.border,
+          },
+        ]}
+      />
 
       <View style={styles.inner}>
         {state.routes.map((route, index) => {
-          const config = TAB_CONFIG.find((t) => t.routeName === route.name);
+          const config = TAB_CONFIG.find(
+            (tab) => tab.routeName === route.name,
+          );
+
           if (!config) return null;
 
           const isActive = state.index === index;
+          const label = t(config.labelKey);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -151,22 +205,28 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
               target: route.key,
               canPreventDefault: true,
             });
+
             if (!isActive && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
           };
 
           const onLongPress = () => {
-            navigation.emit({ type: 'tabLongPress', target: route.key });
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
           };
 
           return (
             <TabItem
               key={route.key}
               config={config}
+              label={label}
               isActive={isActive}
               onPress={onPress}
               onLongPress={onLongPress}
+              colors={colors}
             />
           );
         })}
@@ -175,38 +235,42 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   );
 }
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.bgCard,
     borderTopWidth: 0,
     ...Platform.select({
-      android: { elevation: 16 },
+      android: {
+        elevation: 16,
+      },
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.25,
+        shadowOffset: {
+          width: 0,
+          height: -4,
+        },
+        shadowOpacity: 0.18,
         shadowRadius: 12,
       },
     }),
   },
+
   topBorder: {
     height: 1,
-    backgroundColor: Colors.border,
     opacity: 0.8,
   },
+
   inner: {
     flexDirection: 'row',
     paddingTop: 8,
     paddingHorizontal: 4,
   },
+
   tabItem: {
     flex: 1,
     alignItems: 'center',
     gap: 4,
     paddingVertical: 2,
   },
+
   iconWrap: {
     width: 44,
     height: 36,
@@ -215,31 +279,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     position: 'relative',
   },
+
   activeBackground: {
     position: 'absolute',
-    inset: 0,
-    backgroundColor: Colors.accentGlow,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '33',
   },
+
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
     marginTop: -2,
   },
+
   label: {
     fontSize: 10,
-    fontWeight: '500',
     letterSpacing: 0.2,
-  },
-  labelActive: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  labelInactive: {
-    color: Colors.textMuted,
   },
 });

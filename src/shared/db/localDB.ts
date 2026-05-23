@@ -36,11 +36,12 @@ export const initDB = () => {
     CREATE TABLE IF NOT EXISTS word_completion_words (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       word       TEXT NOT NULL,
-      difficulty TEXT NOT NULL
+      difficulty TEXT NOT NULL,
+      language   TEXT NOT NULL DEFAULT 'es'
     );
 
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_word_completion_words_unique
-    ON word_completion_words(word, difficulty);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_word_completion_words_language_unique
+    ON word_completion_words(word, difficulty, language);
 
     CREATE TABLE IF NOT EXISTS missions_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +101,12 @@ export const initDB = () => {
   ensureColumn('alarms', 'synced', 'INTEGER DEFAULT 0');
   ensureColumn('alarms', 'created_at', 'INTEGER');
   ensureColumn('alarms', 'updated_at', 'INTEGER');
+  ensureColumn('word_completion_words', 'language', "TEXT NOT NULL DEFAULT 'es'");
+  db.execSync(`DROP INDEX IF EXISTS idx_word_completion_words_unique`);
+  db.execSync(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_word_completion_words_language_unique
+    ON word_completion_words(word, difficulty, language);
+  `);
   ensureColumn('object_recognition_objects', 'model_label', "TEXT DEFAULT ''");
   ensureColumn('object_recognition_objects', 'min_confidence', 'REAL DEFAULT 0.5');
 };

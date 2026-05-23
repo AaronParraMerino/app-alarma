@@ -29,6 +29,9 @@ import ColorFindMissionScreen from '../ColorFind/screens/ColorFindMissionScreen'
 import { ColorFindProvider } from '../ColorFind/store/colorFindStore';
 import { ObjectRecognitionConfigScreen } from '../ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import ObjectRecognitionMissionScreen from '../ObjectRecognition/screens/ObjectRecognitionMissionScreen';
+import { ParesMissionConfigScreen } from '../ParesMission/screens/ParesMissionConfigScreen';
+import ParesMissionRouteScreen from '../ParesMission/screens/ParesMissionRouteScreen';
+import { PairsMissionProvider } from '../ParesMission/store/paresMissionStore';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -60,6 +63,18 @@ export type MissionsStackParamList = {
   };
 
   WordCompletionMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    quantity: number;
+    alarmLabel?: string;
+  };
+
+  ConfigParesMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId?: string;
+  };
+
+  ParesMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
@@ -184,20 +199,30 @@ export default function MissionsNavigator() {
         <MovementMissionProvider>
           <ColoredFiguresProvider>
             <ColorFindProvider>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
+             <PairsMissionProvider>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen
                   name="MissionSelector"
                   component={MissionSelectorScreen}
                 />
+                  <Stack.Screen
+                    name="ConfigWordCompletionMission"
+                    component={WordCompletionConfigScreen}
+                  />
+
+                  <Stack.Screen
+                    name="WordCompletionMissionScreen"
+                    component={WordCompletionMissionScreen}
+                  />
 
                 <Stack.Screen
-                  name="ConfigWordCompletionMission"
-                  component={WordCompletionConfigScreen}
+                  name="ConfigParesMission"
+                  component={ParesMissionConfigScreen}
                 />
 
                 <Stack.Screen
-                  name="WordCompletionMissionScreen"
-                  component={WordCompletionMissionScreen}
+                  name="ParesMissionScreen"
+                  component={ParesMissionRouteScreen}
                 />
 
                 <Stack.Screen
@@ -205,51 +230,52 @@ export default function MissionsNavigator() {
                   component={MathMissionConfigScreen}
                 />
 
-                <Stack.Screen
-                  name="MathMissionScreen"
-                  component={MathMissionScreen}
-                />
+                  <Stack.Screen
+                    name="MathMissionScreen"
+                    component={MathMissionScreen}
+                  />
 
-                <Stack.Screen
-                  name="ConfigMovementMission"
-                  component={ConfigMovementMissionRoute}
-                />
+                  <Stack.Screen
+                    name="ConfigMovementMission"
+                    component={ConfigMovementMissionRoute}
+                  />
 
-                <Stack.Screen
-                  name="MovementMissionScreen"
-                  component={MovementMissionRoute}
-                />
+                  <Stack.Screen
+                    name="MovementMissionScreen"
+                    component={MovementMissionRoute}
+                  />
 
-                <Stack.Screen
-                  name="ConfigColoredFiguresMission"
-                  component={ColoredMissionConfigScreen}
-                />
+                  <Stack.Screen
+                    name="ConfigColoredFiguresMission"
+                    component={ColoredMissionConfigScreen}
+                  />
 
-                <Stack.Screen
-                  name="ColoredFiguresMissionScreen"
-                  component={ColoredMissionScreen}
-                />
+                  <Stack.Screen
+                    name="ColoredFiguresMissionScreen"
+                    component={ColoredMissionScreen}
+                  />
 
-                <Stack.Screen
-                  name="ConfigColorFindMission"
-                  component={ColorFindConfigScreen}
-                />
+                  <Stack.Screen
+                    name="ConfigColorFindMission"
+                    component={ColorFindConfigScreen}
+                  />
 
-                <Stack.Screen
-                  name="ColorFindMissionScreen"
-                  component={ColorFindMissionScreen}
-                />
+                  <Stack.Screen
+                    name="ColorFindMissionScreen"
+                    component={ColorFindMissionScreen}
+                  />
 
-                <Stack.Screen
-                  name="ConfigObjectRecognitionMission"
-                  component={ObjectRecognitionConfigScreen}
-                />
+                  <Stack.Screen
+                    name="ConfigObjectRecognitionMission"
+                    component={ObjectRecognitionConfigScreen}
+                  />
 
-                <Stack.Screen
-                  name="ObjectRecognitionMissionScreen"
-                  component={ObjectRecognitionMissionScreen}
-                />
-              </Stack.Navigator>
+                  <Stack.Screen
+                    name="ObjectRecognitionMissionScreen"
+                    component={ObjectRecognitionMissionScreen}
+                  />
+                </Stack.Navigator>
+              </PairsMissionProvider>
             </ColorFindProvider>
           </ColoredFiguresProvider>
         </MovementMissionProvider>

@@ -8,8 +8,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
+import { useAppTheme } from '../../theme/useAppTheme';
 
 type BackButtonProps = {
   label?: string;
@@ -24,6 +24,8 @@ export function BackButton({
   style,
   textStyle,
 }: BackButtonProps) {
+  const { colors } = useAppTheme();
+
   return (
     <TouchableOpacity
       style={[styles.button, style]}
@@ -32,8 +34,11 @@ export function BackButton({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Ionicons name="chevron-back" size={22} color={Colors.text} />
-      <Text style={[styles.text, textStyle]}>{label}</Text>
+      <Ionicons name="chevron-back" size={22} color={colors.text} />
+
+      <Text style={[styles.text, { color: colors.text }, textStyle]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -46,8 +51,8 @@ const styles = StyleSheet.create({
     gap: 4,
     minHeight: 40,
   },
+
   text: {
-    color: Colors.text,
     fontSize: Typography.action.fontSize,
     fontWeight: '600',
   },

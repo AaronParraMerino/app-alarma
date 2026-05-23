@@ -1,7 +1,7 @@
 import db from '../../db/localDB';
 import { WORD_COMPLETION_WORDS_SEED } from '../../db/seeds/wordCompletionWordsSeed';
 
-const WORD_COMPLETION_SEED_KEY = 'word_completion_words_seed_v1';
+const WORD_COMPLETION_SEED_KEY = 'word_completion_words_seed_v2';
 
 export class WordSeedService {
   static seedIfNeeded(): void {
@@ -32,10 +32,10 @@ export class WordSeedService {
     for (const item of WORD_COMPLETION_WORDS_SEED) {
       db.runSync(
         `
-        INSERT OR IGNORE INTO word_completion_words (word, difficulty)
-        VALUES (?, ?)
+        INSERT OR IGNORE INTO word_completion_words (word, difficulty, language)
+        VALUES (?, ?, ?)
         `,
-        [item.word.toUpperCase(), item.difficulty]
+        [item.word.toUpperCase(), item.difficulty, item.language ?? 'es']
       );
     }
   }

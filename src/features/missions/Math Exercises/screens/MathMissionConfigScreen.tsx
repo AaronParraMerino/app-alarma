@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+// src/features/missions/Math Exercises/screens/MathMissionConfigScreen.tsx
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -10,60 +14,190 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
+
 import { useMathExercisesStore } from '../store/mathExercisesStore';
-import { DIFFICULTY_STYLES, OPERATION_SYMBOLS, generateExpression } from '../constants/mathExercises.config';
-import { Difficulty, OperationType, GeneratedExpression } from '../types/mathExercises.types';
+import {
+  DIFFICULTY_STYLES,
+  OPERATION_SYMBOLS,
+  generateExpression,
+} from '../constants/mathExercises.config';
+import {
+  Difficulty,
+  OperationType,
+  GeneratedExpression,
+} from '../types/mathExercises.types';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 
-type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigMathMission'>;
+type Props = NativeStackScreenProps<
+  MissionsStackParamList,
+  'ConfigMathMission'
+>;
 
-const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
-const OPERATIONS: OperationType[] = ['addition', 'subtraction', 'multiplication', 'division'];
+const LEVELS: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
 
-const OPERATION_LABELS: Record<OperationType, string> = {
+const OPERATIONS: OperationType[] = [
+  'addition',
+  'subtraction',
+  'multiplication',
+  'division',
+];
+
+const OPERATION_LABELS_ES: Record<
+  OperationType,
+  string
+> = {
   addition: 'Suma',
   subtraction: 'Resta',
   multiplication: 'Multiplicación',
   division: 'División',
 };
 
-function toAlarmDifficulty(difficulty: Difficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+const OPERATION_LABELS_EN: Record<
+  OperationType,
+  string
+> = {
+  addition: 'Addition',
+  subtraction: 'Subtraction',
+  multiplication: 'Multiplication',
+  division: 'Division',
+};
+
+function toAlarmDifficulty(
+  difficulty: Difficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
 }
 
-export function MathMissionConfigScreen({ navigation, route }: Props) {
-  const { width } = useWindowDimensions();
-  const { config, setConfig } = useMathExercisesStore();
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
 
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    route.params?.difficulty ?? config.difficulty
-  );
-  const [quantity, setQuantity] = useState(route.params?.quantity ?? config.quantity);
-  const [operationType, setOperationType] = useState<OperationType>(
-    route.params?.operationType ?? config.operationType
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
+
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+function getOperationLabel(
+  operation: OperationType,
+  isSpanish: boolean,
+): string {
+  return isSpanish
+    ? OPERATION_LABELS_ES[operation]
+    : OPERATION_LABELS_EN[operation];
+}
+
+export function MathMissionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    width,
+  } = useWindowDimensions();
+
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useMathExercisesStore();
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(
+    route.params?.difficulty ??
+      config.difficulty,
   );
 
-  const [preview, setPreview] = useState<GeneratedExpression>(
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    route.params?.quantity ??
+      config.quantity,
+  );
+
+  const [
+    operationType,
+    setOperationType,
+  ] = useState<OperationType>(
+    route.params?.operationType ??
+      config.operationType,
+  );
+
+  const [
+    preview,
+    setPreview,
+  ] = useState<GeneratedExpression>(
     generateExpression(
-      route.params?.difficulty ?? config.difficulty,
-      route.params?.operationType ?? config.operationType
-    )
+      route.params?.difficulty ??
+        config.difficulty,
+      route.params?.operationType ??
+        config.operationType,
+    ),
   );
 
   useEffect(() => {
-    setPreview(generateExpression(difficulty, operationType));
-  }, [difficulty, operationType]);
+    setPreview(
+      generateExpression(
+        difficulty,
+        operationType,
+      ),
+    );
+  }, [
+    difficulty,
+    operationType,
+  ]);
 
-  const style = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
 
   const handleSave = () => {
-    setConfig({ difficulty, quantity, operationType });
+    setConfig({
+      difficulty,
+      quantity,
+      operationType,
+    });
 
     completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
@@ -75,151 +209,423 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
       },
     );
 
-    // ✅ Solo guarda y vuelve, el botón "Ejecutar" está en el selector
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
-        <View style={styles.headerPill}>
-          <Text style={styles.headerText}>MISIÓN{'\n'}MATEMÁTICAS</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        />
+
+        <View
+          style={[
+            styles.headerPill,
+            {
+              backgroundColor: colors.primary,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'MISIÓN\nMATEMÁTICAS'
+              : 'MISSION\nMATH'}
+          </Text>
         </View>
 
-        <Text style={styles.sectionLabel}>Seleccione la dificultad</Text>
-        <Text style={styles.subLabel}>Ejemplo</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
+        </Text>
 
-        <View style={styles.previewBox}>
+        <Text
+          style={[
+            styles.subLabel,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Ejemplo'
+            : 'Example'}
+        </Text>
+
+        <View
+          style={[
+            styles.previewBox,
+            {
+              backgroundColor: colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <Text
             style={[
               styles.previewExpression,
-              { color: '#000000', fontSize: width < 380 ? 13 : 15 },
+              {
+                color: colors.black,
+                fontSize:
+                  width < 380 ? 13 : 15,
+              },
             ]}
           >
             {preview.expression} ={' '}
-            <Text style={{ fontWeight: '700' }}>{preview.answer}</Text>
+            <Text style={styles.previewAnswer}>
+              {preview.answer}
+            </Text>
           </Text>
         </View>
 
         <View style={styles.sliderWrapper}>
-          <View style={styles.trackBg}>
+          <View
+            style={[
+              styles.trackBg,
+              {
+                backgroundColor:
+                  colors.bgElevated,
+              },
+            ]}
+          >
             <View
               style={[
                 styles.trackFill,
-                { width: `${(sliderIdx / 2) * 100}%`, backgroundColor: style.accentColor },
+                {
+                  width: `${(sliderIdx / 2) * 100}%`,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
+                },
               ]}
             />
-            {LEVELS.map((lvl, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.thumbHit, { left: `${(i / 2) * 100}%` }]}
-                onPress={() => setDifficulty(lvl)}
-              >
-                <View
+
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
                   style={[
-                  styles.thumb,
-                  {
-                      backgroundColor: difficulty === lvl ? style.accentColor : Colors.bgElevated,
-                      borderColor: style.accentColor,
-                  },
+                    styles.thumbHit,
+                    {
+                      left: `${(index / 2) * 100}%`,
+                    },
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          difficulty === level
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
+
           <View style={styles.sliderLabels}>
-            {LEVELS.map((lvl) => (
+            {LEVELS.map((level) => (
               <TouchableOpacity
-                key={lvl}
+                key={level}
                 style={styles.labelBtn}
-                onPress={() => setDifficulty(lvl)}
+                onPress={() =>
+                  setDifficulty(level)
+                }
+                activeOpacity={0.75}
               >
                 <Text
                   style={[
                     styles.labelText,
-                    difficulty === lvl && { color: style.accentColor, fontWeight: '600' },
+                    {
+                      color:
+                        difficulty === level
+                          ? difficultyStyle.accentColor
+                          : colors.textMuted,
+                      fontWeight:
+                        difficulty === level
+                          ? '700'
+                          : '500',
+                    },
                   ]}
                 >
-                  {DIFFICULTY_STYLES[lvl].label}
+                  {getDifficultyLabel(
+                    level,
+                    isSpanish,
+                  )}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colors.border,
+            },
+          ]}
+        />
 
-        <Text style={styles.sectionLabel}>Seleccione tipo de operación</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione tipo de operación'
+            : 'Select operation type'}
+        </Text>
+
         <View style={styles.operationsGrid}>
-          {OPERATIONS.map((op) => (
-            <TouchableOpacity
-              key={op}
-              style={[
-                styles.operationBtn,
-                operationType === op && {
-                  backgroundColor: style.accentColor,
-                  borderColor: style.accentColor,
-                },
-              ]}
-              onPress={() => setOperationType(op)}
-            >
-              <Text
+          {OPERATIONS.map((operation) => {
+            const active =
+              operationType === operation;
+
+            return (
+              <TouchableOpacity
+                key={operation}
                 style={[
-                  styles.operationText,
-                  operationType === op && { color: style.textColor },
+                  styles.operationBtn,
+                  {
+                    backgroundColor: active
+                      ? difficultyStyle.accentColor
+                      : colors.bgElevated,
+                    borderColor: active
+                      ? difficultyStyle.accentColor
+                      : colors.border,
+                  },
                 ]}
+                onPress={() =>
+                  setOperationType(operation)
+                }
+                activeOpacity={0.8}
               >
-                {OPERATION_SYMBOLS[op]}
-              </Text>
-              <Text
-                style={[
-                  styles.operationLabel,
-                  operationType === op && { color: style.textColor },
-                ]}
-              >
-                {OPERATION_LABELS[op]}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.operationText,
+                    {
+                      color: active
+                        ? difficultyStyle.textColor
+                        : colors.text,
+                    },
+                  ]}
+                >
+                  {OPERATION_SYMBOLS[operation]}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.operationLabel,
+                    {
+                      color: active
+                        ? difficultyStyle.textColor
+                        : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {getOperationLabel(
+                    operation,
+                    isSpanish,
+                  )}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <View style={styles.divider} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colors.border,
+            },
+          ]}
+        />
 
-        <Text style={styles.sectionLabel}>Seleccione la cantidad</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
+        </Text>
+
         <View style={styles.quantityRow}>
-          <View style={styles.quantityBox}>
-            <Text style={styles.quantityNum}>{quantity}</Text>
+          <View
+            style={[
+              styles.quantityBox,
+              {
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.quantityNum,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {quantity}
+            </Text>
+
             <View style={styles.arrows}>
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.min(quantity + 1, 9))}
+                onPress={() =>
+                  setQuantity(
+                    Math.min(
+                      quantity + 1,
+                      9,
+                    ),
+                  )
+                }
+                activeOpacity={0.75}
               >
-                <Text style={styles.arrowText}>▲</Text>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
+                  ▲
+                </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.max(quantity - 1, 1))}
+                onPress={() =>
+                  setQuantity(
+                    Math.max(
+                      quantity - 1,
+                      1,
+                    ),
+                  )
+                }
+                activeOpacity={0.75}
               >
-                <Text style={styles.arrowText}>▼</Text>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
+                  ▼
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.vecesText}> {quantity === 1 ? 'vez' : 'veces'}</Text>
+
+          <Text
+            style={[
+              styles.vecesText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? quantity === 1
+                ? ' vez'
+                : ' veces'
+              : quantity === 1
+                ? ' time'
+                : ' times'}
+          </Text>
         </View>
 
         <View style={styles.spacer} />
 
-        {/* ✅ Color refleja dificultad, texto dice Guardar */}
         <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: style.accentColor }]}
+          style={[
+            styles.confirmBtn,
+            {
+              backgroundColor:
+                difficultyStyle.accentColor,
+            },
+          ]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
-          <Text style={[styles.confirmText, { color: style.textColor }]}>
-            Guardar
+          <Text
+            style={[
+              styles.confirmText,
+              {
+                color:
+                  difficultyStyle.textColor,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'Guardar'
+              : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -228,7 +634,10 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: {
+    flex: 1,
+  },
+
   scroll: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -238,11 +647,12 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 40,
   },
+
   backButton: {
     marginBottom: 2,
   },
+
   headerPill: {
-    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 10,
     paddingHorizontal: 24,
@@ -250,17 +660,26 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 24,
   },
+
   headerText: {
-    color: Colors.white,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { fontSize: Typography.sectionTitle.fontSize, color: Colors.text, marginBottom: 6 },
-  subLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
+
+  sectionLabel: {
+    fontSize: Typography.sectionTitle.fontSize,
+    marginBottom: 6,
+    fontWeight: Typography.sectionTitle.fontWeight,
+  },
+
+  subLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+
   previewBox: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 12,
@@ -268,23 +687,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 72,
     marginBottom: 20,
+    borderWidth: 1,
   },
+
   previewExpression: {
     fontWeight: '500',
     fontFamily: 'monospace',
     textAlign: 'center',
   },
-  sliderWrapper: { marginBottom: 8 },
+
+  previewAnswer: {
+    fontWeight: '700',
+  },
+
+  sliderWrapper: {
+    marginBottom: 8,
+  },
+
   trackBg: {
     height: 4,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 2,
     marginHorizontal: 10,
     position: 'relative',
     justifyContent: 'center',
     marginBottom: 14,
   },
-  trackFill: { position: 'absolute', left: 0, height: 4, borderRadius: 2 },
+
+  trackFill: {
+    position: 'absolute',
+    left: 0,
+    height: 4,
+    borderRadius: 2,
+  },
+
   thumbHit: {
     position: 'absolute',
     width: 30,
@@ -294,28 +729,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumb: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
-  labelBtn: { flex: 1, alignItems: 'center' },
-  labelText: { fontSize: 13, color: Colors.textMuted },
-  divider: { height: 0.5, backgroundColor: Colors.border, marginVertical: 16 },
-  operationsGrid: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
+
+  thumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+  },
+
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+
+  labelBtn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  labelText: {
+    fontSize: 13,
+  },
+
+  divider: {
+    height: 0.5,
+    marginVertical: 16,
+  },
+
+  operationsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+
   operationBtn: {
     flex: 1,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.border,
   },
-  operationText: { fontSize: 24, fontWeight: '700', color: Colors.text },
-  operationLabel: { fontSize: 9, color: Colors.textSecondary, marginTop: 2 },
-  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  operationText: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+
+  operationLabel: {
+    fontSize: 9,
+    marginTop: 2,
+  },
+
+  quantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
   quantityBox: {
-    backgroundColor: Colors.bgElevated,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -323,14 +797,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.5,
-    borderColor: Colors.border,
   },
-  quantityNum: { fontSize: 22, fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
-  arrows: { gap: 2 },
-  arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 11, color: Colors.textSecondary },
-  vecesText: { fontSize: 15, color: Colors.textSecondary },
-  spacer: { flex: 1 },
+
+  quantityNum: {
+    fontSize: 22,
+    fontWeight: '500',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+
+  arrows: {
+    gap: 2,
+  },
+
+  arrowBtn: {
+    paddingHorizontal: 4,
+  },
+
+  arrowText: {
+    fontSize: 11,
+  },
+
+  vecesText: {
+    fontSize: 15,
+  },
+
+  spacer: {
+    flex: 1,
+  },
+
   confirmBtn: {
     borderRadius: 14,
     height: 52,
@@ -338,5 +833,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  confirmText: { fontSize: 16, fontWeight: '500' },
+
+  confirmText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });

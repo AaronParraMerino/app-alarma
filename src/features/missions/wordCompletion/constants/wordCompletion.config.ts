@@ -1,4 +1,8 @@
-import { Difficulty, WordChallenge } from '../types/wordCompletion.types';
+import {
+  Difficulty,
+  WordChallenge,
+  WordLanguage,
+} from '../types/wordCompletion.types';
 
 export interface DifficultyStyle {
   label: string;
@@ -11,7 +15,7 @@ export interface DifficultyStyle {
 
 export const DIFFICULTY_STYLES: Record<Difficulty, DifficultyStyle> = {
   easy: {
-    label: 'FÁCIL',
+    label: 'FACIL',
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
     textColor: '#052010',
@@ -27,7 +31,7 @@ export const DIFFICULTY_STYLES: Record<Difficulty, DifficultyStyle> = {
     wordCount: 1,
   },
   hard: {
-    label: 'DIFÍCIL',
+    label: 'DIFICIL',
     accentColor: '#F87171',
     bgColor: '#3D1010',
     textColor: '#1A0000',
@@ -36,43 +40,124 @@ export const DIFFICULTY_STYLES: Record<Difficulty, DifficultyStyle> = {
   },
 };
 
-/**
- * Ejemplos estáticos usados para preview o testing del UI
- */
-export const EXAMPLE_PREVIEWS: Record<Difficulty, WordChallenge[]> = {
-  easy: [
-    { word: 'CASA', missingIndexes: [1] },
-  ],
-  medium: [
-    { word: 'MURCIÉLAGO', missingIndexes: [2, 5, 8] },
-  ],
-  hard: [
-    { word: 'BACKNON', missingIndexes: [1, 4, 6] },
-    { word: 'ROTOR',   missingIndexes: [2, 4] },
-  ],
+export const EXAMPLE_PREVIEWS: Record<
+  WordLanguage,
+  Record<Difficulty, WordChallenge[]>
+> = {
+  es: {
+    easy: [{ word: 'CASA', missingIndexes: [1] }],
+    medium: [{ word: 'MURCIELAGO', missingIndexes: [2, 5, 8] }],
+    hard: [
+      { word: 'CRIPTOGRAFIA', missingIndexes: [1, 4, 8, 10, 11] },
+      { word: 'PROGRAMACION', missingIndexes: [2, 5, 8, 10, 11] },
+    ],
+  },
+  en: {
+    easy: [{ word: 'HOME', missingIndexes: [1] }],
+    medium: [{ word: 'TELESCOPE', missingIndexes: [2, 5, 8] }],
+    hard: [
+      { word: 'CRYPTOGRAPHY', missingIndexes: [1, 4, 8, 10, 11] },
+      { word: 'PROGRAMMING', missingIndexes: [2, 5, 8, 9, 10] },
+    ],
+  },
 };
 
-const WORD_BANK: Record<Difficulty, string[]> = {
-  easy: [
-    'CASA', 'MESA', 'GATO', 'PATO', 'LUNA', 'ROSA', 'AGUA',
-    'BOCA', 'ROPA', 'DEDO', 'PELO', 'MANO', 'NUBE', 'TREN', 'PISO',
-  ],
-  medium: [
-    'MURCIÉLAGO', 'MARIPOSA', 'TELESCOPIO', 'BIBLIOTECA',
-    'DINOSAURIO', 'HIPOPÓTAMO', 'LABORATORIO', 'PERIÓDICO',
-    'CHOCOLATINA', 'ELECTRÓNICO', 'METEOROLOGÍA', 'ARQUITECTURA',
-  ],
-  hard: [
-    'MURCIÉLAGO', 'HIPOPÓTAMO', 'XILÓFONO', 'ESTERNÓN',
-    'CRIPTOGRAFÍA', 'FONOLOGÍA', 'QUIRÚRGICO', 'MICROSCOPIO',
-    'NEUROLOGÍA', 'FOTOSÍNTESIS', 'TERMODINÁMICA', 'GEOQUÍMICA',
-  ],
+const WORD_BANK: Record<WordLanguage, Record<Difficulty, string[]>> = {
+  es: {
+    easy: [
+      'CASA',
+      'MESA',
+      'GATO',
+      'PATO',
+      'LUNA',
+      'ROSA',
+      'AGUA',
+      'BOCA',
+      'ROPA',
+      'DEDO',
+      'PELO',
+      'MANO',
+      'NUBE',
+      'TREN',
+      'PISO',
+    ],
+    medium: [
+      'MURCIELAGO',
+      'MARIPOSA',
+      'TELESCOPIO',
+      'BIBLIOTECA',
+      'DINOSAURIO',
+      'HIPOPOTAMO',
+      'LABORATORIO',
+      'PERIODICO',
+      'CHOCOLATINA',
+      'ELECTRONICO',
+      'METEOROLOGIA',
+      'ARQUITECTURA',
+    ],
+    hard: [
+      'MURCIELAGO',
+      'HIPOPOTAMO',
+      'XILOFONO',
+      'ESTERNON',
+      'CRIPTOGRAFIA',
+      'FONOLOGIA',
+      'QUIRURGICO',
+      'MICROSCOPIO',
+      'NEUROLOGIA',
+      'FOTOSINTESIS',
+      'TERMODINAMICA',
+      'GEOQUIMICA',
+    ],
+  },
+  en: {
+    easy: [
+      'HOME',
+      'TABLE',
+      'CAT',
+      'DUCK',
+      'MOON',
+      'ROSE',
+      'WATER',
+      'MOUTH',
+      'HAIR',
+      'HAND',
+      'CLOUD',
+      'TRAIN',
+      'FLOOR',
+      'BOOK',
+    ],
+    medium: [
+      'BUTTERFLY',
+      'TELESCOPE',
+      'LIBRARY',
+      'DINOSAUR',
+      'HIPPOPOTAMUS',
+      'LABORATORY',
+      'NEWSPAPER',
+      'CHOCOLATE',
+      'ELECTRONIC',
+      'METEOROLOGY',
+      'ARCHITECTURE',
+      'COMPUTER',
+    ],
+    hard: [
+      'CRYPTOGRAPHY',
+      'PHONOLOGY',
+      'SURGICAL',
+      'MICROSCOPE',
+      'NEUROLOGY',
+      'PHOTOSYNTHESIS',
+      'THERMODYNAMICS',
+      'GEOCHEMISTRY',
+      'ARCHAEOLOGY',
+      'ANTHROPOLOGY',
+      'BIOTECHNOLOGY',
+      'ASTROPHYSICS',
+    ],
+  },
 };
 
-/**
- * Genera indices aleatorios de letras que serán ocultadas en el desafío, asegurando que no se repitan y 
- * que estén dentro del rango de la longitud de la palabra
- */
 function randomMissingIndexes(wordLength: number, count: number): number[] {
   const pool = Array.from({ length: wordLength }, (_, i) => i);
   const result: number[] = [];
@@ -83,23 +168,29 @@ function randomMissingIndexes(wordLength: number, count: number): number[] {
   return result.sort((a, b) => a - b);
 }
 
-/**
- * Genera una lista de desafíos según dificultad
- * Selecciona palabras aleatorias del WORD_BANK
- * Aplica ocultamiento de letras según configuracion
- */
-export function generateChallenges(difficulty: Difficulty): WordChallenge[] {
+export function generateChallenges(
+  difficulty: Difficulty,
+  language: WordLanguage = 'es',
+): WordChallenge[] {
   const { missingCount, wordCount } = DIFFICULTY_STYLES[difficulty];
-  const pool = [...WORD_BANK[difficulty]];
+  const pool = [...WORD_BANK[language][difficulty]];
   const result: WordChallenge[] = [];
+
   for (let i = 0; i < wordCount; i++) {
     const idx = Math.floor(Math.random() * pool.length);
     const word = pool.splice(idx, 1)[0];
-    result.push({ word, missingIndexes: randomMissingIndexes(word.length, missingCount) });
+    result.push({
+      word,
+      missingIndexes: randomMissingIndexes(word.length, missingCount),
+    });
   }
+
   return result;
 }
 
 export const MIN_QUANTITY = 1;
 export const MAX_QUANTITY = 9;
-export const DEFAULT_CONFIG = { difficulty: 'easy' as Difficulty, quantity: 3 };
+export const DEFAULT_CONFIG = {
+  difficulty: 'easy' as Difficulty,
+  quantity: 3,
+};

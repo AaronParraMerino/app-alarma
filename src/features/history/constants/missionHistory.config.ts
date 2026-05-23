@@ -1,12 +1,17 @@
+// src/features/history/constants/missionHistory.config.ts
 import {
   MissionType,
   Difficulty,
   FilterOption,
 } from '../types/missionHistory.types';
 
+export type HistoryLanguage = 'es' | 'en';
+
 export interface MissionVisualConfig {
   label: string;
+  labelEn: string;
   sublabel: string;
+  sublabelEn: string;
   iconName: string;
   iconColor: string;
   bgColor: string;
@@ -15,15 +20,27 @@ export interface MissionVisualConfig {
 
 export interface DifficultyVisualConfig {
   label: string;
+  labelEn: string;
   color: string;
   bg: string;
   barColor: string;
 }
 
-export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
+export interface FilterVisualConfig {
+  key: FilterOption;
+  label: string;
+  labelEn: string;
+}
+
+export const MISSION_CONFIG: Record<
+  MissionType,
+  MissionVisualConfig
+> = {
   word_completion: {
     label: 'Palabras',
+    labelEn: 'Words',
     sublabel: 'Completar letras faltantes',
+    sublabelEn: 'Complete missing letters',
     iconName: 'pencil-outline',
     iconColor: '#facc15',
     bgColor: '#1a1a0d',
@@ -32,7 +49,9 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
 
   math_exercises: {
     label: 'Matemáticas',
+    labelEn: 'Math',
     sublabel: 'Operaciones aritméticas',
+    sublabelEn: 'Arithmetic operations',
     iconName: 'calculator-outline',
     iconColor: '#4ade80',
     bgColor: '#1a2e0d',
@@ -41,7 +60,9 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
 
   movement: {
     label: 'Movimientos',
+    labelEn: 'Movements',
     sublabel: 'Agitar o mover el teléfono',
+    sublabelEn: 'Shake or move the phone',
     iconName: 'run-fast',
     iconColor: '#60a5fa',
     bgColor: '#0d1e2e',
@@ -50,7 +71,9 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
 
   colored_figures: {
     label: 'Colores',
+    labelEn: 'Colors',
     sublabel: 'Identificar colores y figuras',
+    sublabelEn: 'Identify colors and shapes',
     iconName: 'palette-outline',
     iconColor: '#c084fc',
     bgColor: '#1e0d2e',
@@ -59,7 +82,9 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
 
   color_find: {
     label: 'Color diferente',
+    labelEn: 'Different color',
     sublabel: 'Encontrar el cuadro distinto',
+    sublabelEn: 'Find the different square',
     iconName: 'grid-outline',
     iconColor: '#22d3ee',
     bgColor: '#0d2630',
@@ -67,34 +92,71 @@ export const MISSION_CONFIG: Record<MissionType, MissionVisualConfig> = {
   },
 };
 
-export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyVisualConfig> = {
+export const DIFFICULTY_CONFIG: Record<
+  Difficulty,
+  DifficultyVisualConfig
+> = {
   easy: {
     label: 'Fácil',
+    labelEn: 'Easy',
     color: '#4ade80',
     bg: '#0d2e1e',
     barColor: '#16a34a',
   },
+
   medium: {
     label: 'Medio',
+    labelEn: 'Medium',
     color: '#facc15',
     bg: '#2e2200',
     barColor: '#ca8a04',
   },
+
   hard: {
     label: 'Difícil',
+    labelEn: 'Hard',
     color: '#f87171',
     bg: '#2e0d0d',
     barColor: '#dc2626',
   },
 };
 
-export const FILTER_OPTIONS: { key: FilterOption; label: string }[] = [
-  { key: 'todas', label: 'Todas' },
-  { key: 'math_exercises', label: 'Matemáticas' },
-  { key: 'word_completion', label: 'Palabras' },
-  { key: 'movement', label: 'Movimientos' },
-  { key: 'colored_figures', label: 'Colores' },
-  { key: 'color_find', label: 'Color diferente' },
+export const FILTER_OPTIONS: FilterVisualConfig[] = [
+  {
+    key: 'todas',
+    label: 'Todas',
+    labelEn: 'All',
+  },
+
+  {
+    key: 'math_exercises',
+    label: 'Matemáticas',
+    labelEn: 'Math',
+  },
+
+  {
+    key: 'word_completion',
+    label: 'Palabras',
+    labelEn: 'Words',
+  },
+
+  {
+    key: 'movement',
+    label: 'Movimientos',
+    labelEn: 'Movements',
+  },
+
+  {
+    key: 'colored_figures',
+    label: 'Colores',
+    labelEn: 'Colors',
+  },
+
+  {
+    key: 'color_find',
+    label: 'Color diferente',
+    labelEn: 'Different color',
+  },
 ];
 
 export const MISSION_TYPES_ORDER: MissionType[] = [
@@ -105,7 +167,74 @@ export const MISSION_TYPES_ORDER: MissionType[] = [
   'color_find',
 ];
 
-export function formatFecha(isoString: string): string {
+export function getMissionLabel(
+  missionType: MissionType,
+  language: HistoryLanguage,
+): string {
+  const config = MISSION_CONFIG[missionType];
+
+  if (!config) {
+    return language === 'es' ? 'Misión' : 'Mission';
+  }
+
+  return language === 'es'
+    ? config.label
+    : config.labelEn;
+}
+
+export function getMissionSublabel(
+  missionType: MissionType,
+  language: HistoryLanguage,
+): string {
+  const config = MISSION_CONFIG[missionType];
+
+  if (!config) {
+    return language === 'es'
+      ? 'Sin descripción'
+      : 'No description';
+  }
+
+  return language === 'es'
+    ? config.sublabel
+    : config.sublabelEn;
+}
+
+export function getDifficultyLabel(
+  difficulty: Difficulty | null | undefined,
+  language: HistoryLanguage,
+): string {
+  if (!difficulty) {
+    return language === 'es'
+      ? 'Sin nivel'
+      : 'No level';
+  }
+
+  const config = DIFFICULTY_CONFIG[difficulty];
+
+  if (!config) {
+    return language === 'es'
+      ? 'Sin nivel'
+      : 'No level';
+  }
+
+  return language === 'es'
+    ? config.label
+    : config.labelEn;
+}
+
+export function getFilterLabel(
+  filter: FilterVisualConfig,
+  language: HistoryLanguage,
+): string {
+  return language === 'es'
+    ? filter.label
+    : filter.labelEn;
+}
+
+export function formatFecha(
+  isoString: string,
+  language: HistoryLanguage = 'es',
+): string {
   const fecha = new Date(isoString);
 
   if (Number.isNaN(fecha.getTime())) {
@@ -117,20 +246,28 @@ export function formatFecha(isoString: string): string {
   const ayer = new Date();
   ayer.setDate(hoy.getDate() - 1);
 
-  const hora = fecha.toLocaleTimeString('es', {
+  const locale = language === 'es'
+    ? 'es'
+    : 'en-US';
+
+  const hora = fecha.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
   });
 
   if (fecha.toDateString() === hoy.toDateString()) {
-    return `Hoy ${hora}`;
+    return language === 'es'
+      ? `Hoy ${hora}`
+      : `Today ${hora}`;
   }
 
   if (fecha.toDateString() === ayer.toDateString()) {
-    return `Ayer ${hora}`;
+    return language === 'es'
+      ? `Ayer ${hora}`
+      : `Yesterday ${hora}`;
   }
 
-  return fecha.toLocaleDateString('es', {
+  return fecha.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
   });
@@ -138,9 +275,12 @@ export function formatFecha(isoString: string): string {
 
 export function formatContenido(
   missionType: MissionType,
-  content: Record<string, unknown> | null
+  content: Record<string, unknown> | null,
+  language: HistoryLanguage = 'es',
 ): string {
-  if (!content) return '';
+  if (!content) {
+    return '';
+  }
 
   if (missionType === 'word_completion') {
     const word = getStringValue(content, [
@@ -149,7 +289,13 @@ export function formatContenido(
       'correctWord',
     ]);
 
-    return word ? `Palabra: ${word}` : '';
+    if (!word) {
+      return '';
+    }
+
+    return language === 'es'
+      ? `Palabra: ${word}`
+      : `Word: ${word}`;
   }
 
   if (missionType === 'math_exercises') {
@@ -177,20 +323,45 @@ export function formatContenido(
       'targetFigure',
     ]);
 
-    if (figure && color) return `${figure} - ${color}`;
-    if (figure) return `Figura: ${figure}`;
-    if (color) return `Color: ${color}`;
+    if (figure && color) {
+      return `${figure} - ${color}`;
+    }
+
+    if (figure) {
+      return language === 'es'
+        ? `Figura: ${figure}`
+        : `Shape: ${figure}`;
+    }
+
+    if (color) {
+      return `Color: ${color}`;
+    }
 
     return '';
   }
 
   if (missionType === 'color_find') {
-    const gridSize = getStringValue(content, ['gridSize']);
-    const oddColor = getStringValue(content, ['oddColor']);
+    const gridSize = getStringValue(content, [
+      'gridSize',
+    ]);
 
-    if (gridSize && oddColor) return `${gridSize}x${gridSize} - ${oddColor}`;
-    if (gridSize) return `${gridSize}x${gridSize}`;
-    if (oddColor) return `Color diferente: ${oddColor}`;
+    const oddColor = getStringValue(content, [
+      'oddColor',
+    ]);
+
+    if (gridSize && oddColor) {
+      return `${gridSize}x${gridSize} - ${oddColor}`;
+    }
+
+    if (gridSize) {
+      return `${gridSize}x${gridSize}`;
+    }
+
+    if (oddColor) {
+      return language === 'es'
+        ? `Color diferente: ${oddColor}`
+        : `Different color: ${oddColor}`;
+    }
 
     return '';
   }
@@ -210,12 +381,15 @@ export function formatContenido(
 
 function getStringValue(
   content: Record<string, unknown>,
-  keys: string[]
+  keys: string[],
 ): string {
   for (const key of keys) {
     const value = content[key];
 
-    if (typeof value === 'string' && value.trim().length > 0) {
+    if (
+      typeof value === 'string' &&
+      value.trim().length > 0
+    ) {
       return value;
     }
 

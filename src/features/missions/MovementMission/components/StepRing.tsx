@@ -7,17 +7,24 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Colors } from '../../../../shared/theme/colors';
-
 interface StepRingProps {
   progress: number;
   color: string;
   imageSource: ImageSourcePropType;
   size?: number;
+  backgroundColor: string;
+  trackColor: string;
 }
 
 // Muestra el avance del paso actual con imagen y porcentaje.
-export function StepRing({ progress, color, imageSource, size = 140 }: StepRingProps) {
+export function StepRing({
+  progress,
+  color,
+  imageSource,
+  size = 140,
+  backgroundColor,
+  trackColor,
+}: StepRingProps) {
   const animProgress = useRef(new Animated.Value(0)).current;
   const clamped = Math.max(0, Math.min(progress, 1));
   const percent = Math.round(clamped * 100);
@@ -46,6 +53,7 @@ export function StepRing({ progress, color, imageSource, size = 140 }: StepRingP
             height: size,
             borderRadius: size / 2,
             borderColor: color,
+            backgroundColor,
           },
         ]}
       >
@@ -65,7 +73,7 @@ export function StepRing({ progress, color, imageSource, size = 140 }: StepRingP
         </View>
       </View>
 
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: trackColor }]}>
         <Animated.View style={[styles.fill, { width: progressWidth, backgroundColor: color }]} />
       </View>
     </View>
@@ -78,7 +86,6 @@ const styles = StyleSheet.create({
     borderWidth: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.bgCard,
     padding: 10,
   },
   content: {
@@ -103,7 +110,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.border,
     overflow: 'hidden',
   },
   fill: {

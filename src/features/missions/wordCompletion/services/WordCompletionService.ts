@@ -2,6 +2,7 @@ import { WordLocalService } from '../../../../shared/services/storage/WordLocalS
 import {
   Difficulty,
   WordChallenge,
+  WordLanguage,
 } from '../types/wordCompletion.types';
 
 export interface DifficultyStyle {
@@ -45,10 +46,13 @@ export class WordCompletionService {
     return DIFFICULTY_STYLES[difficulty];
   }
 
-  static generateChallenges(difficulty: Difficulty): WordChallenge[] {
+  static generateChallenges(
+    difficulty: Difficulty,
+    language: WordLanguage = 'es',
+  ): WordChallenge[] {
     const { missingCount, wordCount } = this.getDifficultyStyle(difficulty);
 
-    const words = WordLocalService.getRandom(difficulty, wordCount);
+    const words = WordLocalService.getRandom(difficulty, wordCount, language);
 
     return words.map(word => ({
       word,
@@ -66,7 +70,11 @@ export class WordCompletionService {
   }
 
   static normalizeAnswer(value: string): string {
-    return value.toUpperCase().trim();
+    return value
+      .toUpperCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   static validateAnswer(
@@ -78,7 +86,7 @@ export class WordCompletionService {
     const expectedAnswer = this.getExpectedAnswer(challenge);
     const normalizedInput = this.normalizeAnswer(userInput);
 
-    return normalizedInput === expectedAnswer;
+    return normalizedInput === this.normalizeAnswer(expectedAnswer);
   }
 
   private static randomMissingIndexes(

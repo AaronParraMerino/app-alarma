@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+// src/features/missions/ColoredFigures/screens/ColoredMissionConfigScreen.tsx
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -9,81 +13,282 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
+
 import { useColoredFiguresStore } from '../store/ColoredFiguresStore';
 import {
   DIFFICULTY_STYLES,
   COLORS_BY_DIFFICULTY,
   PREVIEW_BY_DIFFICULTY,
 } from '../constants/ColoredFigure.config';
-import { Difficulty, ColoredFigureChallenge } from '../types/ColoredFigures.types';
+import {
+  Difficulty,
+  ColoredFigureChallenge,
+} from '../types/ColoredFigures.types';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 
-type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigColoredFiguresMission'>;
+type Props = NativeStackScreenProps<
+  MissionsStackParamList,
+  'ConfigColoredFiguresMission'
+>;
 
-const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
+const LEVELS: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
 
-function toAlarmDifficulty(difficulty: Difficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+function toAlarmDifficulty(
+  difficulty: Difficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
 }
 
-function PreviewFigure({ figure, color, size }: { figure: string; color: string; size: number }) {
-  if (figure === 'circle')
-    return <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color }} />;
-  if (figure === 'square')
-    return <View style={{ width: size, height: size, backgroundColor: color, borderRadius: 6 }} />;
-  if (figure === 'rectangle')
-    return <View style={{ width: size * 1.6, height: size * 0.9, backgroundColor: color, borderRadius: 6 }} />;
-  if (figure === 'diamond')
-    return <View style={{ width: size * 0.7, height: size * 0.7, backgroundColor: color, transform: [{ rotate: '45deg' }], borderRadius: 4 }} />;
-  if (figure === 'triangle')
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
+
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+function translateColorName(
+  colorName: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return colorName;
+  }
+
+  const normalized = colorName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const colorsMap: Record<string, string> = {
+    rojo: 'Red',
+    azul: 'Blue',
+    verde: 'Green',
+    amarillo: 'Yellow',
+    naranja: 'Orange',
+    morado: 'Purple',
+    violeta: 'Violet',
+    rosado: 'Pink',
+    rosa: 'Pink',
+    blanco: 'White',
+    negro: 'Black',
+    gris: 'Gray',
+    cafe: 'Brown',
+    marron: 'Brown',
+    celeste: 'Light blue',
+  };
+
+  return colorsMap[normalized] ?? colorName;
+}
+
+function PreviewFigure({
+  figure,
+  color,
+  size,
+}: {
+  figure: string;
+  color: string;
+  size: number;
+}) {
+  if (figure === 'circle') {
     return (
-      <View style={{
-        width: 0, height: 0,
-        borderLeftWidth: size * 0.6, borderRightWidth: size * 0.6, borderBottomWidth: size,
-        borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color,
-      }} />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+        }}
+      />
     );
+  }
+
+  if (figure === 'square') {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color,
+          borderRadius: 6,
+        }}
+      />
+    );
+  }
+
+  if (figure === 'rectangle') {
+    return (
+      <View
+        style={{
+          width: size * 1.6,
+          height: size * 0.9,
+          backgroundColor: color,
+          borderRadius: 6,
+        }}
+      />
+    );
+  }
+
+  if (figure === 'diamond') {
+    return (
+      <View
+        style={{
+          width: size * 0.7,
+          height: size * 0.7,
+          backgroundColor: color,
+          transform: [
+            {
+              rotate: '45deg',
+            },
+          ],
+          borderRadius: 4,
+        }}
+      />
+    );
+  }
+
+  if (figure === 'triangle') {
+    return (
+      <View
+        style={{
+          width: 0,
+          height: 0,
+          borderLeftWidth: size * 0.6,
+          borderRightWidth: size * 0.6,
+          borderBottomWidth: size,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderBottomColor: color,
+        }}
+      />
+    );
+  }
+
   return null;
 }
 
-export function ColoredMissionConfigScreen({ navigation, route }: Props) {
-  const { config, setConfig } = useColoredFiguresStore();
+export function ColoredMissionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    route.params?.difficulty ?? config.difficulty
-  );
-  const [quantity, setQuantity] = useState(route.params?.quantity ?? config.quantity);
+  const {
+    language,
+  } = useTranslation();
 
-  // ✅ Reactivos al slider
-  const [preview, setPreview] = useState<ColoredFigureChallenge>(
-    PREVIEW_BY_DIFFICULTY[route.params?.difficulty ?? config.difficulty]
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useColoredFiguresStore();
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(
+    route.params?.difficulty ??
+      config.difficulty,
   );
-  const [colorsOfLevel, setColorsOfLevel] = useState(
-    COLORS_BY_DIFFICULTY[route.params?.difficulty ?? config.difficulty]
+
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    route.params?.quantity ??
+      config.quantity,
+  );
+
+  const [
+    preview,
+    setPreview,
+  ] = useState<ColoredFigureChallenge>(
+    PREVIEW_BY_DIFFICULTY[
+      route.params?.difficulty ??
+        config.difficulty
+    ],
+  );
+
+  const [
+    colorsOfLevel,
+    setColorsOfLevel,
+  ] = useState(
+    COLORS_BY_DIFFICULTY[
+      route.params?.difficulty ??
+        config.difficulty
+    ],
   );
 
   useEffect(() => {
-    setPreview(PREVIEW_BY_DIFFICULTY[difficulty]);
-    setColorsOfLevel(COLORS_BY_DIFFICULTY[difficulty]);
-  }, [difficulty]);
+    setPreview(
+      PREVIEW_BY_DIFFICULTY[difficulty],
+    );
 
-  const style     = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
+    setColorsOfLevel(
+      COLORS_BY_DIFFICULTY[difficulty],
+    );
+  }, [
+    difficulty,
+  ]);
+
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
 
   const handleSave = () => {
-    setConfig({ difficulty, quantity });
-    const savedInAlarmConfig = completeAlarmMissionConfigSession(
-      route.params?.alarmConfigSessionId,
-      { type: 'color', difficulty: toAlarmDifficulty(difficulty), quantity },
-    );
+    setConfig({
+      difficulty,
+      quantity,
+    });
+
+    const savedInAlarmConfig =
+      completeAlarmMissionConfigSession(
+        route.params?.alarmConfigSessionId,
+        {
+          type: 'color',
+          difficulty: toAlarmDifficulty(difficulty),
+          quantity,
+        },
+      );
 
     if (savedInAlarmConfig) {
       navigation.goBack();
+
       return;
     }
 
@@ -91,112 +296,431 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <BackButton style={styles.backButton} onPress={() => navigation.goBack()} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
-        <View style={styles.headerPill}>
-          <Text style={styles.headerText}>MISIÓN{'\n'}FIGURAS Y COLORES</Text>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        />
 
-        <Text style={styles.sectionLabel}>Seleccione la dificultad</Text>
-        <Text style={styles.subLabel}>Ejemplo — ¿De qué color es esta figura?</Text>
-
-        {/* ✅ Preview reactivo */}
-        <View style={[styles.previewBox, { backgroundColor: style.bgColor, borderColor: style.accentColor + '40' }]}>
-          <PreviewFigure figure={preview.figure} color={preview.hex} size={80} />
-          <Text style={[styles.previewAnswer, { color: style.accentColor }]}>
-            Respuesta: {preview.colorDisplayName}
+        <View
+          style={[
+            styles.headerPill,
+            {
+              backgroundColor: colors.primary,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'MISIÓN\nFIGURAS Y COLORES'
+              : 'MISSION\nSHAPES AND COLORS'}
           </Text>
         </View>
 
-        {/* Slider */}
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
+        </Text>
+
+        <Text
+          style={[
+            styles.subLabel,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Ejemplo — ¿De qué color es esta figura?'
+            : 'Example — What color is this shape?'}
+        </Text>
+
+        <View
+          style={[
+            styles.previewBox,
+            {
+              backgroundColor:
+                difficultyStyle.bgColor,
+              borderColor:
+                difficultyStyle.accentColor + '40',
+            },
+          ]}
+        >
+          <PreviewFigure
+            figure={preview.figure}
+            color={preview.hex}
+            size={80}
+          />
+
+          <Text
+            style={[
+              styles.previewAnswer,
+              {
+                color:
+                  difficultyStyle.accentColor,
+              },
+            ]}
+          >
+            {isSpanish
+              ? `Respuesta: ${translateColorName(
+                  preview.colorDisplayName,
+                  true,
+                )}`
+              : `Answer: ${translateColorName(
+                  preview.colorDisplayName,
+                  false,
+                )}`}
+          </Text>
+        </View>
+
         <View style={styles.sliderWrapper}>
-          <View style={styles.trackBg}>
-            <View style={[styles.trackFill, {
-              width: `${(sliderIdx / 2) * 100}%` as any,
-              backgroundColor: style.accentColor,
-            }]} />
-            {LEVELS.map((lvl, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.thumbHit, { left: `${(i / 2) * 100}%` as any }]}
-                onPress={() => setDifficulty(lvl)}
-              >
-                <View style={[
-                  styles.thumb,
-                  { backgroundColor: difficulty === lvl ? style.accentColor : Colors.bgElevated, borderColor: style.accentColor },
-                ]} />
-              </TouchableOpacity>
-            ))}
+          <View
+            style={[
+              styles.trackBg,
+              {
+                backgroundColor:
+                  colors.bgElevated,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  width: `${(sliderIdx / 2) * 100}%`,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
+                },
+              ]}
+            />
+
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
+                  style={[
+                    styles.thumbHit,
+                    {
+                      left: `${(index / 2) * 100}%`,
+                    },
+                  ]}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          difficulty === level
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
+
           <View style={styles.sliderLabels}>
-            {LEVELS.map((lvl) => (
-              <TouchableOpacity key={lvl} style={styles.labelBtn} onPress={() => setDifficulty(lvl)}>
-                <Text style={[styles.labelText, difficulty === lvl && { color: style.accentColor, fontWeight: '600' }]}>
-                  {DIFFICULTY_STYLES[lvl].label}
+            {LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={styles.labelBtn}
+                onPress={() =>
+                  setDifficulty(level)
+                }
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.labelText,
+                    {
+                      color:
+                        difficulty === level
+                          ? difficultyStyle.accentColor
+                          : colors.textMuted,
+                      fontWeight:
+                        difficulty === level
+                          ? '700'
+                          : '500',
+                    },
+                  ]}
+                >
+                  {getDifficultyLabel(
+                    level,
+                    isSpanish,
+                  )}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colors.border,
+            },
+          ]}
+        />
 
-        {/* ✅ Colores reactivos al nivel */}
-        <Text style={styles.sectionLabel}>Colores de este nivel</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Colores de este nivel'
+            : 'Colors in this level'}
+        </Text>
+
         <View style={styles.colorsGrid}>
-          {colorsOfLevel.map((c) => (
-            <View key={c.hex} style={styles.colorItem}>
-              <View style={[
-                styles.colorSwatch,
-                { backgroundColor: c.hex },
-                (c.hex === '#EFEFEF' || c.hex === '#FFFF00') && styles.swatchBorder,
-              ]} />
-              <Text style={[styles.colorLabel, { color: style.accentColor }]}>
-                {c.colorDisplayName}
-              </Text>
-            </View>
-          ))}
+          {colorsOfLevel.map((item) => {
+            const needsBorder =
+              item.hex === '#EFEFEF' ||
+              item.hex === '#FFFF00' ||
+              item.hex.toLowerCase() === '#ffffff';
+
+            return (
+              <View
+                key={item.hex}
+                style={styles.colorItem}
+              >
+                <View
+                  style={[
+                    styles.colorSwatch,
+                    {
+                      backgroundColor: item.hex,
+                      borderColor: needsBorder
+                        ? colors.border
+                        : 'transparent',
+                    },
+                    needsBorder &&
+                      styles.swatchBorder,
+                  ]}
+                />
+
+                <Text
+                  style={[
+                    styles.colorLabel,
+                    {
+                      color:
+                        difficultyStyle.accentColor,
+                    },
+                  ]}
+                >
+                  {translateColorName(
+                    item.colorDisplayName,
+                    isSpanish,
+                  )}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
-        <View style={styles.divider} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colors.border,
+            },
+          ]}
+        />
 
-        {/* Cantidad */}
-        <Text style={styles.sectionLabel}>Seleccione la cantidad</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
+        </Text>
+
         <View style={styles.quantityRow}>
-          <View style={styles.quantityBox}>
-            <Text style={styles.quantityNum}>{quantity}</Text>
+          <View
+            style={[
+              styles.quantityBox,
+              {
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.quantityNum,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {quantity}
+            </Text>
+
             <View style={styles.arrows}>
-              <TouchableOpacity style={styles.arrowBtn} onPress={() => setQuantity(Math.min(quantity + 1, 9))}>
-                <Text style={styles.arrowText}>▲</Text>
+              <TouchableOpacity
+                style={styles.arrowBtn}
+                onPress={() =>
+                  setQuantity(
+                    Math.min(
+                      quantity + 1,
+                      9,
+                    ),
+                  )
+                }
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
+                  ▲
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.arrowBtn} onPress={() => setQuantity(Math.max(quantity - 1, 1))}>
-                <Text style={styles.arrowText}>▼</Text>
+
+              <TouchableOpacity
+                style={styles.arrowBtn}
+                onPress={() =>
+                  setQuantity(
+                    Math.max(
+                      quantity - 1,
+                      1,
+                    ),
+                  )
+                }
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
+                  ▼
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.vecesText}> {quantity === 1 ? 'vez' : 'veces'}</Text>
+
+          <Text
+            style={[
+              styles.vecesText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? quantity === 1
+                ? ' vez'
+                : ' veces'
+              : quantity === 1
+                ? ' time'
+                : ' times'}
+          </Text>
         </View>
 
         <View style={styles.spacer} />
 
         <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: style.accentColor }]}
+          style={[
+            styles.confirmBtn,
+            {
+              backgroundColor:
+                difficultyStyle.accentColor,
+            },
+          ]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
-          <Text style={[styles.confirmText, { color: style.textColor }]}>Guardar</Text>
+          <Text
+            style={[
+              styles.confirmText,
+              {
+                color:
+                  difficultyStyle.textColor,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'Guardar'
+              : 'Save'}
+          </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: Colors.bg },
+  safe: {
+    flex: 1,
+  },
+
   scroll: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -206,57 +730,196 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 40,
   },
-  backButton: { marginBottom: 2 },
-  headerPill: {
-    backgroundColor: Colors.primary, borderRadius: 24,
-    paddingVertical: 10, paddingHorizontal: 24,
-    alignItems: 'center', marginTop: 24, marginBottom: 24,
+
+  backButton: {
+    marginBottom: 2,
   },
-  headerText:   {
-    color: Colors.white,
+
+  headerPill: {
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+
+  headerText: {
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  sectionLabel: { fontSize: Typography.sectionTitle.fontSize, color: Colors.text, marginBottom: 6 },
-  subLabel:     { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
+
+  sectionLabel: {
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    marginBottom: 6,
+  },
+
+  subLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+
   previewBox: {
-    borderRadius: 16, paddingVertical: 24, paddingHorizontal: 16,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20, borderWidth: 0.5, gap: 16, minHeight: 160,
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 0.5,
+    gap: 16,
+    minHeight: 160,
   },
-  previewAnswer: { fontSize: 14, fontWeight: '600', marginTop: 8 },
-  sliderWrapper: { marginBottom: 8 },
+
+  previewAnswer: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+
+  sliderWrapper: {
+    marginBottom: 8,
+  },
+
   trackBg: {
-    height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2,
-    marginHorizontal: 10, position: 'relative', justifyContent: 'center', marginBottom: 14,
+    height: 4,
+    borderRadius: 2,
+    marginHorizontal: 10,
+    position: 'relative',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
-  trackFill:    { position: 'absolute', left: 0, height: 4, borderRadius: 2 },
-  thumbHit:     { position: 'absolute', width: 30, height: 30, marginLeft: -15, top: -13, alignItems: 'center', justifyContent: 'center' },
-  thumb:        { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
-  labelBtn:     { flex: 1, alignItems: 'center' },
-  labelText:    { fontSize: 13, color: Colors.textMuted },
-  divider:      { height: 0.5, backgroundColor: Colors.border, marginVertical: 16 },
-  colorsGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', paddingVertical: 8 },
-  colorItem:    { alignItems: 'center', gap: 6, minWidth: 60 },
-  colorSwatch:  { width: 48, height: 48, borderRadius: 24 },
-  swatchBorder: { borderWidth: 1, borderColor: Colors.border },
-  colorLabel:   { fontSize: 11, fontWeight: '500', textAlign: 'center' },
-  quantityRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  trackFill: {
+    position: 'absolute',
+    left: 0,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  thumbHit: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    marginLeft: -15,
+    top: -13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  thumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+  },
+
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+
+  labelBtn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  labelText: {
+    fontSize: 13,
+  },
+
+  divider: {
+    height: 0.5,
+    marginVertical: 16,
+  },
+
+  colorsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+
+  colorItem: {
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 60,
+  },
+
+  colorSwatch: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+
+  swatchBorder: {
+    borderWidth: 1,
+  },
+
+  colorLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
+  quantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
   quantityBox: {
-    backgroundColor: Colors.bgElevated, borderRadius: Layout.controlRadius,
-    paddingVertical: 10, paddingHorizontal: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 0.5, borderColor: Colors.border,
+    borderRadius: Layout.controlRadius,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 0.5,
   },
-  quantityNum:  { fontSize: 22, fontWeight: '500', color: Colors.text, minWidth: 24, textAlign: 'center' },
-  arrows:       { gap: 2 },
-  arrowBtn:     { paddingHorizontal: 4 },
-  arrowText:    { fontSize: 11, color: Colors.textSecondary },
-  vecesText:    { fontSize: 15, color: Colors.textSecondary },
-  spacer:       { flex: 1 },
-  confirmBtn:   { borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  confirmText:  { fontSize: 16, fontWeight: '500' },
+
+  quantityNum: {
+    fontSize: 22,
+    fontWeight: '500',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+
+  arrows: {
+    gap: 2,
+  },
+
+  arrowBtn: {
+    paddingHorizontal: 4,
+  },
+
+  arrowText: {
+    fontSize: 11,
+  },
+
+  vecesText: {
+    fontSize: 15,
+  },
+
+  spacer: {
+    flex: 1,
+  },
+
+  confirmBtn: {
+    borderRadius: 14,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+
+  confirmText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });

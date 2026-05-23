@@ -5,10 +5,16 @@ interface SensorBarProps {
   magnitude: number;
   maxMagnitude?: number;
   color: string;
+  trackColor: string;
 }
 
 // Barra animada que muestra la fuerza actual del sensor.
-export function SensorBar({ magnitude, maxMagnitude = 30, color }: SensorBarProps) {
+export function SensorBar({
+  magnitude,
+  maxMagnitude = 30,
+  color,
+  trackColor,
+}: SensorBarProps) {
   const widthAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -28,7 +34,7 @@ export function SensorBar({ magnitude, maxMagnitude = 30, color }: SensorBarProp
   });
 
   return (
-    <View style={styles.track}>
+    <View style={[styles.track, { backgroundColor: trackColor }]}>
       <Animated.View style={[styles.fill, { width, backgroundColor: color }]} />
     </View>
   );
@@ -37,7 +43,6 @@ export function SensorBar({ magnitude, maxMagnitude = 30, color }: SensorBarProp
 const styles = StyleSheet.create({
   track: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 4,
     overflow: 'hidden',
     width: '100%',

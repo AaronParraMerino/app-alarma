@@ -1,5 +1,8 @@
 // src/features/profile/screens/ProfileScreen.tsx
-import React, { useCallback, useState } from 'react';
+import React, {
+  useCallback,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -14,34 +17,72 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { BackButton } from '../../../shared/components/ui/BackButton';
 import { Menssage } from '../../../shared/components/ui/Menssage';
 import { Modal } from '../../../shared/components/ui/Modal';
+
 import { useAuth } from '../../auth/store/authStore';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileStackParamList } from '../navigation/ProfileNavigator';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
+  navigation: NativeStackNavigationProp<
+    ProfileStackParamList,
+    'Profile'
+  >;
 };
 
-function AvatarLarge({ name }: { name: string }) {
+function AvatarLarge({
+  name,
+}: {
+  name: string;
+}) {
+  const { colors } = useAppTheme();
+
   const initials = name
     .split(' ')
     .filter(Boolean)
-    .map((w) => w[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(
+      0,
+      2,
+    );
 
   return (
     <View style={styles.avatarWrap}>
-      <View style={styles.avatarRing}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials || 'U'}</Text>
+      <View
+        style={[
+          styles.avatarRing,
+          {
+            backgroundColor: colors.bgCard,
+            borderColor: colors.primary + '66',
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: colors.primary + '2A',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.avatarText,
+              {
+                color: colors.primary,
+              },
+            ]}
+          >
+            {initials || 'U'}
+          </Text>
         </View>
       </View>
     </View>
@@ -59,14 +100,54 @@ function StatCard({
   label: string;
   color: string;
 }) {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={[styles.statCard, { borderColor: color + '33' }]}>
-      <View style={[styles.statIconWrap, { backgroundColor: color + '1A' }]}>
-        <Ionicons name={icon} size={18} color={color} />
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: color + '33',
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIconWrap,
+          {
+            backgroundColor: color + '1A',
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={color}
+        />
       </View>
 
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.statValue,
+          {
+            color: colors.text,
+          },
+        ]}
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={[
+          styles.statLabel,
+          {
+            color: colors.textMuted,
+          },
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -75,7 +156,7 @@ function ActionRow({
   icon,
   label,
   onPress,
-  color = Colors.text,
+  color,
   sublabel,
   disabled,
 }: {
@@ -86,34 +167,89 @@ function ActionRow({
   sublabel?: string;
   disabled?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const rowColor = color ?? colors.text;
+
   return (
     <TouchableOpacity
-      style={[styles.actionRow, disabled && styles.actionRowDisabled]}
+      style={[
+        styles.actionRow,
+        disabled && styles.actionRowDisabled,
+      ]}
       onPress={onPress}
       activeOpacity={0.65}
       disabled={disabled}
     >
-      <View style={[styles.actionIconWrap, { backgroundColor: color + '18' }]}>
-        <Ionicons name={icon} size={18} color={color} />
+      <View
+        style={[
+          styles.actionIconWrap,
+          {
+            backgroundColor: rowColor + '18',
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={rowColor}
+        />
       </View>
 
       <View style={styles.actionText}>
-        <Text style={[styles.actionLabel, { color }]}>{label}</Text>
+        <Text
+          style={[
+            styles.actionLabel,
+            {
+              color: rowColor,
+            },
+          ]}
+        >
+          {label}
+        </Text>
 
         {sublabel ? (
-          <Text style={styles.actionSublabel}>{sublabel}</Text>
+          <Text
+            style={[
+              styles.actionSublabel,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {sublabel}
+          </Text>
         ) : null}
       </View>
 
-      {!disabled && (
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-      )}
+      {!disabled ? (
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={colors.textMuted}
+        />
+      ) : null}
     </TouchableOpacity>
   );
 }
 
-export default function ProfileScreen({ navigation }: Props) {
-  const { user, logout } = useAuth();
+export default function ProfileScreen({
+  navigation,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish = language === 'es';
+
+  const {
+    user,
+    logout,
+  } = useAuth();
 
   const {
     profile,
@@ -123,18 +259,23 @@ export default function ProfileScreen({ navigation }: Props) {
     refetch,
   } = useProfile();
 
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [activeModal, setActiveModal] = useState<
-    'logout' | 'delete-account' | null
-  >(null);
+  const [isLoggingOut, setIsLoggingOut] =
+    useState(false);
+
+  const [activeModal, setActiveModal] =
+    useState<'logout' | 'delete-account' | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+    }, [
+      refetch,
+    ]),
   );
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const currentUser = user as any;
 
@@ -146,12 +287,13 @@ export default function ProfileScreen({ navigation }: Props) {
     '';
 
   const email = currentUser.email ?? '';
+
   const displayName =
     currentUser.username ??
     currentUser.full_name ??
     currentUser.name ??
     email.split('@')[0] ??
-    'Usuario';
+    (isSpanish ? 'Usuario' : 'User');
 
   const handleLogout = () => {
     setActiveModal('logout');
@@ -173,21 +315,61 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const handleOpenAlarmHistory = () => {
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     navigation.navigate('MissionHistory', {
       userId,
     });
   };
 
+  const createdAtText = currentUser.createdAt
+    ? new Date(currentUser.createdAt).toLocaleDateString(
+        isSpanish ? 'es-ES' : 'en-US',
+        {
+          month: 'long',
+          year: 'numeric',
+        },
+      )
+    : null;
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+      edges={[
+        'top',
+        'left',
+        'right',
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <View style={styles.topBar}>
-        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
+        <BackButton
+          label={isSpanish ? 'Volver' : 'Back'}
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        />
 
-        <Text style={styles.topBarTitle}>Mi perfil</Text>
+        <Text
+          style={[
+            styles.topBarTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish ? 'Mi perfil' : 'My profile'}
+        </Text>
 
         <View style={styles.topBarRightSpace} />
       </View>
@@ -199,113 +381,229 @@ export default function ProfileScreen({ navigation }: Props) {
         <View style={styles.hero}>
           <AvatarLarge name={displayName} />
 
-          <Text style={styles.heroName}>{displayName}</Text>
-          <Text style={styles.heroEmail}>{email}</Text>
+          <Text
+            style={[
+              styles.heroName,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {displayName}
+          </Text>
 
-          {loading && (
+          <Text
+            style={[
+              styles.heroEmail,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {email}
+          </Text>
+
+          {loading ? (
             <ActivityIndicator
               size="small"
-              color={Colors.primary}
+              color={colors.primary}
               style={styles.profileLoader}
             />
-          )}
+          ) : null}
         </View>
 
         {error ? (
           <Menssage
             type="error"
-            title="No pudimos cargar tu perfil"
+            title={
+              isSpanish
+                ? 'No pudimos cargar tu perfil'
+                : 'We could not load your profile'
+            }
             message={error}
             onPress={refetch}
             style={styles.message}
           />
         ) : null}
 
-        <Text style={styles.sectionLabel}>Estadísticas</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Estadísticas' : 'Statistics'}
+        </Text>
 
         <View style={styles.statsRow}>
           <StatCard
             icon="alarm-outline"
             value={profile?.total_alarms_completed ?? 0}
-            label="Alarmas"
-            color={Colors.primary}
+            label={isSpanish ? 'Alarmas' : 'Alarms'}
+            color={colors.primary}
           />
 
           <StatCard
             icon="trophy-outline"
             value={totalMissionsResolved}
-            label="Misiones"
-            color={Colors.warning}
+            label={isSpanish ? 'Misiones' : 'Missions'}
+            color={colors.warning}
           />
 
           <StatCard
             icon="flame-outline"
             value={profile?.streak_days ?? 0}
-            label="Racha"
-            color={Colors.danger}
+            label={isSpanish ? 'Racha' : 'Streak'}
+            color={colors.danger}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Cuenta</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Cuenta' : 'Account'}
+        </Text>
 
-        <View style={styles.section}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <ActionRow
             icon="create-outline"
-            label="Editar perfil"
-            sublabel="Próximamente"
+            label={isSpanish ? 'Editar perfil' : 'Edit profile'}
+            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
             disabled
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="time-outline"
-            label="Historial de alarmas"
-            sublabel="Ver historial de misiones realizadas"
+            label={
+              isSpanish
+                ? 'Historial de alarmas'
+                : 'Alarm history'
+            }
+            sublabel={
+              isSpanish
+                ? 'Ver historial de misiones realizadas'
+                : 'View completed mission history'
+            }
             onPress={handleOpenAlarmHistory}
             disabled={!userId}
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="bar-chart-outline"
-            label="Ver estadísticas completas"
-            sublabel="Próximamente"
+            label={
+              isSpanish
+                ? 'Ver estadísticas completas'
+                : 'View full statistics'
+            }
+            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
             disabled
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Sesión</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Sesión' : 'Session'}
+        </Text>
 
-        <View style={styles.section}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <ActionRow
             icon="log-out-outline"
-            label={isLoggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
-            color={Colors.warning}
+            label={
+              isLoggingOut
+                ? isSpanish
+                  ? 'Cerrando sesión...'
+                  : 'Logging out...'
+                : isSpanish
+                  ? 'Cerrar sesión'
+                  : 'Log out'
+            }
+            color={colors.warning}
             onPress={handleLogout}
             disabled={isLoggingOut}
           />
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
 
           <ActionRow
             icon="trash-outline"
-            label="Eliminar cuenta"
-            color={Colors.danger}
+            label={
+              isSpanish
+                ? 'Eliminar cuenta'
+                : 'Delete account'
+            }
+            color={colors.danger}
             onPress={handleDeleteAccount}
           />
         </View>
 
-        {currentUser.createdAt && (
-          <Text style={styles.memberSince}>
-            Miembro desde{' '}
-            {new Date(currentUser.createdAt).toLocaleDateString('es-ES', {
-              month: 'long',
-              year: 'numeric',
-            })}
+        {createdAtText ? (
+          <Text
+            style={[
+              styles.memberSince,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {isSpanish
+              ? `Miembro desde ${createdAtText}`
+              : `Member since ${createdAtText}`}
           </Text>
-        )}
+        ) : null}
 
         <View style={styles.bottomSpace} />
       </ScrollView>
@@ -313,17 +611,21 @@ export default function ProfileScreen({ navigation }: Props) {
       <Modal
         visible={activeModal === 'logout'}
         type="warning"
-        title="Cerrar sesión"
-        message="Tu sesión se cerrará en este dispositivo. Podrás volver a entrar desde la pantalla de autenticación."
+        title={isSpanish ? 'Cerrar sesión' : 'Log out'}
+        message={
+          isSpanish
+            ? 'Tu sesión se cerrará en este dispositivo. Podrás volver a entrar desde la pantalla de autenticación.'
+            : 'Your session will be closed on this device. You can log in again from the authentication screen.'
+        }
         onClose={closeModal}
         closeOnBackdropPress={!isLoggingOut}
         cancelAction={{
-          label: 'Cancelar',
+          label: isSpanish ? 'Cancelar' : 'Cancel',
           onPress: closeModal,
           disabled: isLoggingOut,
         }}
         confirmAction={{
-          label: 'Cerrar sesión',
+          label: isSpanish ? 'Cerrar sesión' : 'Log out',
           onPress: confirmLogout,
           loading: isLoggingOut,
         }}
@@ -332,11 +634,19 @@ export default function ProfileScreen({ navigation }: Props) {
       <Modal
         visible={activeModal === 'delete-account'}
         type="error"
-        title="Eliminar cuenta"
-        message="Esta opción estará disponible cuando integremos el borrado seguro de datos."
+        title={
+          isSpanish
+            ? 'Eliminar cuenta'
+            : 'Delete account'
+        }
+        message={
+          isSpanish
+            ? 'Esta opción estará disponible cuando integremos el borrado seguro de datos.'
+            : 'This option will be available when we integrate secure data deletion.'
+        }
         onClose={() => setActiveModal(null)}
         cancelAction={{
-          label: 'Entendido',
+          label: isSpanish ? 'Entendido' : 'Got it',
           onPress: () => setActiveModal(null),
         }}
       />
@@ -347,7 +657,6 @@ export default function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   scroll: {
@@ -375,7 +684,6 @@ const styles = StyleSheet.create({
   topBarTitle: {
     fontSize: Typography.action.fontSize,
     fontWeight: Typography.action.fontWeight,
-    color: Colors.text,
   },
 
   topBarRightSpace: {
@@ -397,9 +705,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     padding: 3,
-    backgroundColor: Colors.bgCard,
     borderWidth: 2,
-    borderColor: Colors.primary + '66',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -408,7 +714,6 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
-    backgroundColor: Colors.primary + '2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,14 +721,12 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: '800',
-    color: Colors.primary,
     letterSpacing: 1,
   },
 
   heroName: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
     marginBottom: 4,
     letterSpacing: -0.3,
     textAlign: 'center',
@@ -431,7 +734,6 @@ const styles = StyleSheet.create({
 
   heroEmail: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
 
   profileLoader: {
@@ -450,7 +752,6 @@ const styles = StyleSheet.create({
 
   statCard: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
@@ -470,13 +771,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.text,
     marginBottom: 4,
   },
 
   statLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
     fontWeight: '500',
     letterSpacing: 0.3,
   },
@@ -484,7 +783,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: Typography.label.fontWeight,
-    color: Colors.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     paddingHorizontal: Layout.screenPadding,
@@ -494,16 +792,13 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: Layout.screenPadding,
     marginBottom: 20,
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.border,
     overflow: 'hidden',
   },
 
   divider: {
     height: 1,
-    backgroundColor: Colors.borderMuted,
     marginLeft: 52,
   },
 
@@ -538,13 +833,11 @@ const styles = StyleSheet.create({
 
   actionSublabel: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 1,
   },
 
   memberSince: {
     fontSize: 12,
-    color: Colors.textMuted,
     textAlign: 'center',
     marginTop: 4,
     fontStyle: 'italic',

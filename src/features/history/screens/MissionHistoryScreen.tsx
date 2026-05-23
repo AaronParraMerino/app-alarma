@@ -12,8 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 import { useMissionHistory } from '../hooks/useMissionHistory';
 import { HistoryFilterChips } from '../components/HistoryFilterChips';
@@ -23,14 +24,30 @@ import { MissionTypeStatsCard } from '../components/MissionTypeStatsCard';
 import { MissionHistoryCard } from '../components/MissionHistoryCard';
 import { EmptyHistoryState } from '../components/EmptyHistoryState';
 
-type Props = NativeStackScreenProps<any, 'MissionHistory'>;
+type Props = NativeStackScreenProps<
+  any,
+  'MissionHistory'
+>;
 
-const CARD_BG = '#12161F';
 const TEXT_SIZE = 14;
 const TEXT_WEIGHT = '700' as const;
 const CARD_MIN_HEIGHT = 64;
 
-export default function MissionHistoryScreen({ navigation, route }: Props) {
+export default function MissionHistoryScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish = language === 'es';
+
   const userId: string = route.params?.userId ?? '';
 
   const {
@@ -52,8 +69,23 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor={Colors.bg} barStyle="light-content" />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+      edges={[
+        'top',
+        'left',
+        'right',
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <View style={styles.page}>
         <View style={styles.header}>
@@ -62,18 +94,44 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
             onPress={handleGoBack}
             activeOpacity={0.75}
           >
-            <Text style={styles.backArrow}>‹</Text>
-            <Text style={styles.backText}>Volver</Text>
+            <Text
+              style={[
+                styles.backArrow,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              ‹
+            </Text>
+
+            <Text
+              style={[
+                styles.backText,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {isSpanish ? 'Volver' : 'Back'}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.titleWrap}>
             <Text
-              style={styles.title}
+              style={[
+                styles.title,
+                {
+                  color: colors.text,
+                },
+              ]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.82}
             >
-              Historial de misiones
+              {isSpanish
+                ? 'Historial de misiones'
+                : 'Mission history'}
             </Text>
           </View>
 
@@ -81,24 +139,76 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.filtersWrap}>
-          <HistoryFilterChips filtroActivo={filtroActivo} onSelect={setFiltro} />
+          <HistoryFilterChips
+            filtroActivo={filtroActivo}
+            onSelect={setFiltro}
+          />
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={Colors.primary} size="small" />
-            <Text style={styles.loadingText}>Cargando historial...</Text>
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+            />
+
+            <Text
+              style={[
+                styles.loadingText,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Cargando historial...'
+                : 'Loading history...'}
+            </Text>
           </View>
         ) : error ? (
-          <View style={styles.statusCard}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View
+            style={[
+              styles.statusCard,
+              {
+                backgroundColor: colors.bgCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.errorText,
+                {
+                  color: colors.danger,
+                },
+              ]}
+            >
+              {error}
+            </Text>
 
             <TouchableOpacity
               onPress={refetch}
-              style={styles.retryBtn}
+              style={[
+                styles.retryBtn,
+                {
+                  backgroundColor: colors.bgElevated,
+                  borderColor: colors.border,
+                },
+              ]}
               activeOpacity={0.75}
             >
-              <Text style={styles.retryText}>Reintentar</Text>
+              <Text
+                style={[
+                  styles.retryText,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Reintentar'
+                  : 'Try again'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -115,13 +225,27 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
 
             <MissionTypeStatsCard porTipo={porTipo} />
 
-            <Text style={styles.sectionLabel}>RECIENTES</Text>
+            <Text
+              style={[
+                styles.sectionLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'RECIENTES'
+                : 'RECENT'}
+            </Text>
 
             {registros.length === 0 ? (
               <EmptyHistoryState />
             ) : (
               registros.map((item) => (
-                <MissionHistoryCard key={String(item.id)} item={item} />
+                <MissionHistoryCard
+                  key={String(item.id)}
+                  item={item}
+                />
               ))
             )}
 
@@ -136,7 +260,6 @@ export default function MissionHistoryScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
 
   page: {
@@ -164,7 +287,6 @@ const styles = StyleSheet.create({
   },
 
   backArrow: {
-    color: Colors.text,
     fontSize: 38,
     fontWeight: '400',
     lineHeight: 38,
@@ -173,7 +295,6 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    color: Colors.text,
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
   },
@@ -188,7 +309,6 @@ const styles = StyleSheet.create({
   title: {
     width: '100%',
     textAlign: 'center',
-    color: Colors.text,
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
   },
@@ -212,7 +332,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
-    color: Colors.textSecondary,
     letterSpacing: 0.7,
     textTransform: 'uppercase',
     paddingHorizontal: Layout.screenPadding,
@@ -229,7 +348,6 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    color: Colors.textSecondary,
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
     marginTop: 10,
@@ -238,10 +356,8 @@ const styles = StyleSheet.create({
 
   statusCard: {
     minHeight: CARD_MIN_HEIGHT,
-    backgroundColor: CARD_BG,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginHorizontal: Layout.screenPadding,
     marginTop: 12,
     paddingVertical: 16,
@@ -251,7 +367,6 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: Colors.danger,
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
     textAlign: 'center',
@@ -260,10 +375,8 @@ const styles = StyleSheet.create({
 
   retryBtn: {
     minHeight: CARD_MIN_HEIGHT,
-    backgroundColor: CARD_BG,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
     paddingHorizontal: 20,
     marginTop: 14,
     alignItems: 'center',
@@ -271,7 +384,6 @@ const styles = StyleSheet.create({
   },
 
   retryText: {
-    color: Colors.text,
     fontSize: TEXT_SIZE,
     fontWeight: TEXT_WEIGHT,
     textAlign: 'center',
