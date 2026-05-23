@@ -25,8 +25,6 @@ import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 
 import { useWordCompletionStore } from '../wordCompletion/store/wordCompletionStore';
 import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/constants/wordCompletion.config';
-import { usePairsMissionStore } from '../ParesMission/store/paresMissionStore';
-import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/constants/paresMission.config';
 
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
 import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
@@ -43,6 +41,9 @@ import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
+
+import { usePairsMissionStore } from '../ParesMission/store/paresMissionStore';
+import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/constants/paresMission.config';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 

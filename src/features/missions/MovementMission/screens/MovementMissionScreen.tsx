@@ -26,7 +26,7 @@ import { DIFFICULTY_STYLES } from '../constants/movementConstants';
 import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 import { SensorBar } from '../components/SensorBar';
 import { StepRing } from '../components/StepRing';
-import { useCurrentTime } from '../hooks/useCurrentTime';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
@@ -298,7 +298,7 @@ export function MovementMissionScreen({
   const {
     time,
     day,
-  } = useCurrentTime();
+  } = useCurrentTime(language);
 
   const {
     user,

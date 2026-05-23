@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppLanguage } from '../../../../shared/i18n/useTranslation';
+import { AppLanguage } from '../../../shared/i18n/useTranslation';
 
 function getNowParts(language: AppLanguage) {
   const now = new Date();
@@ -9,6 +9,7 @@ function getNowParts(language: AppLanguage) {
     time: now.toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     }),
     day: now.toLocaleDateString(locale, {
       weekday: 'long',

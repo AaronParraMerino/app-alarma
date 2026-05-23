@@ -24,7 +24,7 @@ import {
 import { preloadPairCardAssets } from '../constants/paresAssets';
 import { buildPairsBoard } from '../services/paresMissionBuilder';
 import { PairCard, PairsDifficulty } from '../types/paresMission.types';
-import { useCurrentTime } from '../hooks/useCurrentTime';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 
 interface Props {
   difficulty: PairsDifficulty;

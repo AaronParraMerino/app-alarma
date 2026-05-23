@@ -20,7 +20,7 @@ import { WordCompletionService } from '../services/WordCompletionService';
 import { useWordCompletion } from '../hooks/useWordCompletion';
 import { WordDisplay } from '../components/WordDisplay';
 import { WordStack } from '../components/WordStack';
-import { useCurrentTime } from '../hooks/useCurrentTime';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
