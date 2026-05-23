@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '../../../shared/theme/colors';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { AlarmMission } from '../types/alarm.types';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -30,87 +31,134 @@ const MAX_MISSIONS = 5;
 const MISSION_META: Record<
   string,
   {
-    label: string;
+    labelEs: string;
+    labelEn: string;
     icon: IconName;
     color: string;
   }
 > = {
   random: {
-    label: 'Aleatorio',
+    labelEs: 'Aleatorio',
+    labelEn: 'Random',
     icon: 'shuffle-outline',
     color: Colors.missionColors.random ?? Colors.primaryLight,
   },
+
   math: {
-    label: 'Pruebas Matematicas',
+    labelEs: 'Pruebas Matemáticas',
+    labelEn: 'Math tests',
     icon: 'calculator-outline',
     color: Colors.missionColors.math,
   },
+
   wordCompletion: {
-    label: 'Completa palabras',
+    labelEs: 'Completa palabras',
+    labelEn: 'Complete words',
     icon: 'text-outline',
     color: Colors.missionColors.wordCompletion ?? Colors.primaryLight,
   },
+
   physical: {
-    label: 'Movimiento',
+    labelEs: 'Movimiento',
+    labelEn: 'Movement',
     icon: 'footsteps-outline',
     color: Colors.missionColors.physical ?? Colors.primaryLight,
   },
+
   color: {
-    label: 'Figuras y colores',
+    labelEs: 'Figuras y colores',
+    labelEn: 'Shapes and colors',
     icon: 'color-palette-outline',
     color: Colors.missionColors.color ?? Colors.primaryLight,
   },
+
   colorFind: {
-    label: 'Color diferente',
+    labelEs: 'Color diferente',
+    labelEn: 'Different color',
     icon: 'grid-outline',
     color: Colors.missionColors.colorFind ?? Colors.primaryLight,
   },
+
   photo: {
-    label: 'Detectar Objetos',
+    labelEs: 'Detectar objetos',
+    labelEn: 'Detect objects',
     icon: 'scan-outline',
     color: Colors.missionColors.photo ?? Colors.primaryLight,
   },
 };
 
 const RANDOM_META = {
-  label: 'Aleatorio',
+  labelEs: 'Aleatorio',
+  labelEn: 'Random',
   icon: 'shuffle-outline' as IconName,
   color: Colors.primaryLight,
 };
 
-function getDifficultyLabel(difficulty: AlarmMission['difficulty']) {
-  if (difficulty === 'easy') return 'Facil';
-  if (difficulty === 'hard') return 'Dificil';
+function getMissionLabel(
+  meta: {
+    labelEs: string;
+    labelEn: string;
+  },
+  isSpanish: boolean,
+): string {
+  return isSpanish ? meta.labelEs : meta.labelEn;
+}
 
-  return 'Normal';
+function getDifficultyLabel(
+  difficulty: AlarmMission['difficulty'],
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'Fácil' : 'Easy';
+  }
+
+  if (difficulty === 'hard') {
+    return isSpanish ? 'Difícil' : 'Hard';
+  }
+
+  return isSpanish ? 'Normal' : 'Normal';
 }
 
 function getSubtitle(
   missions: AlarmMission[],
   missionEnabled: boolean,
   randomMissions: boolean,
-) {
+  isSpanish: boolean,
+): string {
   if (!missionEnabled) {
-    return 'Alarma normal sin mision';
+    return isSpanish
+      ? 'Alarma normal sin misión'
+      : 'Normal alarm without mission';
   }
 
   if (randomMissions) {
     const difficulty = getDifficultyLabel(
       missions[0]?.difficulty ?? 'normal',
+      isSpanish,
     );
 
     const quantity = missions[0]?.quantity ?? 3;
 
-    return `Aleatoria - ${difficulty} - ${quantity} veces`;
+    return isSpanish
+      ? `Aleatoria - ${difficulty} - ${quantity} veces`
+      : `Random - ${difficulty} - ${quantity} times`;
   }
 
   if (missions.length === 0) {
-    return 'Personalizada o Aleatoria';
+    return isSpanish
+      ? 'Personalizada o aleatoria'
+      : 'Custom or random';
   }
 
-  return `${missions.length} mision${
-    missions.length === 1 ? '' : 'es'
-  } configurada${missions.length === 1 ? '' : 's'}`;
+  if (isSpanish) {
+    return `${missions.length} misión${
+      missions.length === 1 ? '' : 'es'
+    } configurada${missions.length === 1 ? '' : 's'}`;
+  }
+
+  return `${missions.length} configured mission${
+    missions.length === 1 ? '' : 's'
+  }`;
 }
 
 export default function AlarmChooseMission({
@@ -123,9 +171,15 @@ export default function AlarmChooseMission({
   onClearMission,
 }: Props) {
   const { colors } = useAppTheme();
+  const { language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const visibleMissions = missionEnabled
-    ? missions.slice(0, MAX_MISSIONS)
+    ? missions.slice(
+        0,
+        MAX_MISSIONS,
+      )
     : [];
 
   const selectedCount = visibleMissions.length;
@@ -154,7 +208,11 @@ export default function AlarmChooseMission({
         }}
       >
         <Ionicons
-          name={missionEnabled ? 'checkbox-outline' : 'square-outline'}
+          name={
+            missionEnabled
+              ? 'checkbox-outline'
+              : 'square-outline'
+          }
           size={23}
           color={
             missionEnabled
@@ -171,7 +229,9 @@ export default function AlarmChooseMission({
             },
           ]}
         >
-          Habilitar misiones
+          {isSpanish
+            ? 'Habilitar misiones'
+            : 'Enable missions'}
         </Text>
       </TouchableOpacity>
 
@@ -185,7 +245,9 @@ export default function AlarmChooseMission({
               },
             ]}
           >
-            Selecciona tus misiones:
+            {isSpanish
+              ? 'Selecciona tus misiones:'
+              : 'Select your missions:'}
           </Text>
 
           <Text
@@ -200,6 +262,7 @@ export default function AlarmChooseMission({
               visibleMissions,
               missionEnabled,
               randomMissions,
+              isSpanish,
             )}
           </Text>
         </View>
@@ -221,7 +284,9 @@ export default function AlarmChooseMission({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.slots}
       >
-        {Array.from({ length: MAX_MISSIONS }).map((_, index) => {
+        {Array.from({
+          length: MAX_MISSIONS,
+        }).map((_, index) => {
           const mission = visibleMissions[index];
 
           if (mission) {
@@ -229,7 +294,8 @@ export default function AlarmChooseMission({
               randomMissions || mission.type === 'random'
                 ? RANDOM_META
                 : MISSION_META[mission.type] ?? {
-                    label: 'Mision configurada',
+                    labelEs: 'Misión configurada',
+                    labelEn: 'Configured mission',
                     icon: 'apps-outline' as IconName,
                     color: colors.primary,
                   };
@@ -263,7 +329,10 @@ export default function AlarmChooseMission({
                   ]}
                   numberOfLines={2}
                 >
-                  {meta.label}
+                  {getMissionLabel(
+                    meta,
+                    isSpanish,
+                  )}
                 </Text>
 
                 <TouchableOpacity
@@ -279,7 +348,11 @@ export default function AlarmChooseMission({
                   }}
                   activeOpacity={0.82}
                   accessibilityRole="button"
-                  accessibilityLabel="Quitar mision"
+                  accessibilityLabel={
+                    isSpanish
+                      ? 'Quitar misión'
+                      : 'Remove mission'
+                  }
                 >
                   <Ionicons
                     name="close-outline"
@@ -305,7 +378,11 @@ export default function AlarmChooseMission({
               onPress={missionEnabled ? onOpenSelect : undefined}
               activeOpacity={missionEnabled ? 0.84 : 1}
               accessibilityRole="button"
-              accessibilityLabel="Agregar mision"
+              accessibilityLabel={
+                isSpanish
+                  ? 'Agregar misión'
+                  : 'Add mission'
+              }
               disabled={!missionEnabled}
             >
               <Ionicons

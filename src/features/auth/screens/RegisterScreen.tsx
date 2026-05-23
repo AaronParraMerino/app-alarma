@@ -22,12 +22,16 @@ import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<Nav>();
   const { colors, statusBarStyle } = useAppTheme();
+  const { t, language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const {
     register,
@@ -55,25 +59,38 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password.trim()) {
       setValidationMessage({
-        title: 'Campos requeridos',
-        message: 'Completa tu nombre, correo y contrasena para crear la cuenta.',
+        title: isSpanish ? 'Campos requeridos' : 'Required fields',
+        message: isSpanish
+          ? 'Completa tu nombre, correo y contraseña para crear la cuenta.'
+          : 'Complete your name, email and password to create the account.',
       });
+
       return;
     }
 
     if (password !== confirmPassword) {
       setValidationMessage({
-        title: 'Contrasenas diferentes',
-        message: 'Revisa que ambas contrasenas sean iguales antes de continuar.',
+        title: isSpanish
+          ? 'Contraseñas diferentes'
+          : 'Passwords do not match',
+        message: isSpanish
+          ? 'Revisa que ambas contraseñas sean iguales antes de continuar.'
+          : 'Check that both passwords are the same before continuing.',
       });
+
       return;
     }
 
     if (password.length < 6) {
       setValidationMessage({
-        title: 'Contrasena muy corta',
-        message: 'La contrasena debe tener al menos 6 caracteres.',
+        title: isSpanish
+          ? 'Contraseña muy corta'
+          : 'Password too short',
+        message: isSpanish
+          ? 'La contraseña debe tener al menos 6 caracteres.'
+          : 'The password must have at least 6 characters.',
       });
+
       return;
     }
 
@@ -82,10 +99,18 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.bg }]}
+      style={[
+        styles.root,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -106,8 +131,15 @@ export default function RegisterScreen() {
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.tabText, { color: colors.textMuted }]}>
-              Iniciar Sesión
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {t('auth.login')}
             </Text>
           </TouchableOpacity>
 
@@ -119,8 +151,15 @@ export default function RegisterScreen() {
               },
             ]}
           >
-            <Text style={[styles.tabText, { color: colors.white }]}>
-              Regístrate
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
+              {t('auth.register')}
             </Text>
           </View>
         </View>
@@ -134,12 +173,26 @@ export default function RegisterScreen() {
             },
           ]}
         >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Regístrate
+          <Text
+            style={[
+              styles.cardTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {t('auth.register')}
           </Text>
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Nombre:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.name')}:
           </Text>
 
           <TextInput
@@ -151,15 +204,22 @@ export default function RegisterScreen() {
                 borderColor: colors.border,
               },
             ]}
-            placeholder="Tu nombre"
+            placeholder={isSpanish ? 'Tu nombre' : 'Your name'}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
             value={username}
             onChangeText={setUsername}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Correo electrónico:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.email')}:
           </Text>
 
           <TextInput
@@ -171,7 +231,11 @@ export default function RegisterScreen() {
                 borderColor: colors.border,
               },
             ]}
-            placeholder="tucorreo@ejemplo.com"
+            placeholder={
+              isSpanish
+                ? 'tucorreo@ejemplo.com'
+                : 'youremail@example.com'
+            }
             placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -179,8 +243,15 @@ export default function RegisterScreen() {
             onChangeText={setEmail}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Contraseña:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.password')}:
           </Text>
 
           <View
@@ -219,8 +290,15 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Repite la contraseña:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.repeatPassword')}:
           </Text>
 
           <View
@@ -252,7 +330,11 @@ export default function RegisterScreen() {
               activeOpacity={0.7}
             >
               <Ionicons
-                name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                name={
+                  showConfirmPassword
+                    ? 'eye-off-outline'
+                    : 'eye-outline'
+                }
                 size={20}
                 color={colors.textMuted}
               />
@@ -275,8 +357,15 @@ export default function RegisterScreen() {
             {isLoading ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
-                Regístrate
+              <Text
+                style={[
+                  styles.btnPrimaryText,
+                  {
+                    color: colors.white,
+                  },
+                ]}
+              >
+                {t('auth.register')}
               </Text>
             )}
           </TouchableOpacity>
@@ -291,8 +380,15 @@ export default function RegisterScreen() {
               ]}
             />
 
-            <Text style={[styles.dividerText, { color: colors.textMuted }]}>
-              o
+            <Text
+              style={[
+                styles.dividerText,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {isSpanish ? 'o' : 'or'}
             </Text>
 
             <View
@@ -305,8 +401,17 @@ export default function RegisterScreen() {
             />
           </View>
 
-          <Text style={[styles.socialLabel, { color: colors.textSecondary }]}>
-            Regístrate con tu cuenta de
+          <Text
+            style={[
+              styles.socialLabel,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'Regístrate con tu cuenta de'
+              : 'Sign up with your account from'}
           </Text>
 
           <TouchableOpacity
@@ -322,11 +427,25 @@ export default function RegisterScreen() {
             disabled={isLoading}
             activeOpacity={0.85}
           >
-            <Text style={[styles.btnGoogleIcon, { color: colors.white }]}>
+            <Text
+              style={[
+                styles.btnGoogleIcon,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
               G
             </Text>
 
-            <Text style={[styles.btnGoogleText, { color: colors.white }]}>
+            <Text
+              style={[
+                styles.btnGoogleText,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
               Google
             </Text>
           </TouchableOpacity>
@@ -343,8 +462,15 @@ export default function RegisterScreen() {
           onPress={loginAsGuest}
           activeOpacity={0.85}
         >
-          <Text style={[styles.btnGuestText, { color: colors.textSecondary }]}>
-            Continuar sin cuenta
+          <Text
+            style={[
+              styles.btnGuestText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.continueWithoutAccount')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -356,7 +482,7 @@ export default function RegisterScreen() {
         message={validationMessage?.message}
         onClose={() => setValidationMessage(null)}
         cancelAction={{
-          label: 'Entendido',
+          label: isSpanish ? 'Entendido' : 'Got it',
           onPress: () => setValidationMessage(null),
         }}
       />
@@ -364,11 +490,15 @@ export default function RegisterScreen() {
       <Modal
         visible={Boolean(error)}
         type="error"
-        title="No pudimos crear tu cuenta"
+        title={
+          isSpanish
+            ? 'No pudimos crear tu cuenta'
+            : 'We could not create your account'
+        }
         message={error ?? ''}
         onClose={clearError}
         cancelAction={{
-          label: 'Entendido',
+          label: isSpanish ? 'Entendido' : 'Got it',
           onPress: clearError,
         }}
       />

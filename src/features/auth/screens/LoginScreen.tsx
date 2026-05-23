@@ -1,3 +1,4 @@
+// src/features/auth/screens/LoginScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -21,12 +22,16 @@ import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
   const { colors, statusBarStyle } = useAppTheme();
+  const { t, language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const {
     login,
@@ -50,9 +55,12 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setValidationMessage({
-        title: 'Campos requeridos',
-        message: 'Ingresa tu correo y contrasena para iniciar sesion.',
+        title: isSpanish ? 'Campos requeridos' : 'Required fields',
+        message: isSpanish
+          ? 'Ingresa tu correo y contraseña para iniciar sesión.'
+          : 'Enter your email and password to log in.',
       });
+
       return;
     }
 
@@ -61,10 +69,18 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.bg }]}
+      style={[
+        styles.root,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -87,17 +103,32 @@ export default function LoginScreen() {
               },
             ]}
           >
-            <Text style={[styles.tabText, { color: colors.white }]}>
-              Iniciar Sesión
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
+              {t('auth.login')}
             </Text>
           </View>
 
           <TouchableOpacity
             style={styles.tab}
             onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.75}
           >
-            <Text style={[styles.tabText, { color: colors.textMuted }]}>
-              Regístrate
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {t('auth.register')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -111,12 +142,26 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Iniciar Sesión
+          <Text
+            style={[
+              styles.cardTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {t('auth.login')}
           </Text>
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Correo electrónico:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.email')}:
           </Text>
 
           <TextInput
@@ -128,7 +173,11 @@ export default function LoginScreen() {
                 borderColor: colors.border,
               },
             ]}
-            placeholder="tucorreo@ejemplo.com"
+            placeholder={
+              isSpanish
+                ? 'tucorreo@ejemplo.com'
+                : 'youremail@example.com'
+            }
             placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -136,8 +185,15 @@ export default function LoginScreen() {
             onChangeText={setEmail}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Contraseña:
+          <Text
+            style={[
+              styles.label,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.password')}:
           </Text>
 
           <View
@@ -164,7 +220,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => setShowPassword((p) => !p)}
+              onPress={() => setShowPassword((prev) => !prev)}
               style={styles.eyeBtn}
               activeOpacity={0.7}
             >
@@ -181,8 +237,17 @@ export default function LoginScreen() {
             onPress={() => navigation.navigate('ForgotPassword')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.forgotText, { color: colors.textAccent }]}>
-              ¿Olvidaste tu contraseña?
+            <Text
+              style={[
+                styles.forgotText,
+                {
+                  color: colors.textAccent,
+                },
+              ]}
+            >
+              {isSpanish
+                ? '¿Olvidaste tu contraseña?'
+                : 'Forgot your password?'}
             </Text>
           </TouchableOpacity>
 
@@ -193,7 +258,9 @@ export default function LoginScreen() {
                 backgroundColor: colors.primary,
                 borderColor: colors.primaryDeep,
               },
-              isLoading && { opacity: 0.6 },
+              isLoading && {
+                opacity: 0.6,
+              },
             ]}
             onPress={handleLogin}
             disabled={isLoading}
@@ -202,8 +269,15 @@ export default function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
-                Iniciar Sesión
+              <Text
+                style={[
+                  styles.btnPrimaryText,
+                  {
+                    color: colors.white,
+                  },
+                ]}
+              >
+                {t('auth.login')}
               </Text>
             )}
           </TouchableOpacity>
@@ -218,8 +292,15 @@ export default function LoginScreen() {
               ]}
             />
 
-            <Text style={[styles.dividerText, { color: colors.textMuted }]}>
-              o
+            <Text
+              style={[
+                styles.dividerText,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {isSpanish ? 'o' : 'or'}
             </Text>
 
             <View
@@ -232,8 +313,17 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Text style={[styles.socialLabel, { color: colors.textSecondary }]}>
-            Inicia Sesión con tu cuenta de
+          <Text
+            style={[
+              styles.socialLabel,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'Inicia sesión con tu cuenta de'
+              : 'Log in with your account from'}
           </Text>
 
           <TouchableOpacity
@@ -243,17 +333,33 @@ export default function LoginScreen() {
                 backgroundColor: colors.primary,
                 borderColor: colors.primaryDeep,
               },
-              isLoading && { opacity: 0.6 },
+              isLoading && {
+                opacity: 0.6,
+              },
             ]}
             onPress={loginWithGoogle}
             disabled={isLoading}
             activeOpacity={0.85}
           >
-            <Text style={[styles.btnGoogleIcon, { color: colors.white }]}>
+            <Text
+              style={[
+                styles.btnGoogleIcon,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
               G
             </Text>
 
-            <Text style={[styles.btnGoogleText, { color: colors.white }]}>
+            <Text
+              style={[
+                styles.btnGoogleText,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
               Google
             </Text>
           </TouchableOpacity>
@@ -270,8 +376,15 @@ export default function LoginScreen() {
           onPress={loginAsGuest}
           activeOpacity={0.85}
         >
-          <Text style={[styles.btnGuestText, { color: colors.textSecondary }]}>
-            Continuar sin cuenta
+          <Text
+            style={[
+              styles.btnGuestText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {t('auth.continueWithoutAccount')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -283,7 +396,7 @@ export default function LoginScreen() {
         message={validationMessage?.message}
         onClose={() => setValidationMessage(null)}
         cancelAction={{
-          label: 'Entendido',
+          label: isSpanish ? 'Entendido' : 'Got it',
           onPress: () => setValidationMessage(null),
         }}
       />
@@ -291,11 +404,15 @@ export default function LoginScreen() {
       <Modal
         visible={Boolean(error)}
         type="error"
-        title="No pudimos iniciar sesion"
+        title={
+          isSpanish
+            ? 'No pudimos iniciar sesión'
+            : 'We could not log you in'
+        }
         message={error ?? ''}
         onClose={clearError}
         cancelAction={{
-          label: 'Entendido',
+          label: isSpanish ? 'Entendido' : 'Got it',
           onPress: clearError,
         }}
       />

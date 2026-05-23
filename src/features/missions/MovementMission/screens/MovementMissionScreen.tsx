@@ -1,5 +1,7 @@
 // src/features/missions/MovementMission/screens/MovementMissionScreen.tsx
-import React, { useEffect } from 'react';
+import React, {
+  useEffect,
+} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -29,52 +31,314 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
 interface MovementMissionScreenProps {
   userConfig: MovementMissionUserConfig;
-  onSuccess: (result: { durationMs: number }) => void;
+  onSuccess: (
+    result: {
+      durationMs: number;
+    },
+  ) => void;
   alarmLabel?: string;
 }
 
-const DIFFICULTY_ORDER: MovementDifficulty[] = ['easy', 'medium', 'hard'];
+const DIFFICULTY_ORDER: MovementDifficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
+
 const MAX_ERRORS = 3;
 
 function getPreviousDifficulty(
   difficulty: MovementDifficulty,
 ): MovementDifficulty | null {
-  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
-  return currentIndex > 0 ? DIFFICULTY_ORDER[currentIndex - 1] : null;
+  const currentIndex =
+    DIFFICULTY_ORDER.indexOf(difficulty);
+
+  if (currentIndex > 0) {
+    return DIFFICULTY_ORDER[currentIndex - 1];
+  }
+
+  return null;
 }
 
-function getDifficultyLabel(difficulty: MovementDifficulty) {
-  return DIFFICULTY_STYLES[difficulty].label.toLowerCase();
+function getDifficultyLabel(
+  difficulty: MovementDifficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'fácil'
+      : 'easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'normal'
+      : 'normal';
+  }
+
+  return isSpanish
+    ? 'difícil'
+    : 'hard';
+}
+
+function getDifficultyPillLabel(
+  difficulty: MovementDifficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'FÁCIL'
+      : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'NORMAL'
+      : 'NORMAL';
+  }
+
+  return isSpanish
+    ? 'DIFÍCIL'
+    : 'HARD';
+}
+
+function translateDay(
+  day: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return day;
+  }
+
+  const normalized = day
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    );
+
+  if (normalized.includes('lunes')) {
+    return 'Monday';
+  }
+
+  if (normalized.includes('martes')) {
+    return 'Tuesday';
+  }
+
+  if (normalized.includes('miercoles')) {
+    return 'Wednesday';
+  }
+
+  if (normalized.includes('jueves')) {
+    return 'Thursday';
+  }
+
+  if (normalized.includes('viernes')) {
+    return 'Friday';
+  }
+
+  if (normalized.includes('sabado')) {
+    return 'Saturday';
+  }
+
+  if (normalized.includes('domingo')) {
+    return 'Sunday';
+  }
+
+  return day;
+}
+
+function translateAlarmLabel(
+  alarmLabel: string | undefined,
+  isSpanish: boolean,
+): string {
+  if (
+    !alarmLabel ||
+    alarmLabel === 'Alarma' ||
+    alarmLabel === 'Hora de levantarse'
+  ) {
+    return isSpanish
+      ? 'Hora de levantarse'
+      : 'Time to wake up';
+  }
+
+  return alarmLabel;
+}
+
+function translateMovementText(
+  text: string | undefined,
+  isSpanish: boolean,
+): string {
+  if (!text) {
+    return '';
+  }
+
+  if (isSpanish) {
+    return text;
+  }
+
+  const normalized = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    );
+
+  if (
+    normalized.includes('agita') ||
+    normalized.includes('agitar') ||
+    normalized.includes('sacude') ||
+    normalized.includes('sacudir')
+  ) {
+    return 'Shake the phone';
+  }
+
+  if (
+    normalized.includes('arriba') ||
+    normalized.includes('levanta')
+  ) {
+    return 'Move the phone up';
+  }
+
+  if (
+    normalized.includes('abajo') ||
+    normalized.includes('baja')
+  ) {
+    return 'Move the phone down';
+  }
+
+  if (normalized.includes('izquierda')) {
+    return 'Move the phone to the left';
+  }
+
+  if (normalized.includes('derecha')) {
+    return 'Move the phone to the right';
+  }
+
+  if (
+    normalized.includes('gira') ||
+    normalized.includes('girar') ||
+    normalized.includes('rota') ||
+    normalized.includes('rotar')
+  ) {
+    return 'Rotate the phone';
+  }
+
+  if (
+    normalized.includes('inclina') ||
+    normalized.includes('inclinar')
+  ) {
+    return 'Tilt the phone';
+  }
+
+  if (
+    normalized.includes('camina') ||
+    normalized.includes('caminar') ||
+    normalized.includes('pasos')
+  ) {
+    return 'Walk';
+  }
+
+  if (
+    normalized.includes('salta') ||
+    normalized.includes('saltar') ||
+    normalized.includes('salto')
+  ) {
+    return 'Jump';
+  }
+
+  if (normalized.includes('realiza el movimiento')) {
+    return 'Perform the movement';
+  }
+
+  if (
+    normalized.includes('mantener') ||
+    normalized.includes('manten')
+  ) {
+    return 'Keep the movement until validation is complete';
+  }
+
+  return text
+    .replace(/teléfono/gi, 'phone')
+    .replace(/telefono/gi, 'phone')
+    .replace(/movimiento/gi, 'movement')
+    .replace(/movimientos/gi, 'movements');
 }
 
 export function MovementMissionScreen({
   userConfig,
   onSuccess,
-  alarmLabel = 'Hora de levantarse',
+  alarmLabel,
 }: MovementMissionScreenProps) {
-  const { width, height } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+  const {
+    width,
+    height,
+  } = useWindowDimensions();
 
-  const { time, day } = useCurrentTime();
-  const { user, isAuthenticated, isGuest } = useAuth();
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const savedStepResultIds = React.useRef<Set<string>>(new Set());
+  const {
+    language,
+  } = useTranslation();
 
-  const [difficulty, setDifficulty] = React.useState<MovementDifficulty>(
+  const isSpanish =
+    language === 'es';
+
+  const {
+    time,
+    day,
+  } = useCurrentTime();
+
+  const {
+    user,
+    isAuthenticated,
+    isGuest,
+  } = useAuth();
+
+  const savedStepResultIds =
+    React.useRef<Set<string>>(
+      new Set(),
+    );
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = React.useState<MovementDifficulty>(
     userConfig.difficulty,
   );
 
-  const [errorCount, setErrorCount] = React.useState(0);
-  const [feedbackMessage, setFeedbackMessage] = React.useState('');
-  const [feedbackType, setFeedbackType] =
-    React.useState<'error' | 'warning' | 'success'>('error');
+  const [
+    errorCount,
+    setErrorCount,
+  ] = React.useState(0);
 
-  const [config, setConfig] = React.useState<MovementMissionConfig>(() =>
+  const [
+    feedbackMessage,
+    setFeedbackMessage,
+  ] = React.useState('');
+
+  const [
+    feedbackType,
+    setFeedbackType,
+  ] = React.useState<
+    'error' | 'warning' | 'success'
+  >('error');
+
+  const [
+    config,
+    setConfig,
+  ] = React.useState<MovementMissionConfig>(() =>
     buildMovementMissionConfig({
       ...userConfig,
       difficulty: userConfig.difficulty,
@@ -82,14 +346,28 @@ export function MovementMissionScreen({
   );
 
   const saveStepResult = React.useCallback(
-    (stepResult: MovementStepResultEvent) => {
-      if (!isAuthenticated || isGuest || !user?.id) {
+    (
+      stepResult: MovementStepResultEvent,
+    ) => {
+      if (
+        !isAuthenticated ||
+        isGuest ||
+        !user?.id
+      ) {
         return;
       }
 
-      if (savedStepResultIds.current.has(stepResult.id)) return;
+      if (
+        savedStepResultIds.current.has(
+          stepResult.id,
+        )
+      ) {
+        return;
+      }
 
-      savedStepResultIds.current.add(stepResult.id);
+      savedStepResultIds.current.add(
+        stepResult.id,
+      );
 
       try {
         MissionHistoryLocalService.save({
@@ -105,41 +383,71 @@ export function MovementMissionScreen({
           correctAnswer: stepResult.label,
           userAnswer: stepResult.success
             ? 'movement_detected'
-            : stepResult.errorReason ?? 'movement_not_validated',
+            : stepResult.errorReason ??
+              'movement_not_validated',
           success: stepResult.success,
           errorCount: stepResult.success ? 0 : 1,
-          durationSeconds: stepResult.durationSeconds,
+          durationSeconds:
+            stepResult.durationSeconds,
         });
 
         void syncMissionHistory(user.id);
       } catch (error) {
-        savedStepResultIds.current.delete(stepResult.id);
+        savedStepResultIds.current.delete(
+          stepResult.id,
+        );
       }
     },
-    [isAuthenticated, isGuest, user?.id, difficulty],
+    [
+      isAuthenticated,
+      isGuest,
+      user?.id,
+      difficulty,
+    ],
   );
 
   const handleStepResult = React.useCallback(
-    (stepResult: MovementStepResultEvent) => {
+    (
+      stepResult: MovementStepResultEvent,
+    ) => {
       saveStepResult(stepResult);
 
       if (stepResult.success) {
         setFeedbackType('success');
-        setFeedbackMessage('Correcto.');
+
+        setFeedbackMessage(
+          isSpanish
+            ? 'Correcto.'
+            : 'Correct.',
+        );
+
         return;
       }
 
-      const nextErrorCount = errorCount + 1;
-      const previousDifficulty = getPreviousDifficulty(difficulty);
+      const nextErrorCount =
+        errorCount + 1;
 
-      if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+      const previousDifficulty =
+        getPreviousDifficulty(difficulty);
+
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        previousDifficulty
+      ) {
         setDifficulty(previousDifficulty);
         setErrorCount(0);
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
-            previousDifficulty,
-          )}.`,
+          isSpanish
+            ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `You failed 3 times. You dropped to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
 
         setConfig(
@@ -152,11 +460,17 @@ export function MovementMissionScreen({
         return;
       }
 
-      if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        !previousDifficulty
+      ) {
         setErrorCount(0);
         setFeedbackType('error');
+
         setFeedbackMessage(
-          'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+          isSpanish
+            ? 'Fallaste 3 veces, pero ya estás en el nivel más bajo. Intenta nuevamente.'
+            : 'You failed 3 times, but you are already at the lowest level. Try again.',
         );
 
         setConfig(
@@ -171,23 +485,51 @@ export function MovementMissionScreen({
 
       setErrorCount(nextErrorCount);
 
-      if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
+      if (
+        nextErrorCount === MAX_ERRORS - 1 &&
+        previousDifficulty
+      ) {
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+          isSpanish
+            ? `1 fallo más y bajas a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `1 more mistake and you drop to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
       } else {
-        const remainingErrors = MAX_ERRORS - nextErrorCount;
+        const remainingErrors =
+          MAX_ERRORS - nextErrorCount;
 
         setFeedbackType('error');
+
         setFeedbackMessage(
-          `Movimiento no validado. Te quedan ${remainingErrors} intento${
-            remainingErrors === 1 ? '' : 's'
-          }.`,
+          isSpanish
+            ? `Movimiento no validado. Te quedan ${remainingErrors} intento${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              }.`
+            : `Movement not validated. You have ${remainingErrors} attempt${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              } left.`,
         );
       }
     },
-    [difficulty, errorCount, saveStepResult, userConfig.quantity],
+    [
+      difficulty,
+      errorCount,
+      saveStepResult,
+      userConfig.quantity,
+      isSpanish,
+    ],
   );
 
   const {
@@ -202,51 +544,113 @@ export function MovementMissionScreen({
     detectionRatio,
     showStepError,
     start,
-  } = useMovementMission(config, handleStepResult);
+  } = useMovementMission(
+    config,
+    handleStepResult,
+  );
 
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const currentStep = config.steps[currentStepIndex];
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
 
-  const isSmall = width < 360;
-  const isShort = height < 680;
-  const ringSize = isSmall ? 132 : isShort ? 140 : 154;
+  const currentStep =
+    config.steps[currentStepIndex];
+
+  const isSmall =
+    width < 360;
+
+  const isShort =
+    height < 680;
+
+  const ringSize =
+    isSmall
+      ? 132
+      : isShort
+        ? 140
+        : 154;
 
   const displayAlarmLabel =
-    !alarmLabel || alarmLabel === 'Alarma'
-      ? 'Hora de levantarse'
-      : alarmLabel;
+    translateAlarmLabel(
+      alarmLabel,
+      isSpanish,
+    );
 
-  const handleStart = React.useCallback(() => {
-    if (feedbackType !== 'warning') {
-      setFeedbackMessage('');
-    }
+  const handleStart =
+    React.useCallback(() => {
+      if (feedbackType !== 'warning') {
+        setFeedbackMessage('');
+      }
 
-    start();
-  }, [feedbackType, start]);
+      start();
+    }, [
+      feedbackType,
+      start,
+    ]);
 
   useEffect(() => {
-    if (phase === 'success' && result) {
+    if (
+      phase === 'success' &&
+      result
+    ) {
       const timeout = setTimeout(
-        () => onSuccess({ durationMs: result.durationMs }),
+        () =>
+          onSuccess({
+            durationMs: result.durationMs,
+          }),
         900,
       );
 
-      return () => clearTimeout(timeout);
+      return () =>
+        clearTimeout(timeout);
     }
-  }, [onSuccess, phase, result]);
 
-  if (capabilities && incompatible) {
+    return undefined;
+  }, [
+    onSuccess,
+    phase,
+    result,
+  ]);
+
+  if (
+    capabilities &&
+    incompatible
+  ) {
     return (
       <CenteredState>
-        <Text style={[styles.stateIcon, { color: colors.text }]}>SENSOR</Text>
-
-        <Text style={[styles.stateTitle, { color: colors.text }]}>
-          Dispositivo no compatible
+        <Text
+          style={[
+            styles.stateIcon,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          SENSOR
         </Text>
 
-        <Text style={[styles.stateText, { color: colors.textSecondary }]}>
-          Esta mision necesita acelerometro o giroscopio para validar el
-          movimiento.
+        <Text
+          style={[
+            styles.stateTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Dispositivo no compatible'
+            : 'Device not compatible'}
+        </Text>
+
+        <Text
+          style={[
+            styles.stateText,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Esta misión necesita acelerómetro o giroscopio para validar el movimiento.'
+            : 'This mission needs an accelerometer or gyroscope to validate movement.'}
         </Text>
       </CenteredState>
     );
@@ -255,18 +659,43 @@ export function MovementMissionScreen({
   if (phase === 'success') {
     return (
       <CenteredState>
-        <Text style={[styles.stateIcon, { color: difficultyStyle.accentColor }]}>
+        <Text
+          style={[
+            styles.stateIcon,
+            {
+              color:
+                difficultyStyle.accentColor,
+            },
+          ]}
+        >
           OK
         </Text>
 
         <Text
-          style={[styles.stateTitle, { color: difficultyStyle.accentColor }]}
+          style={[
+            styles.stateTitle,
+            {
+              color:
+                difficultyStyle.accentColor,
+            },
+          ]}
         >
-          Mision completada
+          {isSpanish
+            ? 'Misión completada'
+            : 'Mission completed'}
         </Text>
 
-        <Text style={[styles.stateText, { color: colors.textSecondary }]}>
-          {config.steps.length} movimientos correctos.
+        <Text
+          style={[
+            styles.stateText,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? `${config.steps.length} movimientos correctos.`
+            : `${config.steps.length} correct movements.`}
         </Text>
       </CenteredState>
     );
@@ -279,17 +708,62 @@ export function MovementMissionScreen({
         ? difficultyStyle.accentColor
         : colors.danger;
 
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+  const instructionText =
+    phase === 'idle'
+      ? isSpanish
+        ? 'Realiza el movimiento:'
+        : 'Perform the movement:'
+      : translateMovementText(
+          currentStep?.instruction ??
+            (
+              isSpanish
+                ? 'Realiza el movimiento:'
+                : 'Perform the movement:'
+            ),
+          isSpanish,
+        );
 
-      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+  const startButtonText =
+    currentStepIndex > 0 ||
+    config.steps.some((step) => step.completed)
+      ? isSpanish
+        ? `Comenzar paso ${currentStepIndex + 1}`
+        : `Start step ${currentStepIndex + 1}`
+      : isSpanish
+        ? 'Comenzar'
+        : 'Start';
+
+  return (
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
+
+      <View
+        style={[
+          styles.screen,
+          {
+            backgroundColor: colors.bg,
+          },
+        ]}
+      >
         <View
           style={[
             styles.pill,
             {
-              backgroundColor: difficultyStyle.bgColor,
-              borderColor: difficultyStyle.accentColor + '40',
+              backgroundColor:
+                difficultyStyle.bgColor,
+              borderColor:
+                difficultyStyle.accentColor +
+                '40',
             },
           ]}
         >
@@ -297,11 +771,15 @@ export function MovementMissionScreen({
             style={[
               styles.pillText,
               {
-                color: difficultyStyle.accentColor,
+                color:
+                  difficultyStyle.accentColor,
               },
             ]}
           >
-            {difficultyStyle.label}
+            {getDifficultyPillLabel(
+              difficulty,
+              isSpanish,
+            )}
           </Text>
         </View>
 
@@ -311,25 +789,53 @@ export function MovementMissionScreen({
               styles.time,
               {
                 color: colors.text,
-                fontSize: width < 380 ? 44 : 52,
+                fontSize:
+                  width < 380 ? 44 : 52,
               },
             ]}
           >
             {time}
           </Text>
 
-          <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
-            {day} - {displayAlarmLabel}
+          <Text
+            style={[
+              styles.dateLabel,
+              {
+                color:
+                  colors.textSecondary,
+              },
+            ]}
+          >
+            {translateDay(
+              day,
+              isSpanish,
+            )}
+            {' - '}
+            {displayAlarmLabel}
           </Text>
         </View>
 
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View
+          style={[
+            styles.divider,
+            {
+              backgroundColor:
+                colors.border,
+            },
+          ]}
+        />
 
         <View style={styles.body}>
-          <Text style={[styles.instruction, { color: colors.textSecondary }]}>
-            {phase === 'idle'
-              ? 'Realiza el movimiento:'
-              : currentStep?.instruction ?? 'Realiza el movimiento:'}
+          <Text
+            style={[
+              styles.instruction,
+              {
+                color:
+                  colors.textSecondary,
+              },
+            ]}
+          >
+            {instructionText}
           </Text>
 
           {phase === 'countdown' ? (
@@ -337,8 +843,10 @@ export function MovementMissionScreen({
               style={[
                 styles.countdown,
                 {
-                  backgroundColor: colors.bgCard,
-                  borderColor: colors.border,
+                  backgroundColor:
+                    colors.bgCard,
+                  borderColor:
+                    colors.border,
                 },
               ]}
             >
@@ -346,15 +854,26 @@ export function MovementMissionScreen({
                 style={[
                   styles.countdownNumber,
                   {
-                    color: difficultyStyle.accentColor,
+                    color:
+                      difficultyStyle.accentColor,
                   },
                 ]}
               >
                 {countdown}
               </Text>
 
-              <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                Preparate...
+              <Text
+                style={[
+                  styles.hint,
+                  {
+                    color:
+                      colors.textSecondary,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Prepárate...'
+                  : 'Get ready...'}
               </Text>
             </View>
           ) : currentStep ? (
@@ -362,32 +881,61 @@ export function MovementMissionScreen({
               style={[
                 styles.missionBox,
                 {
-                  backgroundColor: colors.bgCard,
-                  borderColor: colors.border,
+                  backgroundColor:
+                    colors.bgCard,
+                  borderColor:
+                    colors.border,
                 },
               ]}
             >
               <StepRing
                 progress={stepProgress}
-                color={difficultyStyle.accentColor}
-                imageSource={MOVEMENT_IMAGES[currentStep.type]}
+                color={
+                  difficultyStyle.accentColor
+                }
+                imageSource={
+                  MOVEMENT_IMAGES[
+                    currentStep.type
+                  ]
+                }
                 size={ringSize}
               />
 
-              <Text style={[styles.stepTitle, { color: colors.text }]}>
-                {currentStep.label}
+              <Text
+                style={[
+                  styles.stepTitle,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {translateMovementText(
+                  currentStep.label,
+                  isSpanish,
+                )}
               </Text>
 
               <Text
-                style={[styles.stepDetail, { color: colors.textSecondary }]}
+                style={[
+                  styles.stepDetail,
+                  {
+                    color:
+                      colors.textSecondary,
+                  },
+                ]}
               >
-                {currentStep.detail}
+                {translateMovementText(
+                  currentStep.detail,
+                  isSpanish,
+                )}
               </Text>
 
               <View style={styles.sensorBlock}>
                 <SensorBar
                   magnitude={currentMagnitude}
-                  color={difficultyStyle.accentColor}
+                  color={
+                    difficultyStyle.accentColor
+                  }
                   maxMagnitude={30}
                 />
 
@@ -395,35 +943,77 @@ export function MovementMissionScreen({
                   style={[
                     styles.hint,
                     {
-                      color: difficultyStyle.accentColor + '88',
+                      color:
+                        difficultyStyle.accentColor +
+                        '88',
                     },
                   ]}
                 >
-                  Validacion {Math.round(Math.min(detectionRatio, 1) * 100)}%
+                  {isSpanish
+                    ? `Validación ${Math.round(
+                        Math.min(
+                          detectionRatio,
+                          1,
+                        ) * 100,
+                      )}%`
+                    : `Validation ${Math.round(
+                        Math.min(
+                          detectionRatio,
+                          1,
+                        ) * 100,
+                      )}%`}
                 </Text>
               </View>
 
-              <Text style={[styles.stepCounter, { color: colors.textSecondary }]}>
-                Paso {Math.min(currentStepIndex + 1, config.steps.length)} /{' '}
-                {config.steps.length}
+              <Text
+                style={[
+                  styles.stepCounter,
+                  {
+                    color:
+                      colors.textSecondary,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? `Paso ${Math.min(
+                      currentStepIndex + 1,
+                      config.steps.length,
+                    )} / ${config.steps.length}`
+                  : `Step ${Math.min(
+                      currentStepIndex + 1,
+                      config.steps.length,
+                    )} / ${config.steps.length}`}
               </Text>
             </View>
           ) : null}
 
-          {phase === 'idle' && (
+          {phase === 'idle' ? (
             <>
-              {(showStepError || feedbackMessage) && (
-                <Text style={[styles.feedbackText, { color: feedbackColor }]}>
+              {showStepError ||
+              feedbackMessage ? (
+                <Text
+                  style={[
+                    styles.feedbackText,
+                    {
+                      color: feedbackColor,
+                    },
+                  ]}
+                >
                   {feedbackMessage ||
-                    'Movimiento no validado, intenta de nuevo'}
+                    (
+                      isSpanish
+                        ? 'Movimiento no validado, intenta de nuevo'
+                        : 'Movement not validated, try again'
+                    )}
                 </Text>
-              )}
+              ) : null}
 
               <TouchableOpacity
                 style={[
                   styles.confirmBtn,
                   {
-                    backgroundColor: difficultyStyle.accentColor,
+                    backgroundColor:
+                      difficultyStyle.accentColor,
                   },
                 ]}
                 onPress={handleStart}
@@ -433,32 +1023,54 @@ export function MovementMissionScreen({
                   style={[
                     styles.confirmText,
                     {
-                      color: difficultyStyle.textColor,
+                      color:
+                        difficultyStyle.textColor,
                     },
                   ]}
                 >
-                  {currentStepIndex > 0 ||
-                  config.steps.some((step) => step.completed)
-                    ? `Comenzar paso ${currentStepIndex + 1}`
-                    : 'Comenzar'}
+                  {startButtonText}
                 </Text>
               </TouchableOpacity>
             </>
-          )}
+          ) : null}
         </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function CenteredState({ children }: { children: React.ReactNode }) {
-  const { colors, statusBarStyle } = useAppTheme();
+function CenteredState({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
-      <View style={[styles.centered, { backgroundColor: colors.bg }]}>
+      <View
+        style={[
+          styles.centered,
+          {
+            backgroundColor: colors.bg,
+          },
+        ]}
+      >
         {children}
       </View>
     </SafeAreaView>

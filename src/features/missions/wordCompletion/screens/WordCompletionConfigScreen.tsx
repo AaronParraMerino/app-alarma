@@ -1,5 +1,7 @@
 // src/features/missions/wordCompletion/screens/WordCompletionConfigScreen.tsx
-import React, { useState } from 'react';
+import React, {
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -16,6 +18,7 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 
 import { Difficulty } from '../types/wordCompletion.types';
 import {
@@ -34,38 +37,117 @@ type Props = NativeStackScreenProps<
   'ConfigWordCompletionMission'
 >;
 
-const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
+const LEVELS: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
 
-function toAlarmDifficulty(difficulty: Difficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+function toAlarmDifficulty(
+  difficulty: Difficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
 }
 
-export function WordCompletionConfigScreen({ navigation, route }: Props) {
-  const { width, height } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
 
-  const { config, setConfig } = useWordCompletionStore();
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
 
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    route.params?.difficulty ?? config.difficulty,
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+export function WordCompletionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    width,
+    height,
+  } = useWindowDimensions();
+
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useWordCompletionStore();
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(
+    route.params?.difficulty ??
+      config.difficulty,
   );
 
-  const [quantity, setQuantity] = useState(
-    route.params?.quantity ?? config.quantity,
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    route.params?.quantity ??
+      config.quantity,
   );
 
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
-  const previews = EXAMPLE_PREVIEWS[difficulty];
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
 
-  const isSmall = width < 360;
-  const isShort = height < 680;
-  const fontBase = isSmall ? 12 : 14;
-  const pillPadV = isShort ? 7 : 10;
-  const sectionGap = isShort ? 10 : 16;
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
+
+  const previews =
+    EXAMPLE_PREVIEWS[difficulty];
+
+  const isSmall =
+    width < 360;
+
+  const isShort =
+    height < 680;
+
+  const fontBase =
+    isSmall ? 12 : 14;
+
+  const pillPadV =
+    isShort ? 7 : 10;
+
+  const sectionGap =
+    isShort ? 10 : 16;
 
   const previewMin =
-    previews.length > 1 ? (isShort ? 90 : 110) : isShort ? 60 : 72;
+    previews.length > 1
+      ? isShort
+        ? 90
+        : 110
+      : isShort
+        ? 60
+        : 72;
 
   const handleSave = () => {
     setConfig({
@@ -73,30 +155,49 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
       quantity,
     });
 
-    completeAlarmMissionConfigSession(route.params?.alarmConfigSessionId, {
-      type: 'wordCompletion',
-      difficulty: toAlarmDifficulty(difficulty),
-      quantity,
-    });
+    completeAlarmMissionConfigSession(
+      route.params?.alarmConfigSessionId,
+      {
+        type: 'wordCompletion',
+        difficulty: toAlarmDifficulty(difficulty),
+        quantity,
+      },
+    );
 
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingHorizontal: isSmall ? 14 : 20,
+            paddingHorizontal:
+              isSmall ? 14 : 20,
           },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         />
@@ -116,11 +217,14 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
               styles.headerText,
               {
                 color: colors.white,
-                fontSize: isSmall ? 12 : 14,
+                fontSize:
+                  isSmall ? 12 : 14,
               },
             ]}
           >
-            MISIÓN{'\n'}COMPLETAR PALABRAS
+            {isSpanish
+              ? 'MISIÓN\nCOMPLETAR PALABRAS'
+              : 'MISSION\nCOMPLETE WORDS'}
           </Text>
         </View>
 
@@ -134,7 +238,9 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             },
           ]}
         >
-          Seleccione la dificultad
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
         </Text>
 
         <Text
@@ -142,11 +248,14 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             styles.subLabel,
             {
               color: colors.textSecondary,
-              fontSize: isSmall ? 11 : 12,
+              fontSize:
+                isSmall ? 11 : 12,
             },
           ]}
         >
-          Ejemplo
+          {isSpanish
+            ? 'Ejemplo'
+            : 'Example'}
         </Text>
 
         <View
@@ -160,24 +269,47 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             },
           ]}
         >
-          {previews.map((challenge, index) => (
-            <View key={index} style={index > 0 ? styles.previewSpacing : undefined}>
-              <WordDisplay
-                challenge={challenge}
-                accentColor={difficultyStyle.accentColor}
-                accentBg={difficultyStyle.bgColor}
-                letterSize={isSmall ? 18 : width < 400 ? 20 : 24}
-                textColor={colors.black}
-              />
-            </View>
-          ))}
+          {previews.map(
+            (
+              challenge,
+              index,
+            ) => (
+              <View
+                key={index}
+                style={
+                  index > 0
+                    ? styles.previewSpacing
+                    : undefined
+                }
+              >
+                <WordDisplay
+                  challenge={challenge}
+                  accentColor={
+                    difficultyStyle.accentColor
+                  }
+                  accentBg={
+                    difficultyStyle.bgColor
+                  }
+                  letterSize={
+                    isSmall
+                      ? 18
+                      : width < 400
+                        ? 20
+                        : 24
+                  }
+                  textColor={colors.black}
+                />
+              </View>
+            ),
+          )}
         </View>
 
         <View
           style={[
             styles.sliderWrapper,
             {
-              marginBottom: isShort ? 4 : 8,
+              marginBottom:
+                isShort ? 4 : 8,
             },
           ]}
         >
@@ -185,7 +317,8 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.trackBg,
               {
-                backgroundColor: colors.bgElevated,
+                backgroundColor:
+                  colors.bgElevated,
               },
             ]}
           >
@@ -194,50 +327,61 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
                 styles.trackFill,
                 {
                   width: `${(sliderIdx / 2) * 100}%`,
-                  backgroundColor: difficultyStyle.accentColor,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
             />
 
-            {LEVELS.map((level, index) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.thumbHit,
-                  {
-                    left: `${(index / 2) * 100}%`,
-                  },
-                ]}
-                onPress={() => setDifficulty(level)}
-                activeOpacity={0.75}
-              >
-                <View
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
                   style={[
-                    styles.thumb,
+                    styles.thumbHit,
                     {
-                      backgroundColor:
-                        sliderIdx >= index
-                          ? difficultyStyle.accentColor
-                          : colors.bgElevated,
-                      borderColor:
-                        sliderIdx >= index
-                          ? difficultyStyle.accentColor
-                          : colors.textMuted,
+                      left: `${(index / 2) * 100}%`,
                     },
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          sliderIdx >= index
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          sliderIdx >= index
+                            ? difficultyStyle.accentColor
+                            : colors.textMuted,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
 
           <View style={styles.sliderLabels}>
             {LEVELS.map((level) => {
-              const active = difficulty === level;
+              const active =
+                difficulty === level;
 
               return (
                 <TouchableOpacity
                   key={level}
-                  onPress={() => setDifficulty(level)}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
                   style={styles.labelBtn}
                   activeOpacity={0.75}
                 >
@@ -248,13 +392,18 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
                         color: active
                           ? difficultyStyle.accentColor
                           : colors.textMuted,
-                        fontSize: isSmall ? 11 : 13,
-                        fontWeight: active ? '700' : '500',
+                        fontSize:
+                          isSmall ? 11 : 13,
+                        fontWeight: active
+                          ? '700'
+                          : '500',
                       },
                     ]}
                   >
-                    {DIFFICULTY_STYLES[level].label.charAt(0) +
-                      DIFFICULTY_STYLES[level].label.slice(1).toLowerCase()}
+                    {getDifficultyLabel(
+                      level,
+                      isSpanish,
+                    )}
                   </Text>
                 </TouchableOpacity>
               );
@@ -282,7 +431,9 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             },
           ]}
         >
-          Seleccione la cantidad
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
         </Text>
 
         <View style={styles.quantityRow}>
@@ -290,9 +441,11 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.quantityBox,
               {
-                backgroundColor: colors.bgElevated,
+                backgroundColor:
+                  colors.bgElevated,
                 borderColor: colors.border,
-                paddingVertical: isShort ? 8 : 10,
+                paddingVertical:
+                  isShort ? 8 : 10,
               },
             ]}
           >
@@ -301,7 +454,8 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
                 styles.quantityNum,
                 {
                   color: colors.text,
-                  fontSize: isSmall ? 18 : 22,
+                  fontSize:
+                    isSmall ? 18 : 22,
                 },
               ]}
             >
@@ -312,13 +466,24 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 onPress={() =>
                   setQuantity((current) =>
-                    Math.min(MAX_QUANTITY, current + 1),
+                    Math.min(
+                      MAX_QUANTITY,
+                      current + 1,
+                    ),
                   )
                 }
                 style={styles.arrowBtn}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▲
                 </Text>
               </TouchableOpacity>
@@ -326,13 +491,24 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 onPress={() =>
                   setQuantity((current) =>
-                    Math.max(MIN_QUANTITY, current - 1),
+                    Math.max(
+                      MIN_QUANTITY,
+                      current - 1,
+                    ),
                   )
                 }
                 style={styles.arrowBtn}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▼
                 </Text>
               </TouchableOpacity>
@@ -344,22 +520,32 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
               styles.vecesText,
               {
                 color: colors.textSecondary,
-                fontSize: isSmall ? 13 : 15,
+                fontSize:
+                  isSmall ? 13 : 15,
               },
             ]}
           >
-            veces
+            {isSpanish
+              ? 'veces'
+              : 'times'}
           </Text>
         </View>
 
-        <View style={{ height: isShort ? 16 : 32 }} />
+        <View
+          style={{
+            height:
+              isShort ? 16 : 32,
+          }}
+        />
 
         <TouchableOpacity
           style={[
             styles.confirmBtn,
             {
-              backgroundColor: difficultyStyle.accentColor,
-              height: isShort ? 46 : 52,
+              backgroundColor:
+                difficultyStyle.accentColor,
+              height:
+                isShort ? 46 : 52,
             },
           ]}
           onPress={handleSave}
@@ -369,12 +555,16 @@ export function WordCompletionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.confirmText,
               {
-                color: difficultyStyle.textColor,
-                fontSize: isSmall ? 14 : 16,
+                color:
+                  difficultyStyle.textColor,
+                fontSize:
+                  isSmall ? 14 : 16,
               },
             ]}
           >
-            Confirmar
+            {isSpanish
+              ? 'Confirmar'
+              : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -408,13 +598,15 @@ const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontWeight: Typography.sectionTitle.fontWeight,
+    fontWeight:
+      Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
 
   sectionLabel: {
-    fontWeight: Typography.sectionTitle.fontWeight,
+    fontWeight:
+      Typography.sectionTitle.fontWeight,
   },
 
   subLabel: {

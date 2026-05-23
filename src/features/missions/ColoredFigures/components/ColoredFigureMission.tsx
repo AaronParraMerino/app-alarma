@@ -1,5 +1,7 @@
 // src/features/missions/ColoredFigures/components/ColoredFigureMission.tsx
-import React, { useState } from 'react';
+import React, {
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -12,7 +14,10 @@ import {
   StatusBar,
 } from 'react-native';
 
-import { Difficulty, FigureType } from '../types/ColoredFigures.types';
+import {
+  Difficulty,
+  FigureType,
+} from '../types/ColoredFigures.types';
 import { DIFFICULTY_STYLES } from '../constants/ColoredFigure.config';
 import { useColoredFigures } from '../hooks/useColoredFigures';
 import { useCurrentTime } from '../hooks/useCurrentTime';
@@ -20,6 +25,7 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -30,11 +36,19 @@ interface Props {
   alarmLabel?: string;
 }
 
-const DIFFICULTY_ORDER: Difficulty[] = ['easy', 'medium', 'hard'];
+const DIFFICULTY_ORDER: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
+
 const MAX_ERRORS = 3;
 
-function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
-  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
+function getPreviousDifficulty(
+  difficulty: Difficulty,
+): Difficulty | null {
+  const currentIndex =
+    DIFFICULTY_ORDER.indexOf(difficulty);
 
   if (currentIndex <= 0) {
     return null;
@@ -43,8 +57,90 @@ function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
   return DIFFICULTY_ORDER[currentIndex - 1];
 }
 
-function getDifficultyLabel(difficulty: Difficulty) {
-  return DIFFICULTY_STYLES[difficulty].label.toLowerCase();
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'fácil'
+      : 'easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'normal'
+      : 'normal';
+  }
+
+  return isSpanish
+    ? 'difícil'
+    : 'hard';
+}
+
+function getDifficultyBadgeLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'FÁCIL'
+      : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'NORMAL'
+      : 'NORMAL';
+  }
+
+  return isSpanish
+    ? 'DIFÍCIL'
+    : 'HARD';
+}
+
+function translateDay(
+  day: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return day;
+  }
+
+  const normalized = day
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('lunes')) {
+    return 'Monday';
+  }
+
+  if (normalized.includes('martes')) {
+    return 'Tuesday';
+  }
+
+  if (normalized.includes('miercoles')) {
+    return 'Wednesday';
+  }
+
+  if (normalized.includes('jueves')) {
+    return 'Thursday';
+  }
+
+  if (normalized.includes('viernes')) {
+    return 'Friday';
+  }
+
+  if (normalized.includes('sabado')) {
+    return 'Saturday';
+  }
+
+  if (normalized.includes('domingo')) {
+    return 'Sunday';
+  }
+
+  return day;
 }
 
 export function ColoredFiguresMission({
@@ -53,17 +149,50 @@ export function ColoredFiguresMission({
   onComplete,
   alarmLabel,
 }: Props) {
-  const { colors, statusBarStyle } = useAppTheme();
-  const { user, isAuthenticated, isGuest } = useAuth();
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [currentDifficulty, setCurrentDifficulty] =
-    useState<Difficulty>(difficulty);
+  const {
+    language,
+  } = useTranslation();
 
-  const [completedCount, setCompletedCount] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackType, setFeedbackType] =
-    useState<'error' | 'warning' | 'success'>('error');
+  const isSpanish =
+    language === 'es';
+
+  const {
+    user,
+    isAuthenticated,
+    isGuest,
+  } = useAuth();
+
+  const [
+    currentDifficulty,
+    setCurrentDifficulty,
+  ] = useState<Difficulty>(difficulty);
+
+  const [
+    completedCount,
+    setCompletedCount,
+  ] = useState(0);
+
+  const [
+    errorCount,
+    setErrorCount,
+  ] = useState(0);
+
+  const [
+    feedbackMessage,
+    setFeedbackMessage,
+  ] = useState('');
+
+  const [
+    feedbackType,
+    setFeedbackType,
+  ] = useState<
+    'error' | 'warning' | 'success'
+  >('error');
 
   const {
     current,
@@ -73,19 +202,39 @@ export function ColoredFiguresMission({
     reset,
   } = useColoredFigures(currentDifficulty);
 
-  const { time, day } = useCurrentTime();
+  const {
+    time,
+    day,
+  } = useCurrentTime();
 
-  const difficultyStyle = DIFFICULTY_STYLES[currentDifficulty];
-  const totalQuantity = Math.max(1, quantity);
+  const difficultyStyle =
+    DIFFICULTY_STYLES[currentDifficulty];
+
+  const totalQuantity =
+    Math.max(
+      1,
+      quantity,
+    );
 
   React.useEffect(() => {
     setErrorCount(0);
     reset();
-  }, [currentDifficulty, reset]);
+  }, [
+    currentDifficulty,
+    reset,
+  ]);
 
   const saveMissionHistory = React.useCallback(
-    (success: boolean, nextErrorCount: number) => {
-      if (!isAuthenticated || isGuest || !user?.id || !current) {
+    (
+      success: boolean,
+      nextErrorCount: number,
+    ) => {
+      if (
+        !isAuthenticated ||
+        isGuest ||
+        !user?.id ||
+        !current
+      ) {
         return;
       }
 
@@ -119,36 +268,59 @@ export function ColoredFiguresMission({
   );
 
   const handleSubmit = () => {
-    const result = handleConfirm();
+    const result =
+      handleConfirm();
 
     if (result === null) {
       return;
     }
 
     if (!result) {
-      const nextErrorCount = errorCount + 1;
-      const previousDifficulty = getPreviousDifficulty(currentDifficulty);
+      const nextErrorCount =
+        errorCount + 1;
 
-      saveMissionHistory(false, nextErrorCount);
+      const previousDifficulty =
+        getPreviousDifficulty(currentDifficulty);
 
-      if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+      saveMissionHistory(
+        false,
+        nextErrorCount,
+      );
+
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        previousDifficulty
+      ) {
         setCurrentDifficulty(previousDifficulty);
         setErrorCount(0);
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
-            previousDifficulty,
-          )}.`,
+          isSpanish
+            ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `You failed 3 times. You dropped to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
 
         return;
       }
 
-      if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        !previousDifficulty
+      ) {
         setErrorCount(0);
         setFeedbackType('error');
+
         setFeedbackMessage(
-          'Fallaste 3 veces, pero ya estás en el nivel más bajo. Intenta nuevamente.',
+          isSpanish
+            ? 'Fallaste 3 veces, pero ya estás en el nivel más bajo. Intenta nuevamente.'
+            : 'You failed 3 times, but you are already at the lowest level. Try again.',
         );
 
         setTimeout(() => {
@@ -160,36 +332,68 @@ export function ColoredFiguresMission({
 
       setErrorCount(nextErrorCount);
 
-      if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
+      if (
+        nextErrorCount === MAX_ERRORS - 1 &&
+        previousDifficulty
+      ) {
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `1 fallo más y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+          isSpanish
+            ? `1 fallo más y bajas a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `1 more mistake and you drop to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
       } else {
-        const remainingErrors = MAX_ERRORS - nextErrorCount;
+        const remainingErrors =
+          MAX_ERRORS - nextErrorCount;
 
         setFeedbackType('error');
+
         setFeedbackMessage(
-          `Color incorrecto. Te quedan ${remainingErrors} intento${
-            remainingErrors === 1 ? '' : 's'
-          }.`,
+          isSpanish
+            ? `Color incorrecto. Te quedan ${remainingErrors} intento${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              }.`
+            : `Incorrect color. You have ${remainingErrors} attempt${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              } left.`,
         );
       }
 
       return;
     }
 
-    const nextCompleted = completedCount + 1;
+    const nextCompleted =
+      completedCount + 1;
 
-    saveMissionHistory(true, errorCount);
+    saveMissionHistory(
+      true,
+      errorCount,
+    );
 
     setCompletedCount(nextCompleted);
     setErrorCount(0);
     setFeedbackType('success');
-    setFeedbackMessage('Correcto.');
+
+    setFeedbackMessage(
+      isSpanish
+        ? 'Correcto.'
+        : 'Correct.',
+    );
 
     if (nextCompleted >= totalQuantity) {
       onComplete();
+
       return;
     }
 
@@ -199,7 +403,10 @@ export function ColoredFiguresMission({
     }, 500);
   };
 
-  const renderFigure = (figure: FigureType, color: string) => {
+  const renderFigure = (
+    figure: FigureType,
+    color: string,
+  ) => {
     if (figure === 'circle') {
       return (
         <View
@@ -278,12 +485,26 @@ export function ColoredFiguresMission({
         : colors.danger;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }
       >
         <View style={styles.container}>
           <View style={styles.header}>
@@ -291,8 +512,10 @@ export function ColoredFiguresMission({
               style={[
                 styles.badge,
                 {
-                  backgroundColor: difficultyStyle.bgColor,
-                  borderColor: difficultyStyle.accentColor + '40',
+                  backgroundColor:
+                    difficultyStyle.bgColor,
+                  borderColor:
+                    difficultyStyle.accentColor + '40',
                 },
               ]}
             >
@@ -300,20 +523,41 @@ export function ColoredFiguresMission({
                 style={[
                   styles.badgeText,
                   {
-                    color: difficultyStyle.accentColor,
+                    color:
+                      difficultyStyle.accentColor,
                   },
                 ]}
               >
-                {difficultyStyle.label}
+                {getDifficultyBadgeLabel(
+                  currentDifficulty,
+                  isSpanish,
+                )}
               </Text>
             </View>
 
-            <Text style={[styles.time, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.time,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {time}
             </Text>
 
-            <Text style={[styles.day, { color: colors.textSecondary }]}>
-              {day}
+            <Text
+              style={[
+                styles.day,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {translateDay(
+                day,
+                isSpanish,
+              )}
             </Text>
 
             {alarmLabel ? (
@@ -339,12 +583,24 @@ export function ColoredFiguresMission({
               },
             ]}
           >
-            <Text style={[styles.instruction, { color: colors.text }]}>
-              Escribe el color de la figura
+            <Text
+              style={[
+                styles.instruction,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Escribe el color de la figura'
+                : 'Type the color of the shape'}
             </Text>
 
             <View style={styles.figureContainer}>
-              {renderFigure(current.figure, current.hex)}
+              {renderFigure(
+                current.figure,
+                current.hex,
+              )}
             </View>
           </View>
 
@@ -357,15 +613,21 @@ export function ColoredFiguresMission({
                 setFeedbackMessage('');
               }
             }}
-            placeholder="Escribe el color"
+            placeholder={
+              isSpanish
+                ? 'Escribe el color'
+                : 'Type the color'
+            }
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             style={[
               styles.input,
               {
-                backgroundColor: colors.bgElevated,
-                borderColor: difficultyStyle.accentColor,
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  difficultyStyle.accentColor,
                 color: colors.text,
               },
               state.hasError && {
@@ -379,7 +641,14 @@ export function ColoredFiguresMission({
           />
 
           {feedbackMessage ? (
-            <Text style={[styles.feedbackText, { color: feedbackColor }]}>
+            <Text
+              style={[
+                styles.feedbackText,
+                {
+                  color: feedbackColor,
+                },
+              ]}
+            >
               {feedbackMessage}
             </Text>
           ) : null}
@@ -390,14 +659,24 @@ export function ColoredFiguresMission({
             style={[
               styles.confirmBtn,
               {
-                backgroundColor: difficultyStyle.accentColor,
+                backgroundColor:
+                  difficultyStyle.accentColor,
               },
             ]}
             onPress={handleSubmit}
             activeOpacity={0.85}
           >
-            <Text style={[styles.confirmBtnText, { color: colors.black }]}>
-              Confirmar
+            <Text
+              style={[
+                styles.confirmBtnText,
+                {
+                  color: colors.black,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Confirmar'
+                : 'Confirm'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -504,7 +783,11 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 12,
-    transform: [{ rotate: '45deg' }],
+    transform: [
+      {
+        rotate: '45deg',
+      },
+    ],
     borderWidth: 1,
   },
 

@@ -1,5 +1,7 @@
 // src/features/missions/MovementMission/components/MovementMissionConfigScreen.tsx
-import React, { useState } from 'react';
+import React, {
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -16,6 +18,7 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 
 import {
   MovementDifficulty,
@@ -31,13 +34,140 @@ import {
 import { MOVEMENT_IMAGES } from '../constants/movementAssets';
 
 interface MovementMissionConfigScreenProps {
-  onConfirm: (config: MovementMissionUserConfig) => void;
+  onConfirm: (
+    config: MovementMissionUserConfig,
+  ) => void;
   onBack?: () => void;
   initialDifficulty?: MovementDifficulty;
   initialQuantity?: number;
 }
 
-const LEVELS: MovementDifficulty[] = ['easy', 'medium', 'hard'];
+const LEVELS: MovementDifficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
+
+function getDifficultyLabel(
+  difficulty: MovementDifficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
+
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+function getDifficultyTitle(
+  difficulty: MovementDifficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'FÁCIL'
+      : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'NORMAL'
+      : 'NORMAL';
+  }
+
+  return isSpanish
+    ? 'DIFÍCIL'
+    : 'HARD';
+}
+
+function translateMovementLabel(
+  label: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return label;
+  }
+
+  const normalized = label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    );
+
+  if (
+    normalized.includes('agitar') ||
+    normalized.includes('sacudir')
+  ) {
+    return 'Shake the phone';
+  }
+
+  if (
+    normalized.includes('arriba') ||
+    normalized.includes('levantar')
+  ) {
+    return 'Move up';
+  }
+
+  if (
+    normalized.includes('abajo') ||
+    normalized.includes('bajar')
+  ) {
+    return 'Move down';
+  }
+
+  if (
+    normalized.includes('izquierda')
+  ) {
+    return 'Move left';
+  }
+
+  if (
+    normalized.includes('derecha')
+  ) {
+    return 'Move right';
+  }
+
+  if (
+    normalized.includes('girar') ||
+    normalized.includes('rotar')
+  ) {
+    return 'Rotate the phone';
+  }
+
+  if (
+    normalized.includes('inclinar')
+  ) {
+    return 'Tilt the phone';
+  }
+
+  if (
+    normalized.includes('caminar') ||
+    normalized.includes('pasos')
+  ) {
+    return 'Walk';
+  }
+
+  if (
+    normalized.includes('saltar') ||
+    normalized.includes('salto')
+  ) {
+    return 'Jump';
+  }
+
+  return label;
+}
 
 export function MovementMissionConfigScreen({
   onConfirm,
@@ -45,46 +175,107 @@ export function MovementMissionConfigScreen({
   initialDifficulty = 'easy',
   initialQuantity = 3,
 }: MovementMissionConfigScreenProps) {
-  const { width, height } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+  const {
+    width,
+    height,
+  } = useWindowDimensions();
 
-  const [difficulty, setDifficulty] =
-    useState<MovementDifficulty>(initialDifficulty);
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [quantity, setQuantity] = useState(
-    Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, initialQuantity)),
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<MovementDifficulty>(
+    initialDifficulty,
   );
 
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
-
-  const examples = MOVEMENT_EXAMPLES[difficulty].map(
-    (type) => ALL_MOVEMENT_STEPS[type],
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    Math.max(
+      MIN_QUANTITY,
+      Math.min(
+        MAX_QUANTITY,
+        initialQuantity,
+      ),
+    ),
   );
 
-  const isSmall = width < 360;
-  const isShort = height < 680;
-  const fontBase = isSmall ? 12 : 14;
-  const pillPadV = isShort ? 7 : 10;
-  const sectionGap = isShort ? 10 : 16;
-  const previewMin = isShort ? 90 : 110;
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
+
+  const examples =
+    MOVEMENT_EXAMPLES[difficulty].map(
+      (type) => ALL_MOVEMENT_STEPS[type],
+    );
+
+  const isSmall =
+    width < 360;
+
+  const isShort =
+    height < 680;
+
+  const fontBase =
+    isSmall ? 12 : 14;
+
+  const pillPadV =
+    isShort ? 7 : 10;
+
+  const sectionGap =
+    isShort ? 10 : 16;
+
+  const previewMin =
+    isShort ? 90 : 110;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingHorizontal: isSmall ? 14 : 20,
+            paddingHorizontal:
+              isSmall ? 14 : 20,
           },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {onBack ? (
-          <BackButton style={styles.backButton} onPress={onBack} />
+          <BackButton
+            label={
+              isSpanish
+                ? 'Volver'
+                : 'Back'
+            }
+            style={styles.backButton}
+            onPress={onBack}
+          />
         ) : null}
 
         <View
@@ -102,11 +293,14 @@ export function MovementMissionConfigScreen({
               styles.headerText,
               {
                 color: colors.white,
-                fontSize: isSmall ? 12 : 14,
+                fontSize:
+                  isSmall ? 12 : 14,
               },
             ]}
           >
-            MISION{'\n'}DE MOVIMIENTO
+            {isSpanish
+              ? 'MISIÓN\nDE MOVIMIENTO'
+              : 'MISSION\nMOVEMENT'}
           </Text>
         </View>
 
@@ -120,7 +314,9 @@ export function MovementMissionConfigScreen({
             },
           ]}
         >
-          Seleccione la dificultad
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
         </Text>
 
         <Text
@@ -128,11 +324,14 @@ export function MovementMissionConfigScreen({
             styles.subLabel,
             {
               color: colors.textSecondary,
-              fontSize: isSmall ? 11 : 12,
+              fontSize:
+                isSmall ? 11 : 12,
             },
           ]}
         >
-          Ejemplo
+          {isSpanish
+            ? 'Ejemplo'
+            : 'Example'}
         </Text>
 
         <View
@@ -140,7 +339,9 @@ export function MovementMissionConfigScreen({
             styles.previewBox,
             {
               backgroundColor: colors.bgCard,
-              borderColor: difficultyStyle.accentColor + '40',
+              borderColor:
+                difficultyStyle.accentColor +
+                '40',
               minHeight: previewMin,
               marginBottom: sectionGap,
             },
@@ -150,35 +351,53 @@ export function MovementMissionConfigScreen({
             style={[
               styles.previewTitle,
               {
-                color: difficultyStyle.accentColor,
+                color:
+                  difficultyStyle.accentColor,
               },
             ]}
           >
-            {difficultyStyle.label}
+            {getDifficultyTitle(
+              difficulty,
+              isSpanish,
+            )}
           </Text>
 
           <View style={styles.exampleRow}>
-            {examples.map((step, index) => (
-              <View key={`${step.type}-${index}`} style={styles.exampleItem}>
-                <Image
-                  source={MOVEMENT_IMAGES[step.type]}
-                  style={styles.exampleImage}
-                  resizeMode="contain"
-                />
-
-                <Text
-                  numberOfLines={2}
-                  style={[
-                    styles.exampleLabel,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
+            {examples.map(
+              (
+                step,
+                index,
+              ) => (
+                <View
+                  key={`${step.type}-${index}`}
+                  style={styles.exampleItem}
                 >
-                  {step.label}
-                </Text>
-              </View>
-            ))}
+                  <Image
+                    source={
+                      MOVEMENT_IMAGES[step.type]
+                    }
+                    style={styles.exampleImage}
+                    resizeMode="contain"
+                  />
+
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.exampleLabel,
+                      {
+                        color:
+                          colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {translateMovementLabel(
+                      step.label,
+                      isSpanish,
+                    )}
+                  </Text>
+                </View>
+              ),
+            )}
           </View>
         </View>
 
@@ -186,7 +405,8 @@ export function MovementMissionConfigScreen({
           style={[
             styles.sliderWrapper,
             {
-              marginBottom: isShort ? 4 : 8,
+              marginBottom:
+                isShort ? 4 : 8,
             },
           ]}
         >
@@ -194,7 +414,8 @@ export function MovementMissionConfigScreen({
             style={[
               styles.trackBg,
               {
-                backgroundColor: colors.bgElevated,
+                backgroundColor:
+                  colors.bgElevated,
               },
             ]}
           >
@@ -203,50 +424,61 @@ export function MovementMissionConfigScreen({
                 styles.trackFill,
                 {
                   width: `${(sliderIdx / 2) * 100}%`,
-                  backgroundColor: difficultyStyle.accentColor,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
             />
 
-            {LEVELS.map((level, index) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.thumbHit,
-                  {
-                    left: `${(index / 2) * 100}%`,
-                  },
-                ]}
-                onPress={() => setDifficulty(level)}
-                activeOpacity={0.75}
-              >
-                <View
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
                   style={[
-                    styles.thumb,
+                    styles.thumbHit,
                     {
-                      backgroundColor:
-                        sliderIdx >= index
-                          ? difficultyStyle.accentColor
-                          : colors.bgElevated,
-                      borderColor:
-                        sliderIdx >= index
-                          ? difficultyStyle.accentColor
-                          : colors.textMuted,
+                      left: `${(index / 2) * 100}%`,
                     },
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          sliderIdx >= index
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          sliderIdx >= index
+                            ? difficultyStyle.accentColor
+                            : colors.textMuted,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
 
           <View style={styles.sliderLabels}>
             {LEVELS.map((level) => {
-              const active = difficulty === level;
+              const active =
+                difficulty === level;
 
               return (
                 <TouchableOpacity
                   key={level}
-                  onPress={() => setDifficulty(level)}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
                   style={styles.labelBtn}
                   activeOpacity={0.75}
                 >
@@ -257,13 +489,18 @@ export function MovementMissionConfigScreen({
                         color: active
                           ? difficultyStyle.accentColor
                           : colors.textMuted,
-                        fontSize: isSmall ? 11 : 13,
-                        fontWeight: active ? '700' : '500',
+                        fontSize:
+                          isSmall ? 11 : 13,
+                        fontWeight: active
+                          ? '700'
+                          : '500',
                       },
                     ]}
                   >
-                    {DIFFICULTY_STYLES[level].label.charAt(0) +
-                      DIFFICULTY_STYLES[level].label.slice(1).toLowerCase()}
+                    {getDifficultyLabel(
+                      level,
+                      isSpanish,
+                    )}
                   </Text>
                 </TouchableOpacity>
               );
@@ -291,7 +528,9 @@ export function MovementMissionConfigScreen({
             },
           ]}
         >
-          Seleccione la cantidad
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
         </Text>
 
         <View style={styles.quantityRow}>
@@ -299,9 +538,12 @@ export function MovementMissionConfigScreen({
             style={[
               styles.quantityBox,
               {
-                backgroundColor: colors.bgElevated,
-                borderColor: colors.border,
-                paddingVertical: isShort ? 8 : 10,
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  colors.border,
+                paddingVertical:
+                  isShort ? 8 : 10,
               },
             ]}
           >
@@ -310,7 +552,8 @@ export function MovementMissionConfigScreen({
                 styles.quantityNum,
                 {
                   color: colors.text,
-                  fontSize: isSmall ? 18 : 22,
+                  fontSize:
+                    isSmall ? 18 : 22,
                 },
               ]}
             >
@@ -321,7 +564,10 @@ export function MovementMissionConfigScreen({
               <TouchableOpacity
                 onPress={() =>
                   setQuantity((current) =>
-                    Math.min(MAX_QUANTITY, current + 1),
+                    Math.min(
+                      MAX_QUANTITY,
+                      current + 1,
+                    ),
                   )
                 }
                 style={styles.arrowBtn}
@@ -331,7 +577,8 @@ export function MovementMissionConfigScreen({
                   style={[
                     styles.arrowText,
                     {
-                      color: colors.textSecondary,
+                      color:
+                        colors.textSecondary,
                     },
                   ]}
                 >
@@ -342,7 +589,10 @@ export function MovementMissionConfigScreen({
               <TouchableOpacity
                 onPress={() =>
                   setQuantity((current) =>
-                    Math.max(MIN_QUANTITY, current - 1),
+                    Math.max(
+                      MIN_QUANTITY,
+                      current - 1,
+                    ),
                   )
                 }
                 style={styles.arrowBtn}
@@ -352,7 +602,8 @@ export function MovementMissionConfigScreen({
                   style={[
                     styles.arrowText,
                     {
-                      color: colors.textSecondary,
+                      color:
+                        colors.textSecondary,
                     },
                   ]}
                 >
@@ -367,37 +618,56 @@ export function MovementMissionConfigScreen({
               styles.vecesText,
               {
                 color: colors.textSecondary,
-                fontSize: isSmall ? 13 : 15,
+                fontSize:
+                  isSmall ? 13 : 15,
               },
             ]}
           >
-            veces
+            {isSpanish
+              ? 'veces'
+              : 'times'}
           </Text>
         </View>
 
-        <View style={{ height: isShort ? 16 : 32 }} />
+        <View
+          style={{
+            height:
+              isShort ? 16 : 32,
+          }}
+        />
 
         <TouchableOpacity
           style={[
             styles.confirmBtn,
             {
-              backgroundColor: difficultyStyle.accentColor,
-              height: isShort ? 46 : 52,
+              backgroundColor:
+                difficultyStyle.accentColor,
+              height:
+                isShort ? 46 : 52,
             },
           ]}
-          onPress={() => onConfirm({ difficulty, quantity })}
+          onPress={() =>
+            onConfirm({
+              difficulty,
+              quantity,
+            })
+          }
           activeOpacity={0.85}
         >
           <Text
             style={[
               styles.confirmText,
               {
-                color: difficultyStyle.textColor,
-                fontSize: isSmall ? 14 : 16,
+                color:
+                  difficultyStyle.textColor,
+                fontSize:
+                  isSmall ? 14 : 16,
               },
             ]}
           >
-            Confirmar
+            {isSpanish
+              ? 'Confirmar'
+              : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -431,13 +701,15 @@ const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontWeight: Typography.sectionTitle.fontWeight,
+    fontWeight:
+      Typography.sectionTitle.fontWeight,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
 
   sectionLabel: {
-    fontWeight: Typography.sectionTitle.fontWeight,
+    fontWeight:
+      Typography.sectionTitle.fontWeight,
   },
 
   subLabel: {

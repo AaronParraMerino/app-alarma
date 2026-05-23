@@ -10,8 +10,12 @@ import {
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
-import { FILTER_OPTIONS } from '../constants/missionHistory.config';
+import {
+  FILTER_OPTIONS,
+  getFilterLabel,
+} from '../constants/missionHistory.config';
 import { FilterOption } from '../types/missionHistory.types';
 
 interface Props {
@@ -19,8 +23,17 @@ interface Props {
   onSelect: (filtro: FilterOption) => void;
 }
 
-export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
-  const { colors } = useAppTheme();
+export function HistoryFilterChips({
+  filtroActivo,
+  onSelect,
+}: Props) {
+  const {
+    colors,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
 
   return (
     <ScrollView
@@ -37,10 +50,15 @@ export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
             style={[
               styles.chip,
               {
-                borderColor: active ? colors.primary : colors.border,
-                backgroundColor: active ? colors.accentGlow : colors.bgCard,
+                borderColor: active
+                  ? colors.primary
+                  : colors.border,
+                backgroundColor: active
+                  ? colors.accentGlow
+                  : colors.bgCard,
               },
-              index < FILTER_OPTIONS.length - 1 && styles.chipSpacing,
+              index < FILTER_OPTIONS.length - 1 &&
+                styles.chipSpacing,
             ]}
             onPress={() => onSelect(filter.key)}
             activeOpacity={0.75}
@@ -49,12 +67,17 @@ export function HistoryFilterChips({ filtroActivo, onSelect }: Props) {
               style={[
                 styles.chipText,
                 {
-                  color: active ? colors.primaryLight : colors.textSecondary,
+                  color: active
+                    ? colors.primaryLight
+                    : colors.textSecondary,
                 },
               ]}
               numberOfLines={1}
             >
-              {filter.label}
+              {getFilterLabel(
+                filter,
+                language,
+              )}
             </Text>
           </TouchableOpacity>
         );

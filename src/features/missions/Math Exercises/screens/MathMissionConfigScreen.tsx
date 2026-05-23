@@ -1,5 +1,8 @@
 // src/features/missions/Math Exercises/screens/MathMissionConfigScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -17,6 +20,7 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 
 import { useMathExercisesStore } from '../store/mathExercisesStore';
 import {
@@ -31,9 +35,16 @@ import {
 } from '../types/mathExercises.types';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 
-type Props = NativeStackScreenProps<MissionsStackParamList, 'ConfigMathMission'>;
+type Props = NativeStackScreenProps<
+  MissionsStackParamList,
+  'ConfigMathMission'
+>;
 
-const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
+const LEVELS: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
 
 const OPERATIONS: OperationType[] = [
   'addition',
@@ -42,48 +53,144 @@ const OPERATIONS: OperationType[] = [
   'division',
 ];
 
-const OPERATION_LABELS: Record<OperationType, string> = {
+const OPERATION_LABELS_ES: Record<
+  OperationType,
+  string
+> = {
   addition: 'Suma',
   subtraction: 'Resta',
   multiplication: 'Multiplicación',
   division: 'División',
 };
 
-function toAlarmDifficulty(difficulty: Difficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+const OPERATION_LABELS_EN: Record<
+  OperationType,
+  string
+> = {
+  addition: 'Addition',
+  subtraction: 'Subtraction',
+  multiplication: 'Multiplication',
+  division: 'Division',
+};
+
+function toAlarmDifficulty(
+  difficulty: Difficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
 }
 
-export function MathMissionConfigScreen({ navigation, route }: Props) {
-  const { width } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
 
-  const { config, setConfig } = useMathExercisesStore();
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
 
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    route.params?.difficulty ?? config.difficulty,
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+function getOperationLabel(
+  operation: OperationType,
+  isSpanish: boolean,
+): string {
+  return isSpanish
+    ? OPERATION_LABELS_ES[operation]
+    : OPERATION_LABELS_EN[operation];
+}
+
+export function MathMissionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    width,
+  } = useWindowDimensions();
+
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useMathExercisesStore();
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(
+    route.params?.difficulty ??
+      config.difficulty,
   );
 
-  const [quantity, setQuantity] = useState(
-    route.params?.quantity ?? config.quantity,
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    route.params?.quantity ??
+      config.quantity,
   );
 
-  const [operationType, setOperationType] = useState<OperationType>(
-    route.params?.operationType ?? config.operationType,
+  const [
+    operationType,
+    setOperationType,
+  ] = useState<OperationType>(
+    route.params?.operationType ??
+      config.operationType,
   );
 
-  const [preview, setPreview] = useState<GeneratedExpression>(
+  const [
+    preview,
+    setPreview,
+  ] = useState<GeneratedExpression>(
     generateExpression(
-      route.params?.difficulty ?? config.difficulty,
-      route.params?.operationType ?? config.operationType,
+      route.params?.difficulty ??
+        config.difficulty,
+      route.params?.operationType ??
+        config.operationType,
     ),
   );
 
   useEffect(() => {
-    setPreview(generateExpression(difficulty, operationType));
-  }, [difficulty, operationType]);
+    setPreview(
+      generateExpression(
+        difficulty,
+        operationType,
+      ),
+    );
+  }, [
+    difficulty,
+    operationType,
+  ]);
 
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
 
   const handleSave = () => {
     setConfig({
@@ -92,25 +199,43 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
       operationType,
     });
 
-    completeAlarmMissionConfigSession(route.params?.alarmConfigSessionId, {
-      type: 'math',
-      difficulty: toAlarmDifficulty(difficulty),
-      quantity,
-      operationType,
-    });
+    completeAlarmMissionConfigSession(
+      route.params?.alarmConfigSessionId,
+      {
+        type: 'math',
+        difficulty: toAlarmDifficulty(difficulty),
+        quantity,
+        operationType,
+      },
+    );
 
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         />
@@ -123,17 +248,44 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
             },
           ]}
         >
-          <Text style={[styles.headerText, { color: colors.white }]}>
-            MISIÓN{'\n'}MATEMÁTICAS
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'MISIÓN\nMATEMÁTICAS'
+              : 'MISSION\nMATH'}
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Seleccione la dificultad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
         </Text>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary }]}>
-          Ejemplo
+        <Text
+          style={[
+            styles.subLabel,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Ejemplo'
+            : 'Example'}
         </Text>
 
         <View
@@ -150,12 +302,15 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
               styles.previewExpression,
               {
                 color: colors.black,
-                fontSize: width < 380 ? 13 : 15,
+                fontSize:
+                  width < 380 ? 13 : 15,
               },
             ]}
           >
             {preview.expression} ={' '}
-            <Text style={styles.previewAnswer}>{preview.answer}</Text>
+            <Text style={styles.previewAnswer}>
+              {preview.answer}
+            </Text>
           </Text>
         </View>
 
@@ -164,7 +319,8 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.trackBg,
               {
-                backgroundColor: colors.bgElevated,
+                backgroundColor:
+                  colors.bgElevated,
               },
             ]}
           >
@@ -173,37 +329,46 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
                 styles.trackFill,
                 {
                   width: `${(sliderIdx / 2) * 100}%`,
-                  backgroundColor: difficultyStyle.accentColor,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
             />
 
-            {LEVELS.map((level, index) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.thumbHit,
-                  {
-                    left: `${(index / 2) * 100}%`,
-                  },
-                ]}
-                onPress={() => setDifficulty(level)}
-                activeOpacity={0.75}
-              >
-                <View
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
                   style={[
-                    styles.thumb,
+                    styles.thumbHit,
                     {
-                      backgroundColor:
-                        difficulty === level
-                          ? difficultyStyle.accentColor
-                          : colors.bgElevated,
-                      borderColor: difficultyStyle.accentColor,
+                      left: `${(index / 2) * 100}%`,
                     },
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          difficulty === level
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
 
           <View style={styles.sliderLabels}>
@@ -211,7 +376,9 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 key={level}
                 style={styles.labelBtn}
-                onPress={() => setDifficulty(level)}
+                onPress={() =>
+                  setDifficulty(level)
+                }
                 activeOpacity={0.75}
               >
                 <Text
@@ -222,11 +389,17 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
                         difficulty === level
                           ? difficultyStyle.accentColor
                           : colors.textMuted,
-                      fontWeight: difficulty === level ? '700' : '500',
+                      fontWeight:
+                        difficulty === level
+                          ? '700'
+                          : '500',
                     },
                   ]}
                 >
-                  {DIFFICULTY_STYLES[level].label}
+                  {getDifficultyLabel(
+                    level,
+                    isSpanish,
+                  )}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -242,13 +415,23 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
           ]}
         />
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Seleccione tipo de operación
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione tipo de operación'
+            : 'Select operation type'}
         </Text>
 
         <View style={styles.operationsGrid}>
           {OPERATIONS.map((operation) => {
-            const active = operationType === operation;
+            const active =
+              operationType === operation;
 
             return (
               <TouchableOpacity
@@ -264,14 +447,18 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
                       : colors.border,
                   },
                 ]}
-                onPress={() => setOperationType(operation)}
+                onPress={() =>
+                  setOperationType(operation)
+                }
                 activeOpacity={0.8}
               >
                 <Text
                   style={[
                     styles.operationText,
                     {
-                      color: active ? difficultyStyle.textColor : colors.text,
+                      color: active
+                        ? difficultyStyle.textColor
+                        : colors.text,
                     },
                   ]}
                 >
@@ -288,7 +475,10 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
                     },
                   ]}
                 >
-                  {OPERATION_LABELS[operation]}
+                  {getOperationLabel(
+                    operation,
+                    isSpanish,
+                  )}
                 </Text>
               </TouchableOpacity>
             );
@@ -304,8 +494,17 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
           ]}
         />
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Seleccione la cantidad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
         </Text>
 
         <View style={styles.quantityRow}>
@@ -313,40 +512,92 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.quantityBox,
               {
-                backgroundColor: colors.bgElevated,
-                borderColor: colors.border,
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  colors.border,
               },
             ]}
           >
-            <Text style={[styles.quantityNum, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.quantityNum,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {quantity}
             </Text>
 
             <View style={styles.arrows}>
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.min(quantity + 1, 9))}
+                onPress={() =>
+                  setQuantity(
+                    Math.min(
+                      quantity + 1,
+                      9,
+                    ),
+                  )
+                }
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▲
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.max(quantity - 1, 1))}
+                onPress={() =>
+                  setQuantity(
+                    Math.max(
+                      quantity - 1,
+                      1,
+                    ),
+                  )
+                }
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▼
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={[styles.vecesText, { color: colors.textSecondary }]}>
-            {quantity === 1 ? ' vez' : ' veces'}
+          <Text
+            style={[
+              styles.vecesText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? quantity === 1
+                ? ' vez'
+                : ' veces'
+              : quantity === 1
+                ? ' time'
+                : ' times'}
           </Text>
         </View>
 
@@ -356,7 +607,8 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
           style={[
             styles.confirmBtn,
             {
-              backgroundColor: difficultyStyle.accentColor,
+              backgroundColor:
+                difficultyStyle.accentColor,
             },
           ]}
           onPress={handleSave}
@@ -366,11 +618,14 @@ export function MathMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.confirmText,
               {
-                color: difficultyStyle.textColor,
+                color:
+                  difficultyStyle.textColor,
               },
             ]}
           >
-            Guardar
+            {isSpanish
+              ? 'Guardar'
+              : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

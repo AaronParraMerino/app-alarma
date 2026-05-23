@@ -1,5 +1,8 @@
 // src/features/missions/ColoredFigures/screens/ColoredMissionConfigScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -16,6 +19,7 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 
 import { useColoredFiguresStore } from '../store/ColoredFiguresStore';
 import {
@@ -34,10 +38,75 @@ type Props = NativeStackScreenProps<
   'ConfigColoredFiguresMission'
 >;
 
-const LEVELS: Difficulty[] = ['easy', 'medium', 'hard'];
+const LEVELS: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
 
-function toAlarmDifficulty(difficulty: Difficulty) {
-  return difficulty === 'medium' ? 'normal' : difficulty;
+function toAlarmDifficulty(
+  difficulty: Difficulty,
+) {
+  if (difficulty === 'medium') {
+    return 'normal';
+  }
+
+  return difficulty;
+}
+
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish
+      ? 'Fácil'
+      : 'Easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish
+      ? 'Normal'
+      : 'Normal';
+  }
+
+  return isSpanish
+    ? 'Difícil'
+    : 'Hard';
+}
+
+function translateColorName(
+  colorName: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return colorName;
+  }
+
+  const normalized = colorName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const colorsMap: Record<string, string> = {
+    rojo: 'Red',
+    azul: 'Blue',
+    verde: 'Green',
+    amarillo: 'Yellow',
+    naranja: 'Orange',
+    morado: 'Purple',
+    violeta: 'Violet',
+    rosado: 'Pink',
+    rosa: 'Pink',
+    blanco: 'White',
+    negro: 'Black',
+    gris: 'Gray',
+    cafe: 'Brown',
+    marron: 'Brown',
+    celeste: 'Light blue',
+  };
+
+  return colorsMap[normalized] ?? colorName;
 }
 
 function PreviewFigure({
@@ -95,7 +164,11 @@ function PreviewFigure({
           width: size * 0.7,
           height: size * 0.7,
           backgroundColor: color,
-          transform: [{ rotate: '45deg' }],
+          transform: [
+            {
+              rotate: '45deg',
+            },
+          ],
           borderRadius: 4,
         }}
       />
@@ -122,33 +195,80 @@ function PreviewFigure({
   return null;
 }
 
-export function ColoredMissionConfigScreen({ navigation, route }: Props) {
-  const { colors, statusBarStyle } = useAppTheme();
-  const { config, setConfig } = useColoredFiguresStore();
+export function ColoredMissionConfigScreen({
+  navigation,
+  route,
+}: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    route.params?.difficulty ?? config.difficulty,
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish =
+    language === 'es';
+
+  const {
+    config,
+    setConfig,
+  } = useColoredFiguresStore();
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(
+    route.params?.difficulty ??
+      config.difficulty,
   );
 
-  const [quantity, setQuantity] = useState(
-    route.params?.quantity ?? config.quantity,
+  const [
+    quantity,
+    setQuantity,
+  ] = useState(
+    route.params?.quantity ??
+      config.quantity,
   );
 
-  const [preview, setPreview] = useState<ColoredFigureChallenge>(
-    PREVIEW_BY_DIFFICULTY[route.params?.difficulty ?? config.difficulty],
+  const [
+    preview,
+    setPreview,
+  ] = useState<ColoredFigureChallenge>(
+    PREVIEW_BY_DIFFICULTY[
+      route.params?.difficulty ??
+        config.difficulty
+    ],
   );
 
-  const [colorsOfLevel, setColorsOfLevel] = useState(
-    COLORS_BY_DIFFICULTY[route.params?.difficulty ?? config.difficulty],
+  const [
+    colorsOfLevel,
+    setColorsOfLevel,
+  ] = useState(
+    COLORS_BY_DIFFICULTY[
+      route.params?.difficulty ??
+        config.difficulty
+    ],
   );
 
   useEffect(() => {
-    setPreview(PREVIEW_BY_DIFFICULTY[difficulty]);
-    setColorsOfLevel(COLORS_BY_DIFFICULTY[difficulty]);
-  }, [difficulty]);
+    setPreview(
+      PREVIEW_BY_DIFFICULTY[difficulty],
+    );
 
-  const difficultyStyle = DIFFICULTY_STYLES[difficulty];
-  const sliderIdx = LEVELS.indexOf(difficulty);
+    setColorsOfLevel(
+      COLORS_BY_DIFFICULTY[difficulty],
+    );
+  }, [
+    difficulty,
+  ]);
+
+  const difficultyStyle =
+    DIFFICULTY_STYLES[difficulty];
+
+  const sliderIdx =
+    LEVELS.indexOf(difficulty);
 
   const handleSave = () => {
     setConfig({
@@ -156,17 +276,19 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
       quantity,
     });
 
-    const savedInAlarmConfig = completeAlarmMissionConfigSession(
-      route.params?.alarmConfigSessionId,
-      {
-        type: 'color',
-        difficulty: toAlarmDifficulty(difficulty),
-        quantity,
-      },
-    );
+    const savedInAlarmConfig =
+      completeAlarmMissionConfigSession(
+        route.params?.alarmConfigSessionId,
+        {
+          type: 'color',
+          difficulty: toAlarmDifficulty(difficulty),
+          quantity,
+        },
+      );
 
     if (savedInAlarmConfig) {
       navigation.goBack();
+
       return;
     }
 
@@ -174,14 +296,29 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         <BackButton
+          label={
+            isSpanish
+              ? 'Volver'
+              : 'Back'
+          }
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         />
@@ -194,39 +331,81 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
             },
           ]}
         >
-          <Text style={[styles.headerText, { color: colors.white }]}>
-            MISIÓN{'\n'}FIGURAS Y COLORES
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish
+              ? 'MISIÓN\nFIGURAS Y COLORES'
+              : 'MISSION\nSHAPES AND COLORS'}
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Seleccione la dificultad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la dificultad'
+            : 'Select the difficulty'}
         </Text>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary }]}>
-          Ejemplo — ¿De qué color es esta figura?
+        <Text
+          style={[
+            styles.subLabel,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Ejemplo — ¿De qué color es esta figura?'
+            : 'Example — What color is this shape?'}
         </Text>
 
         <View
           style={[
             styles.previewBox,
             {
-              backgroundColor: difficultyStyle.bgColor,
-              borderColor: difficultyStyle.accentColor + '40',
+              backgroundColor:
+                difficultyStyle.bgColor,
+              borderColor:
+                difficultyStyle.accentColor + '40',
             },
           ]}
         >
-          <PreviewFigure figure={preview.figure} color={preview.hex} size={80} />
+          <PreviewFigure
+            figure={preview.figure}
+            color={preview.hex}
+            size={80}
+          />
 
           <Text
             style={[
               styles.previewAnswer,
               {
-                color: difficultyStyle.accentColor,
+                color:
+                  difficultyStyle.accentColor,
               },
             ]}
           >
-            Respuesta: {preview.colorDisplayName}
+            {isSpanish
+              ? `Respuesta: ${translateColorName(
+                  preview.colorDisplayName,
+                  true,
+                )}`
+              : `Answer: ${translateColorName(
+                  preview.colorDisplayName,
+                  false,
+                )}`}
           </Text>
         </View>
 
@@ -235,7 +414,8 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.trackBg,
               {
-                backgroundColor: colors.bgElevated,
+                backgroundColor:
+                  colors.bgElevated,
               },
             ]}
           >
@@ -244,37 +424,46 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
                 styles.trackFill,
                 {
                   width: `${(sliderIdx / 2) * 100}%`,
-                  backgroundColor: difficultyStyle.accentColor,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
             />
 
-            {LEVELS.map((level, index) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.thumbHit,
-                  {
-                    left: `${(index / 2) * 100}%`,
-                  },
-                ]}
-                onPress={() => setDifficulty(level)}
-                activeOpacity={0.75}
-              >
-                <View
+            {LEVELS.map(
+              (
+                level,
+                index,
+              ) => (
+                <TouchableOpacity
+                  key={level}
                   style={[
-                    styles.thumb,
+                    styles.thumbHit,
                     {
-                      backgroundColor:
-                        difficulty === level
-                          ? difficultyStyle.accentColor
-                          : colors.bgElevated,
-                      borderColor: difficultyStyle.accentColor,
+                      left: `${(index / 2) * 100}%`,
                     },
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                  onPress={() =>
+                    setDifficulty(level)
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.thumb,
+                      {
+                        backgroundColor:
+                          difficulty === level
+                            ? difficultyStyle.accentColor
+                            : colors.bgElevated,
+                        borderColor:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </View>
 
           <View style={styles.sliderLabels}>
@@ -282,7 +471,9 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 key={level}
                 style={styles.labelBtn}
-                onPress={() => setDifficulty(level)}
+                onPress={() =>
+                  setDifficulty(level)
+                }
                 activeOpacity={0.75}
               >
                 <Text
@@ -293,11 +484,17 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
                         difficulty === level
                           ? difficultyStyle.accentColor
                           : colors.textMuted,
-                      fontWeight: difficulty === level ? '700' : '500',
+                      fontWeight:
+                        difficulty === level
+                          ? '700'
+                          : '500',
                     },
                   ]}
                 >
-                  {DIFFICULTY_STYLES[level].label}
+                  {getDifficultyLabel(
+                    level,
+                    isSpanish,
+                  )}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -313,8 +510,17 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
           ]}
         />
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Colores de este nivel
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Colores de este nivel'
+            : 'Colors in this level'}
         </Text>
 
         <View style={styles.colorsGrid}>
@@ -325,7 +531,10 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
               item.hex.toLowerCase() === '#ffffff';
 
             return (
-              <View key={item.hex} style={styles.colorItem}>
+              <View
+                key={item.hex}
+                style={styles.colorItem}
+              >
                 <View
                   style={[
                     styles.colorSwatch,
@@ -335,7 +544,8 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
                         ? colors.border
                         : 'transparent',
                     },
-                    needsBorder && styles.swatchBorder,
+                    needsBorder &&
+                      styles.swatchBorder,
                   ]}
                 />
 
@@ -343,11 +553,15 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
                   style={[
                     styles.colorLabel,
                     {
-                      color: difficultyStyle.accentColor,
+                      color:
+                        difficultyStyle.accentColor,
                     },
                   ]}
                 >
-                  {item.colorDisplayName}
+                  {translateColorName(
+                    item.colorDisplayName,
+                    isSpanish,
+                  )}
                 </Text>
               </View>
             );
@@ -363,8 +577,17 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
           ]}
         />
 
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Seleccione la cantidad
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Seleccione la cantidad'
+            : 'Select the quantity'}
         </Text>
 
         <View style={styles.quantityRow}>
@@ -372,40 +595,92 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.quantityBox,
               {
-                backgroundColor: colors.bgElevated,
-                borderColor: colors.border,
+                backgroundColor:
+                  colors.bgElevated,
+                borderColor:
+                  colors.border,
               },
             ]}
           >
-            <Text style={[styles.quantityNum, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.quantityNum,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {quantity}
             </Text>
 
             <View style={styles.arrows}>
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.min(quantity + 1, 9))}
+                onPress={() =>
+                  setQuantity(
+                    Math.min(
+                      quantity + 1,
+                      9,
+                    ),
+                  )
+                }
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▲
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.arrowBtn}
-                onPress={() => setQuantity(Math.max(quantity - 1, 1))}
+                onPress={() =>
+                  setQuantity(
+                    Math.max(
+                      quantity - 1,
+                      1,
+                    ),
+                  )
+                }
                 activeOpacity={0.75}
               >
-                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.arrowText,
+                    {
+                      color:
+                        colors.textSecondary,
+                    },
+                  ]}
+                >
                   ▼
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={[styles.vecesText, { color: colors.textSecondary }]}>
-            {quantity === 1 ? ' vez' : ' veces'}
+          <Text
+            style={[
+              styles.vecesText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? quantity === 1
+                ? ' vez'
+                : ' veces'
+              : quantity === 1
+                ? ' time'
+                : ' times'}
           </Text>
         </View>
 
@@ -415,7 +690,8 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
           style={[
             styles.confirmBtn,
             {
-              backgroundColor: difficultyStyle.accentColor,
+              backgroundColor:
+                difficultyStyle.accentColor,
             },
           ]}
           onPress={handleSave}
@@ -425,11 +701,14 @@ export function ColoredMissionConfigScreen({ navigation, route }: Props) {
             style={[
               styles.confirmText,
               {
-                color: difficultyStyle.textColor,
+                color:
+                  difficultyStyle.textColor,
               },
             ]}
           >
-            Guardar
+            {isSpanish
+              ? 'Guardar'
+              : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

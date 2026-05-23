@@ -1,6 +1,13 @@
+// src/features/history/components/EmptyHistoryState.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 interface EmptyHistoryStateProps {
   title?: string;
@@ -8,10 +15,26 @@ interface EmptyHistoryStateProps {
 }
 
 export function EmptyHistoryState({
-  title = 'Sin misiones aún',
-  description = 'Cuando completes misiones en tus alarmas, aparecerán aquí.',
+  title,
+  description,
 }: EmptyHistoryStateProps) {
-  const { colors } = useAppTheme();
+  const {
+    colors,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish = language === 'es';
+
+  const defaultTitle = isSpanish
+    ? 'Sin misiones aún'
+    : 'No missions yet';
+
+  const defaultDescription = isSpanish
+    ? 'Cuando completes misiones en tus alarmas, aparecerán aquí.'
+    : 'When you complete missions in your alarms, they will appear here.';
 
   return (
     <View style={styles.container}>
@@ -24,15 +47,38 @@ export function EmptyHistoryState({
           },
         ]}
       >
-        <Text style={[styles.icon, { color: colors.textMuted }]}>☰</Text>
+        <Text
+          style={[
+            styles.icon,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          ☰
+        </Text>
       </View>
 
-      <Text style={[styles.title, { color: colors.textSecondary }]}>
-        {title}
+      <Text
+        style={[
+          styles.title,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        {title ?? defaultTitle}
       </Text>
 
-      <Text style={[styles.sub, { color: colors.textMuted }]}>
-        {description}
+      <Text
+        style={[
+          styles.sub,
+          {
+            color: colors.textMuted,
+          },
+        ]}
+      >
+        {description ?? defaultDescription}
       </Text>
     </View>
   );
@@ -44,6 +90,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     paddingHorizontal: 32,
   },
+
   iconBox: {
     width: 56,
     height: 56,
@@ -53,16 +100,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+
   icon: {
     fontSize: 30,
     fontWeight: '700',
     lineHeight: 34,
   },
+
   title: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
   },
+
   sub: {
     fontSize: 12,
     textAlign: 'center',

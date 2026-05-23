@@ -1,5 +1,9 @@
 // src/features/alarm/components/AlarmForm.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -18,6 +22,7 @@ import { Modal as AppModal } from '../../../shared/components/ui/Modal';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 import { DAY_LABELS_SHORT } from '../../missions/constants/missions';
 import { RandomMissionConfig } from '../../missions/random/components/RandomMissionConfig';
@@ -98,9 +103,31 @@ const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   quantity: 3,
 };
 
-const HOUR_VALUES = Array.from({ length: 24 }, (_, index) => index);
-const MINUTE_VALUES = Array.from({ length: 60 }, (_, index) => index);
+const HOUR_VALUES = Array.from(
+  {
+    length: 24,
+  },
+  (_, index) => index,
+);
+
+const MINUTE_VALUES = Array.from(
+  {
+    length: 60,
+  },
+  (_, index) => index,
+);
+
 const MAX_MISSIONS = 5;
+
+const DAY_LABELS_SHORT_EN = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+];
 
 type AlarmFormDraft = {
   hour: number;
@@ -119,15 +146,22 @@ function padTime(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-function mod(value: number, length: number): number {
+function mod(
+  value: number,
+  length: number,
+): number {
   return ((value % length) + length) % length;
 }
 
-function toRuntimeDifficulty(difficulty: Difficulty): RuntimeDifficulty {
+function toRuntimeDifficulty(
+  difficulty: Difficulty,
+): RuntimeDifficulty {
   return difficulty === 'normal' ? 'medium' : difficulty;
 }
 
-function toAlarmDifficulty(difficulty: RuntimeDifficulty): Difficulty {
+function toAlarmDifficulty(
+  difficulty: RuntimeDifficulty,
+): Difficulty {
   return difficulty === 'medium' ? 'normal' : difficulty;
 }
 
@@ -136,11 +170,19 @@ function buildRandomMissionGroup(
   quantity: number,
   missionCount: number,
 ): AlarmMission[] {
-  return Array.from({ length: Math.min(missionCount, MAX_MISSIONS) }, () => ({
-    type: 'random',
-    difficulty: toAlarmDifficulty(difficulty),
-    quantity,
-  }));
+  return Array.from(
+    {
+      length: Math.min(
+        missionCount,
+        MAX_MISSIONS,
+      ),
+    },
+    () => ({
+      type: 'random',
+      difficulty: toAlarmDifficulty(difficulty),
+      quantity,
+    }),
+  );
 }
 
 function applyConfiguredMission(
@@ -148,15 +190,58 @@ function applyConfiguredMission(
   mission: AlarmMission,
   index: number | null,
 ): AlarmMission[] {
-  if (index === null || index < 0 || index >= missions.length) {
-    if (missions.length >= MAX_MISSIONS) return missions;
+  if (
+    index === null ||
+    index < 0 ||
+    index >= missions.length
+  ) {
+    if (missions.length >= MAX_MISSIONS) {
+      return missions;
+    }
 
-    return [...missions, mission];
+    return [
+      ...missions,
+      mission,
+    ];
   }
 
   return missions.map((item, itemIndex) =>
     itemIndex === index ? mission : item,
   );
+}
+
+function getTranslatedTitle(
+  title: string,
+  isSpanish: boolean,
+): string {
+  const normalizedTitle = title.toLowerCase();
+
+  if (normalizedTitle.includes('editar')) {
+    return isSpanish ? 'Editar alarma' : 'Edit alarm';
+  }
+
+  if (normalizedTitle.includes('nueva')) {
+    return isSpanish ? 'Nueva alarma' : 'New alarm';
+  }
+
+  return title;
+}
+
+function getTranslatedSubmitLabel(
+  submitLabel: string,
+  isSpanish: boolean,
+): string {
+  const normalizedLabel = submitLabel.toLowerCase();
+
+  if (normalizedLabel.includes('cambios')) {
+    return isSpanish ? 'Guardar cambios' : 'Save changes';
+  }
+
+  if (normalizedLabel.includes('guardar')) {
+    return isSpanish ? 'Guardar alarma' : 'Save alarm';
+  }
+
+  return submitLabel;
 }
 
 type TimeWheelProps = {
@@ -177,8 +262,10 @@ function TimeWheel({
   const max = values.length;
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
-  const repeatDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const repeatDelayRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef =
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearRepeat = () => {
     if (repeatDelayRef.current) {
@@ -193,7 +280,12 @@ function TimeWheel({
   };
 
   const changeBy = (delta: number) => {
-    const nextValue = values[mod(valueRef.current + delta, max)];
+    const nextValue = values[
+      mod(
+        valueRef.current + delta,
+        max,
+      )
+    ];
 
     valueRef.current = nextValue;
     onChangeRef.current(nextValue);
@@ -215,7 +307,10 @@ function TimeWheel({
   useEffect(() => {
     valueRef.current = value;
     onChangeRef.current = onChange;
-  }, [onChange, value]);
+  }, [
+    onChange,
+    value,
+  ]);
 
   useEffect(() => clearRepeat, []);
 
@@ -294,33 +389,68 @@ export default function AlarmForm({
   onDelete,
 }: AlarmFormProps) {
   const { colors } = useAppTheme();
+  const { language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const navigation =
-    useNavigation<NativeStackNavigationProp<AlarmStackParamList>>();
+    useNavigation<
+      NativeStackNavigationProp<AlarmStackParamList>
+    >();
 
   const insets = useSafeAreaInsets();
 
-  const initialDraftRef = useRef<AlarmFormDraft | null>(
-    alarmFormDrafts.get(draftKey) ?? null,
+  const translatedTitle = getTranslatedTitle(
+    title,
+    isSpanish,
   );
+
+  const translatedSubmitLabel = getTranslatedSubmitLabel(
+    submitLabel,
+    isSpanish,
+  );
+
+  const dayLabels = isSpanish
+    ? DAY_LABELS_SHORT
+    : DAY_LABELS_SHORT_EN;
+
+  const initialDraftRef =
+    useRef<AlarmFormDraft | null>(
+      alarmFormDrafts.get(draftKey) ?? null,
+    );
 
   const initialDraft = initialDraftRef.current;
 
   const initialMissionEnabled = Boolean(
     initialDraft?.missionEnabled ??
-      (initialData?.randomMissions ||
-        (initialData?.missions?.length ?? 0) > 0),
+      (
+        initialData?.randomMissions ||
+        (initialData?.missions?.length ?? 0) > 0
+      ),
   );
 
-  const initialMissionList = initialDraft?.configuredMissions?.length
-    ? initialDraft.configuredMissions.slice(0, MAX_MISSIONS)
+  const initialMissionList = initialDraft
+    ?.configuredMissions
+    ?.length
+    ? initialDraft.configuredMissions.slice(
+        0,
+        MAX_MISSIONS,
+      )
     : initialData?.missions?.length
-      ? initialData.missions.slice(0, MAX_MISSIONS)
-      : [DEFAULT_RANDOM_CONFIG];
+      ? initialData.missions.slice(
+          0,
+          MAX_MISSIONS,
+        )
+      : [
+          DEFAULT_RANDOM_CONFIG,
+        ];
 
   const initialMissions = initialMissionEnabled
     ? initialMissionList.map((mission) =>
-        (initialDraft?.randomMissions ?? initialData?.randomMissions)
+        (
+          initialDraft?.randomMissions ??
+          initialData?.randomMissions
+        )
           ? {
               ...mission,
               type: 'random' as const,
@@ -330,39 +460,59 @@ export default function AlarmForm({
     : [];
 
   const [hour, setHour] = useState<number>(
-    initialDraft?.hour ?? initialData?.hour ?? 7,
+    initialDraft?.hour ??
+      initialData?.hour ??
+      7,
   );
 
   const [minute, setMinute] = useState<number>(
-    initialDraft?.minute ?? initialData?.minute ?? 0,
+    initialDraft?.minute ??
+      initialData?.minute ??
+      0,
   );
 
   const [hourText, setHourText] = useState(() =>
-    padTime(initialDraft?.hour ?? initialData?.hour ?? 7),
+    padTime(
+      initialDraft?.hour ??
+        initialData?.hour ??
+        7,
+    ),
   );
 
   const [minuteText, setMinuteText] = useState(() =>
-    padTime(initialDraft?.minute ?? initialData?.minute ?? 0),
+    padTime(
+      initialDraft?.minute ??
+        initialData?.minute ??
+        0,
+    ),
   );
 
   const [label, setLabel] = useState<string>(
-    initialDraft?.label ?? initialData?.label ?? '',
+    initialDraft?.label ??
+      initialData?.label ??
+      '',
   );
 
-  const [repeatDays, setRepeatDays] = useState<RepeatDay[]>(
-    initialDraft?.repeatDays ?? initialData?.repeatDays ?? [],
-  );
+  const [repeatDays, setRepeatDays] =
+    useState<RepeatDay[]>(
+      initialDraft?.repeatDays ??
+        initialData?.repeatDays ??
+        [],
+    );
 
   const [missionEnabled, setMissionEnabled] =
     useState(initialMissionEnabled);
 
-  const [randomMissions, setRandomMissions] = useState<boolean>(
-    initialDraft?.randomMissions ?? Boolean(initialData?.randomMissions),
-  );
+  const [randomMissions, setRandomMissions] =
+    useState<boolean>(
+      initialDraft?.randomMissions ??
+        Boolean(initialData?.randomMissions),
+    );
 
   const [configuredMissions, setConfiguredMissions] =
     useState<AlarmMission[]>(
-      initialDraft?.configuredMissions ?? initialMissions,
+      initialDraft?.configuredMissions ??
+        initialMissions,
     );
 
   const [draftMission, setDraftMission] =
@@ -371,19 +521,28 @@ export default function AlarmForm({
   const [configSelection, setConfigSelection] =
     useState<AlarmMissionSelection | null>(null);
 
-  const [editingMissionIndex, setEditingMissionIndex] =
-    useState<number | null>(null);
+  const [
+    editingMissionIndex,
+    setEditingMissionIndex,
+  ] = useState<number | null>(null);
 
   const [missionStep, setMissionStep] =
     useState<MissionStep>('form');
 
-  const [deleteConfirmVisible, setDeleteConfirmVisible] =
-    useState(false);
+  const [
+    deleteConfirmVisible,
+    setDeleteConfirmVisible,
+  ] = useState(false);
 
-  const [soundUri, setSoundUri] = useState<string | null>(
-    initialDraft?.soundUri ??
-      (initialData ? initialData.soundUri ?? null : DEFAULT_ALARM_SOUND_URI),
-  );
+  const [soundUri, setSoundUri] =
+    useState<string | null>(
+      initialDraft?.soundUri ??
+        (
+          initialData
+            ? initialData.soundUri ?? null
+            : DEFAULT_ALARM_SOUND_URI
+        ),
+    );
 
   const draftClosedRef = useRef(false);
 
@@ -399,7 +558,9 @@ export default function AlarmForm({
   });
 
   useEffect(() => {
-    if (draftClosedRef.current) return;
+    if (draftClosedRef.current) {
+      return;
+    }
 
     draftRef.current = {
       hour,
@@ -412,7 +573,10 @@ export default function AlarmForm({
       soundUri,
     };
 
-    alarmFormDrafts.set(draftKey, draftRef.current);
+    alarmFormDrafts.set(
+      draftKey,
+      draftRef.current,
+    );
   }, [
     configuredMissions,
     draftKey,
@@ -427,14 +591,22 @@ export default function AlarmForm({
 
   useEffect(() => {
     setHourText(padTime(hour));
-  }, [hour]);
+  }, [
+    hour,
+  ]);
 
   useEffect(() => {
     setMinuteText(padTime(minute));
-  }, [minute]);
+  }, [
+    minute,
+  ]);
 
-  const persistDraft = (overrides: Partial<AlarmFormDraft> = {}) => {
-    if (draftClosedRef.current) return draftRef.current;
+  const persistDraft = (
+    overrides: Partial<AlarmFormDraft> = {},
+  ) => {
+    if (draftClosedRef.current) {
+      return draftRef.current;
+    }
 
     const draft: AlarmFormDraft = {
       ...draftRef.current,
@@ -442,7 +614,11 @@ export default function AlarmForm({
     };
 
     draftRef.current = draft;
-    alarmFormDrafts.set(draftKey, draft);
+
+    alarmFormDrafts.set(
+      draftKey,
+      draft,
+    );
 
     return draft;
   };
@@ -454,6 +630,7 @@ export default function AlarmForm({
 
   const updateHour = (nextHour: number) => {
     setHour(nextHour);
+
     persistDraft({
       hour: nextHour,
     });
@@ -461,34 +638,62 @@ export default function AlarmForm({
 
   const updateMinute = (nextMinute: number) => {
     setMinute(nextMinute);
+
     persistDraft({
       minute: nextMinute,
     });
   };
 
   const sanitizeTimeText = (text: string) =>
-    text.replace(/\D/g, '').slice(0, 2);
+    text
+      .replace(/\D/g, '')
+      .slice(
+        0,
+        2,
+      );
 
   const commitHourText = () => {
-    const parsedHour = Number.parseInt(hourText, 10);
+    const parsedHour = Number.parseInt(
+      hourText,
+      10,
+    );
 
     if (Number.isNaN(parsedHour)) {
       setHourText(padTime(hour));
       return;
     }
 
-    updateHour(Math.max(0, Math.min(23, parsedHour)));
+    updateHour(
+      Math.max(
+        0,
+        Math.min(
+          23,
+          parsedHour,
+        ),
+      ),
+    );
   };
 
   const commitMinuteText = () => {
-    const parsedMinute = Number.parseInt(minuteText, 10);
+    const parsedMinute = Number.parseInt(
+      minuteText,
+      10,
+    );
 
     if (Number.isNaN(parsedMinute)) {
       setMinuteText(padTime(minute));
       return;
     }
 
-    updateMinute(Math.max(0, Math.min(59, parsedMinute)));
+    updateMinute(
+      Math.max(
+        0,
+        Math.min(
+          59,
+          parsedMinute,
+        ),
+      ),
+    );
   };
 
   const handleBack = () => {
@@ -506,12 +711,21 @@ export default function AlarmForm({
     onDelete?.();
   };
 
-  const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
+  const normalizedRepeatDays =
+    normalizeRepeatDays(repeatDays);
+
   const allDaysSelected =
-    normalizedRepeatDays.length === ALL_REPEAT_DAYS.length;
+    normalizedRepeatDays.length ===
+    ALL_REPEAT_DAYS.length;
 
   const toggleAllDays = () => {
-    setRepeatDays(allDaysSelected ? [] : [...ALL_REPEAT_DAYS]);
+    setRepeatDays(
+      allDaysSelected
+        ? []
+        : [
+            ...ALL_REPEAT_DAYS,
+          ],
+    );
   };
 
   const toggleDay = (day: RepeatDay) => {
@@ -520,15 +734,20 @@ export default function AlarmForm({
         return prev.filter((d) => d !== day);
       }
 
-      return normalizeRepeatDays([...prev, day]);
+      return normalizeRepeatDays([
+        ...prev,
+        day,
+      ]);
     });
   };
 
   const openMissionSelector = () => {
     setMissionEnabled(true);
+
     persistDraft({
       missionEnabled: true,
     });
+
     setEditingMissionIndex(null);
     setMissionStep('select');
   };
@@ -536,8 +755,11 @@ export default function AlarmForm({
   const clearMission = (index?: number) => {
     if (typeof index === 'number') {
       setConfiguredMissions((prev) =>
-        prev.filter((_, itemIndex) => itemIndex !== index),
+        prev.filter(
+          (_, itemIndex) => itemIndex !== index,
+        ),
       );
+
       setRandomMissions(false);
       return;
     }
@@ -562,7 +784,11 @@ export default function AlarmForm({
     index: number | null,
   ) => {
     setConfiguredMissions((prev) => {
-      const next = applyConfiguredMission(prev, mission, index);
+      const next = applyConfiguredMission(
+        prev,
+        mission,
+        index,
+      );
 
       persistDraft({
         configuredMissions: next,
@@ -577,7 +803,9 @@ export default function AlarmForm({
   const editMission = (index: number) => {
     const mission = configuredMissions[index];
 
-    if (!mission) return;
+    if (!mission) {
+      return;
+    }
 
     const selection =
       mission.type === 'random' || randomMissions
@@ -603,10 +831,16 @@ export default function AlarmForm({
       return;
     }
 
-    openConcreteMissionConfig(selection, mission, index);
+    openConcreteMissionConfig(
+      selection,
+      mission,
+      index,
+    );
   };
 
-  const selectMission = (selection: AlarmMissionSelection) => {
+  const selectMission = (
+    selection: AlarmMissionSelection,
+  ) => {
     setMissionEnabled(true);
     setConfigSelection(selection);
 
@@ -641,7 +875,8 @@ export default function AlarmForm({
 
     const existingMission =
       editingMissionIndex !== null
-        ? configuredMissions[editingMissionIndex] ?? defaultMission
+        ? configuredMissions[editingMissionIndex] ??
+          defaultMission
         : defaultMission;
 
     persistDraft({
@@ -663,73 +898,102 @@ export default function AlarmForm({
   };
 
   const openConcreteMissionConfig = (
-    selection: Exclude<AlarmMissionSelection, 'random'>,
+    selection: Exclude<
+      AlarmMissionSelection,
+      'random'
+    >,
     mission: AlarmMission,
     index: number | null,
   ) => {
-    const sessionId = registerAlarmMissionConfigSession((nextMission) => {
-      setConfiguredMissionAtIndex(nextMission, index);
-      setMissionEnabled(true);
-      setRandomMissions(false);
-      setDraftMission(null);
-      setConfigSelection(null);
-      setEditingMissionIndex(null);
-      setMissionStep('form');
-    });
+    const sessionId =
+      registerAlarmMissionConfigSession((nextMission) => {
+        setConfiguredMissionAtIndex(
+          nextMission,
+          index,
+        );
+
+        setMissionEnabled(true);
+        setRandomMissions(false);
+        setDraftMission(null);
+        setConfigSelection(null);
+        setEditingMissionIndex(null);
+        setMissionStep('form');
+      });
 
     if (selection === 'math') {
       persistDraft();
+
       navigation.navigate('AlarmConfigMathMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
         operationType: mission.operationType ?? 'addition',
         alarmConfigSessionId: sessionId,
       });
+
       return;
     }
 
     if (selection === 'physical') {
       persistDraft();
+
       navigation.navigate('AlarmConfigMovementMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 3,
         alarmConfigSessionId: sessionId,
       });
+
       return;
     }
 
     if (selection === 'color') {
       persistDraft();
-      navigation.navigate('AlarmConfigColoredFiguresMission', {
-        difficulty: toRuntimeDifficulty(mission.difficulty),
-        quantity: mission.quantity ?? 3,
-        alarmConfigSessionId: sessionId,
-      });
+
+      navigation.navigate(
+        'AlarmConfigColoredFiguresMission',
+        {
+          difficulty: toRuntimeDifficulty(
+            mission.difficulty,
+          ),
+          quantity: mission.quantity ?? 3,
+          alarmConfigSessionId: sessionId,
+        },
+      );
+
       return;
     }
 
     if (selection === 'photo') {
       persistDraft();
-      navigation.navigate('AlarmConfigObjectRecognitionMission', {
-        difficulty: toRuntimeDifficulty(mission.difficulty),
-        quantity: mission.quantity ?? 2,
-        targetObjectIds: mission.targetObjectIds,
-        alarmConfigSessionId: sessionId,
-      });
+
+      navigation.navigate(
+        'AlarmConfigObjectRecognitionMission',
+        {
+          difficulty: toRuntimeDifficulty(
+            mission.difficulty,
+          ),
+          quantity: mission.quantity ?? 2,
+          targetObjectIds: mission.targetObjectIds,
+          alarmConfigSessionId: sessionId,
+        },
+      );
+
       return;
     }
 
     if (selection === 'colorFind') {
       persistDraft();
+
       navigation.navigate('AlarmConfigColorFindMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 5,
         alarmConfigSessionId: sessionId,
       });
+
       return;
     }
 
     persistDraft();
+
     navigation.navigate('AlarmConfigWordCompletionMission', {
       difficulty: toRuntimeDifficulty(mission.difficulty),
       quantity: mission.quantity ?? 3,
@@ -750,15 +1014,22 @@ export default function AlarmForm({
     if (editingMission?.type === 'random') {
       return Math.max(
         1,
-        MAX_MISSIONS - (configuredMissions.length - randomCount),
+        MAX_MISSIONS -
+          (configuredMissions.length - randomCount),
       );
     }
 
     if (editingMissionIndex !== null) {
-      return Math.max(1, MAX_MISSIONS - configuredMissions.length + 1);
+      return Math.max(
+        1,
+        MAX_MISSIONS - configuredMissions.length + 1,
+      );
     }
 
-    return Math.max(1, MAX_MISSIONS - configuredMissions.length);
+    return Math.max(
+      1,
+      MAX_MISSIONS - configuredMissions.length,
+    );
   };
 
   const getInitialRandomMissionCount = () => {
@@ -770,8 +1041,9 @@ export default function AlarmForm({
     if (editingMission?.type === 'random') {
       return Math.max(
         1,
-        configuredMissions.filter((mission) => mission.type === 'random')
-          .length,
+        configuredMissions.filter(
+          (mission) => mission.type === 'random',
+        ).length,
       );
     }
 
@@ -791,7 +1063,9 @@ export default function AlarmForm({
 
     setConfiguredMissions((prev) => {
       const editingMission =
-        editingMissionIndex !== null ? prev[editingMissionIndex] : null;
+        editingMissionIndex !== null
+          ? prev[editingMissionIndex]
+          : null;
 
       let next: AlarmMission[];
 
@@ -799,14 +1073,25 @@ export default function AlarmForm({
         let inserted = false;
 
         next = prev.flatMap((mission) => {
-          if (mission.type !== 'random') return [mission];
-          if (inserted) return [];
+          if (mission.type !== 'random') {
+            return [
+              mission,
+            ];
+          }
+
+          if (inserted) {
+            return [];
+          }
 
           inserted = true;
+
           return randomMissionGroup;
         });
 
-        next = next.slice(0, MAX_MISSIONS);
+        next = next.slice(
+          0,
+          MAX_MISSIONS,
+        );
       } else if (
         editingMissionIndex !== null &&
         editingMissionIndex >= 0 &&
@@ -814,11 +1099,24 @@ export default function AlarmForm({
       ) {
         next = prev
           .flatMap((mission, index) =>
-            index === editingMissionIndex ? randomMissionGroup : [mission],
+            index === editingMissionIndex
+              ? randomMissionGroup
+              : [
+                  mission,
+                ],
           )
-          .slice(0, MAX_MISSIONS);
+          .slice(
+            0,
+            MAX_MISSIONS,
+          );
       } else {
-        next = [...prev, ...randomMissionGroup].slice(0, MAX_MISSIONS);
+        next = [
+          ...prev,
+          ...randomMissionGroup,
+        ].slice(
+          0,
+          MAX_MISSIONS,
+        );
       }
 
       persistDraft({
@@ -839,9 +1137,11 @@ export default function AlarmForm({
 
   const saveAlarm = () => {
     const hasConfiguredMissions =
-      missionEnabled && configuredMissions.length > 0;
+      missionEnabled &&
+      configuredMissions.length > 0;
 
-    const normalizedRepeatDays = normalizeRepeatDays(repeatDays);
+    const normalizedRepeatDays =
+      normalizeRepeatDays(repeatDays);
 
     clearSavedDraft();
 
@@ -851,7 +1151,9 @@ export default function AlarmForm({
       label: label.trim(),
       enabled: true,
       repeatDays: normalizedRepeatDays,
-      missions: hasConfiguredMissions ? configuredMissions : [],
+      missions: hasConfiguredMissions
+        ? configuredMissions
+        : [],
       randomMissions: false,
       soundUri,
     });
@@ -873,12 +1175,16 @@ export default function AlarmForm({
   ) {
     return (
       <RandomMissionConfig
-        initialDifficulty={toRuntimeDifficulty(draftMission.difficulty)}
+        initialDifficulty={toRuntimeDifficulty(
+          draftMission.difficulty,
+        )}
         initialQuantity={draftMission.quantity ?? 3}
         initialMissionCount={getInitialRandomMissionCount()}
         maxMissionCount={getRandomMissionConfigLimit()}
         onBack={closeMissionConfig}
-        saveLabel="Guardar mision"
+        saveLabel={
+          isSpanish ? 'Guardar misión' : 'Save mission'
+        }
         onSave={saveRandomMissionConfig}
       />
     );
@@ -907,7 +1213,7 @@ export default function AlarmForm({
             },
           ]}
         >
-          {title}
+          {translatedTitle}
         </Text>
 
         <View style={styles.headerSpacer} />
@@ -944,7 +1250,7 @@ export default function AlarmForm({
               },
             ]}
           >
-            Hora
+            {isSpanish ? 'Hora' : 'Time'}
           </Text>
 
           <View
@@ -957,7 +1263,7 @@ export default function AlarmForm({
             ]}
           >
             <TimeWheel
-              label="Hora"
+              label={isSpanish ? 'Hora' : 'Hour'}
               values={HOUR_VALUES}
               value={hour}
               onChange={updateHour}
@@ -975,7 +1281,7 @@ export default function AlarmForm({
             </Text>
 
             <TimeWheel
-              label="Min"
+              label={isSpanish ? 'Min' : 'Min'}
               values={MINUTE_VALUES}
               value={minute}
               onChange={updateMinute}
@@ -999,7 +1305,7 @@ export default function AlarmForm({
                 },
               ]}
             >
-              Hora exacta
+              {isSpanish ? 'Hora exacta' : 'Exact time'}
             </Text>
 
             <View style={styles.directTimeInputs}>
@@ -1076,11 +1382,17 @@ export default function AlarmForm({
               },
             ]}
           >
-            Nombre (opcional)
+            {isSpanish
+              ? 'Nombre (opcional)'
+              : 'Name (optional)'}
           </Text>
 
           <TextInput
-            placeholder="Ej. Clase de programacion"
+            placeholder={
+              isSpanish
+                ? 'Ej. Clase de programación'
+                : 'Ex. Programming class'
+            }
             placeholderTextColor={colors.textMuted}
             style={[
               styles.input,
@@ -1113,7 +1425,7 @@ export default function AlarmForm({
               },
             ]}
           >
-            Repeticion
+            {isSpanish ? 'Repetición' : 'Repeat'}
           </Text>
 
           <TouchableOpacity
@@ -1128,7 +1440,11 @@ export default function AlarmForm({
             activeOpacity={0.85}
           >
             <Ionicons
-              name={allDaysSelected ? 'checkbox' : 'square-outline'}
+              name={
+                allDaysSelected
+                  ? 'checkbox'
+                  : 'square-outline'
+              }
               size={22}
               color={
                 allDaysSelected
@@ -1147,18 +1463,18 @@ export default function AlarmForm({
                 },
               ]}
             >
-              Todos los dias
+              {isSpanish ? 'Todos los días' : 'Every day'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.daysRow}>
-            {DAY_LABELS_SHORT.map((day, index) => {
+            {dayLabels.map((day, index) => {
               const dayValue = index as RepeatDay;
               const active = repeatDays.includes(dayValue);
 
               return (
                 <TouchableOpacity
-                  key={day + index}
+                  key={`${day}-${index}`}
                   style={[
                     styles.dayBtn,
                     {
@@ -1208,7 +1524,7 @@ export default function AlarmForm({
               },
             ]}
           >
-            Sonido
+            {isSpanish ? 'Sonido' : 'Sound'}
           </Text>
 
           <View style={styles.soundWrap}>
@@ -1271,7 +1587,10 @@ export default function AlarmForm({
           {
             backgroundColor: colors.bg,
             borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 10),
+            paddingBottom: Math.max(
+              insets.bottom,
+              10,
+            ),
           },
         ]}
       >
@@ -1296,7 +1615,7 @@ export default function AlarmForm({
                 },
               ]}
             >
-              {submitLabel}
+              {translatedSubmitLabel}
             </Text>
           </TouchableOpacity>
 
@@ -1320,7 +1639,7 @@ export default function AlarmForm({
                   },
                 ]}
               >
-                Eliminar
+                {isSpanish ? 'Eliminar' : 'Delete'}
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -1330,16 +1649,24 @@ export default function AlarmForm({
       <AppModal
         visible={deleteConfirmVisible}
         type="warning"
-        title="Eliminar alarma"
-        message="Esta acción no se puede deshacer."
+        title={
+          isSpanish
+            ? 'Eliminar alarma'
+            : 'Delete alarm'
+        }
+        message={
+          isSpanish
+            ? 'Esta acción no se puede deshacer.'
+            : 'This action cannot be undone.'
+        }
         closeOnBackdropPress
         onClose={() => setDeleteConfirmVisible(false)}
         cancelAction={{
-          label: 'Cancelar',
+          label: isSpanish ? 'Cancelar' : 'Cancel',
           onPress: () => setDeleteConfirmVisible(false),
         }}
         confirmAction={{
-          label: 'Eliminar',
+          label: isSpanish ? 'Eliminar' : 'Delete',
           onPress: confirmDelete,
         }}
       />

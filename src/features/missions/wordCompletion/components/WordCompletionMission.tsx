@@ -1,5 +1,7 @@
 // src/features/missions/wordCompletion/components/WordCompletionMission.tsx
-import React, { useState } from 'react';
+import React, {
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -23,6 +25,7 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
@@ -33,16 +36,99 @@ interface Props {
   alarmLabel?: string;
 }
 
-const DIFFICULTY_ORDER: Difficulty[] = ['easy', 'medium', 'hard'];
+const DIFFICULTY_ORDER: Difficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+];
+
 const MAX_ERRORS = 3;
 
-function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
-  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
-  return currentIndex > 0 ? DIFFICULTY_ORDER[currentIndex - 1] : null;
+function getPreviousDifficulty(
+  difficulty: Difficulty,
+): Difficulty | null {
+  const currentIndex =
+    DIFFICULTY_ORDER.indexOf(difficulty);
+
+  if (currentIndex > 0) {
+    return DIFFICULTY_ORDER[currentIndex - 1];
+  }
+
+  return null;
 }
 
-function getDifficultyLabel(difficulty: Difficulty) {
-  return WordCompletionService.getDifficultyStyle(difficulty).label.toLowerCase();
+function getDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'fácil' : 'easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'normal' : 'normal';
+  }
+
+  return isSpanish ? 'difícil' : 'hard';
+}
+
+function getDifficultyPillLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'FÁCIL' : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'NORMAL' : 'NORMAL';
+  }
+
+  return isSpanish ? 'DIFÍCIL' : 'HARD';
+}
+
+function translateDay(
+  day: string,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return day;
+  }
+
+  const normalized = day
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('lunes')) {
+    return 'Monday';
+  }
+
+  if (normalized.includes('martes')) {
+    return 'Tuesday';
+  }
+
+  if (normalized.includes('miercoles')) {
+    return 'Wednesday';
+  }
+
+  if (normalized.includes('jueves')) {
+    return 'Thursday';
+  }
+
+  if (normalized.includes('viernes')) {
+    return 'Friday';
+  }
+
+  if (normalized.includes('sabado')) {
+    return 'Saturday';
+  }
+
+  if (normalized.includes('domingo')) {
+    return 'Sunday';
+  }
+
+  return day;
 }
 
 export function WordCompletionMission({
@@ -51,19 +137,56 @@ export function WordCompletionMission({
   onComplete,
   alarmLabel,
 }: Props) {
-  const { width } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+  const {
+    width,
+  } = useWindowDimensions();
 
-  const { user, isAuthenticated, isGuest } = useAuth();
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  const [missionCount, setMissionCount] = useState(0);
-  const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
-  const [errorCount, setErrorCount] = useState(0);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackType, setFeedbackType] =
-    useState<'error' | 'warning' | 'success'>('error');
+  const {
+    language,
+  } = useTranslation();
 
-  const difficultyStyle = WordCompletionService.getDifficultyStyle(difficulty);
+  const isSpanish = language === 'es';
+
+  const {
+    user,
+    isAuthenticated,
+    isGuest,
+  } = useAuth();
+
+  const [
+    missionCount,
+    setMissionCount,
+  ] = useState(0);
+
+  const [
+    difficulty,
+    setDifficulty,
+  ] = useState<Difficulty>(initialDifficulty);
+
+  const [
+    errorCount,
+    setErrorCount,
+  ] = useState(0);
+
+  const [
+    feedbackMessage,
+    setFeedbackMessage,
+  ] = useState('');
+
+  const [
+    feedbackType,
+    setFeedbackType,
+  ] = useState<
+    'error' | 'warning' | 'success'
+  >('error');
+
+  const difficultyStyle =
+    WordCompletionService.getDifficultyStyle(difficulty);
 
   const {
     challenges,
@@ -74,26 +197,58 @@ export function WordCompletionMission({
     handleReplace,
   } = useWordCompletion(difficulty);
 
-  const { time, day } = useCurrentTime();
+  const {
+    time,
+    day,
+  } = useCurrentTime();
 
   const isHard = difficulty === 'hard';
 
   const maxLength = isHard
-    ? challenges[state.currentChallengeIndex]?.missingIndexes.length ?? 1
+    ? challenges[state.currentChallengeIndex]
+        ?.missingIndexes.length ?? 1
     : current?.missingIndexes.length ?? 1;
 
+  const totalMissingLetters =
+    challenges.reduce(
+      (total, challenge) =>
+        total + challenge.missingIndexes.length,
+      0,
+    );
+
   const hintText = isHard
-    ? `${challenges.reduce(
-        (total, challenge) => total + challenge.missingIndexes.length,
-        0,
-      )} letras faltantes`
-    : `${maxLength} letra${maxLength > 1 ? 's' : ''} faltante${
-        maxLength > 1 ? 's · escríbelas juntas' : ''
-      }`;
+    ? isSpanish
+      ? `${totalMissingLetters} letras faltantes`
+      : `${totalMissingLetters} missing letters`
+    : isSpanish
+      ? `${maxLength} letra${
+          maxLength > 1 ? 's' : ''
+        } faltante${
+          maxLength > 1
+            ? 's · escríbelas juntas'
+            : ''
+        }`
+      : `${maxLength} missing letter${
+          maxLength > 1 ? 's' : ''
+        }${
+          maxLength > 1
+            ? ' · write them together'
+            : ''
+        }`;
 
   const saveMissionHistory = React.useCallback(
-    (success: boolean, nextErrorCount: number) => {
-      if (!isAuthenticated || isGuest || !user?.id || !current) return;
+    (
+      success: boolean,
+      nextErrorCount: number,
+    ) => {
+      if (
+        !isAuthenticated ||
+        isGuest ||
+        !user?.id ||
+        !current
+      ) {
+        return;
+      }
 
       MissionHistoryLocalService.save({
         userId: user.id,
@@ -103,7 +258,8 @@ export function WordCompletionMission({
           word: current.word,
           missingIndexes: current.missingIndexes,
         },
-        correctAnswer: WordCompletionService.getExpectedAnswer(current),
+        correctAnswer:
+          WordCompletionService.getExpectedAnswer(current),
         userAnswer: state.userInput,
         success,
         errorCount: nextErrorCount,
@@ -122,78 +278,141 @@ export function WordCompletionMission({
     ],
   );
 
-  const prevHasError = React.useRef(false);
+  const prevHasError =
+    React.useRef(false);
 
   React.useEffect(() => {
-    if (state.hasError && !prevHasError.current) {
-      const nextErrorCount = errorCount + 1;
-      const previousDifficulty = getPreviousDifficulty(difficulty);
+    if (
+      state.hasError &&
+      !prevHasError.current
+    ) {
+      const nextErrorCount =
+        errorCount + 1;
 
-      saveMissionHistory(false, nextErrorCount);
+      const previousDifficulty =
+        getPreviousDifficulty(difficulty);
 
-      if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+      saveMissionHistory(
+        false,
+        nextErrorCount,
+      );
+
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        previousDifficulty
+      ) {
         setDifficulty(previousDifficulty);
         setErrorCount(0);
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
-            previousDifficulty,
-          )}.`,
+          isSpanish
+            ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `You failed 3 times. You dropped to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
 
         handleReplace();
-        prevHasError.current = state.hasError;
+        prevHasError.current =
+          state.hasError;
+
         return;
       }
 
-      if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
+      if (
+        nextErrorCount >= MAX_ERRORS &&
+        !previousDifficulty
+      ) {
         setErrorCount(0);
         setFeedbackType('error');
+
         setFeedbackMessage(
-          'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+          isSpanish
+            ? 'Fallaste 3 veces, pero ya estás en el nivel más bajo. Intenta nuevamente.'
+            : 'You failed 3 times, but you are already at the lowest level. Try again.',
         );
 
         handleReplace();
-        prevHasError.current = state.hasError;
+        prevHasError.current =
+          state.hasError;
+
         return;
       }
 
       setErrorCount(nextErrorCount);
 
-      if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
+      if (
+        nextErrorCount === MAX_ERRORS - 1 &&
+        previousDifficulty
+      ) {
         setFeedbackType('warning');
+
         setFeedbackMessage(
-          `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+          isSpanish
+            ? `1 fallo más y bajas a ${getDifficultyLabel(
+                previousDifficulty,
+                true,
+              )}.`
+            : `1 more mistake and you drop to ${getDifficultyLabel(
+                previousDifficulty,
+                false,
+              )}.`,
         );
       } else {
-        const remainingErrors = MAX_ERRORS - nextErrorCount;
+        const remainingErrors =
+          MAX_ERRORS - nextErrorCount;
 
         setFeedbackType('error');
+
         setFeedbackMessage(
-          `Respuesta incorrecta. Te quedan ${remainingErrors} intento${
-            remainingErrors === 1 ? '' : 's'
-          }.`,
+          isSpanish
+            ? `Respuesta incorrecta. Te quedan ${remainingErrors} intento${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              }.`
+            : `Incorrect answer. You have ${remainingErrors} attempt${
+                remainingErrors === 1
+                  ? ''
+                  : 's'
+              } left.`,
         );
       }
     }
 
-    prevHasError.current = state.hasError;
+    prevHasError.current =
+      state.hasError;
   }, [
     state.hasError,
     errorCount,
     difficulty,
     handleReplace,
     saveMissionHistory,
+    isSpanish,
   ]);
 
   React.useEffect(() => {
     setErrorCount(0);
-  }, [state.currentChallengeIndex]);
+  }, [
+    state.currentChallengeIndex,
+  ]);
 
   React.useEffect(() => {
-    if (!state.isCompleted) return;
+    if (!state.isCompleted) {
+      return;
+    }
 
-    if (isAuthenticated && !isGuest && user?.id && current) {
+    if (
+      isAuthenticated &&
+      !isGuest &&
+      user?.id &&
+      current
+    ) {
       MissionHistoryLocalService.save({
         userId: user.id,
         missionType: 'word_completion',
@@ -202,7 +421,8 @@ export function WordCompletionMission({
           word: current.word,
           missingIndexes: current.missingIndexes,
         },
-        correctAnswer: WordCompletionService.getExpectedAnswer(current),
+        correctAnswer:
+          WordCompletionService.getExpectedAnswer(current),
         userAnswer: state.userInput,
         success: true,
         errorCount,
@@ -212,7 +432,8 @@ export function WordCompletionMission({
       void syncMissionHistory(user.id);
     }
 
-    const next = missionCount + 1;
+    const next =
+      missionCount + 1;
 
     if (next >= quantity) {
       onComplete();
@@ -245,20 +466,43 @@ export function WordCompletionMission({
         : colors.danger;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : 'height'
+        }
       >
-        <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+        <View
+          style={[
+            styles.screen,
+            {
+              backgroundColor: colors.bg,
+            },
+          ]}
+        >
           <View
             style={[
               styles.pill,
               {
-                backgroundColor: difficultyStyle.bgColor,
-                borderColor: difficultyStyle.accentColor + '40',
+                backgroundColor:
+                  difficultyStyle.bgColor,
+                borderColor:
+                  difficultyStyle.accentColor + '40',
               },
             ]}
           >
@@ -266,11 +510,15 @@ export function WordCompletionMission({
               style={[
                 styles.pillText,
                 {
-                  color: difficultyStyle.accentColor,
+                  color:
+                    difficultyStyle.accentColor,
                 },
               ]}
             >
-              {difficultyStyle.label}
+              {getDifficultyPillLabel(
+                difficulty,
+                isSpanish,
+              )}
             </Text>
           </View>
 
@@ -280,34 +528,78 @@ export function WordCompletionMission({
                 styles.time,
                 {
                   color: colors.text,
-                  fontSize: width < 380 ? 44 : 52,
+                  fontSize:
+                    width < 380 ? 44 : 52,
                 },
               ]}
             >
               {time}
             </Text>
 
-            <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
-              {day} — {alarmLabel ?? 'Hora de levantarse'}
+            <Text
+              style={[
+                styles.dateLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {translateDay(
+                day,
+                isSpanish,
+              )}
+              {' — '}
+              {alarmLabel ??
+                (
+                  isSpanish
+                    ? 'Hora de levantarse'
+                    : 'Time to wake up'
+                )}
             </Text>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.border,
+              },
+            ]}
+          />
 
           <View style={styles.body}>
-            <Text style={[styles.instruction, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.instruction,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               {isHard
-                ? 'Completa todas las palabras:'
-                : 'Escribe la letra que falta:'}
+                ? isSpanish
+                  ? 'Completa todas las palabras:'
+                  : 'Complete all the words:'
+                : isSpanish
+                  ? 'Escribe la letra que falta:'
+                  : 'Type the missing letter:'}
             </Text>
 
             {isHard ? (
               <WordStack
                 challenges={challenges}
-                currentIndex={state.currentChallengeIndex}
-                completedIndexes={state.completedIndexes}
-                accentColor={difficultyStyle.accentColor}
-                accentBg={difficultyStyle.bgColor}
+                currentIndex={
+                  state.currentChallengeIndex
+                }
+                completedIndexes={
+                  state.completedIndexes
+                }
+                accentColor={
+                  difficultyStyle.accentColor
+                }
+                accentBg={
+                  difficultyStyle.bgColor
+                }
               />
             ) : (
               current && (
@@ -315,16 +607,24 @@ export function WordCompletionMission({
                   style={[
                     styles.wordBox,
                     {
-                      backgroundColor: colors.bgCard,
-                      borderColor: colors.border,
+                      backgroundColor:
+                        colors.bgCard,
+                      borderColor:
+                        colors.border,
                     },
                   ]}
                 >
                   <WordDisplay
                     challenge={current}
-                    accentColor={difficultyStyle.accentColor}
-                    accentBg={difficultyStyle.bgColor}
-                    letterSize={width < 380 ? 20 : 26}
+                    accentColor={
+                      difficultyStyle.accentColor
+                    }
+                    accentBg={
+                      difficultyStyle.bgColor
+                    }
+                    letterSize={
+                      width < 380 ? 20 : 26
+                    }
                     textColor={colors.text}
                   />
                 </View>
@@ -335,30 +635,50 @@ export function WordCompletionMission({
               style={[
                 styles.input,
                 {
-                  backgroundColor: colors.bgCard,
+                  backgroundColor:
+                    colors.bgCard,
                   borderColor: state.hasError
                     ? colors.danger
-                    : difficultyStyle.accentColor + '60',
-                  color: difficultyStyle.accentColor,
-                  fontSize: width < 380 ? 18 : 22,
+                    : difficultyStyle.accentColor +
+                      '60',
+                  color:
+                    difficultyStyle.accentColor,
+                  fontSize:
+                    width < 380 ? 18 : 22,
                 },
               ]}
               value={state.userInput}
               onChangeText={(value) => {
                 handleInputChange(value);
 
-                if (feedbackMessage && feedbackType !== 'warning') {
+                if (
+                  feedbackMessage &&
+                  feedbackType !== 'warning'
+                ) {
                   setFeedbackMessage('');
                 }
               }}
               autoCapitalize="characters"
-              placeholder={Array(maxLength).fill('_').join(' ')}
-              placeholderTextColor={colors.textMuted}
+              placeholder={
+                Array(maxLength)
+                  .fill('_')
+                  .join(' ')
+              }
+              placeholderTextColor={
+                colors.textMuted
+              }
               maxLength={maxLength}
             />
 
             {feedbackMessage ? (
-              <Text style={[styles.feedbackText, { color: feedbackColor }]}>
+              <Text
+                style={[
+                  styles.feedbackText,
+                  {
+                    color: feedbackColor,
+                  },
+                ]}
+              >
                 {feedbackMessage}
               </Text>
             ) : null}
@@ -367,7 +687,9 @@ export function WordCompletionMission({
               style={[
                 styles.hint,
                 {
-                  color: difficultyStyle.accentColor + '88',
+                  color:
+                    difficultyStyle.accentColor +
+                    '88',
                 },
               ]}
             >
@@ -378,7 +700,8 @@ export function WordCompletionMission({
               style={[
                 styles.confirmBtn,
                 {
-                  backgroundColor: difficultyStyle.accentColor,
+                  backgroundColor:
+                    difficultyStyle.accentColor,
                 },
               ]}
               onPress={handleConfirm}
@@ -388,13 +711,22 @@ export function WordCompletionMission({
                 style={[
                   styles.confirmText,
                   {
-                    color: difficultyStyle.textColor,
+                    color:
+                      difficultyStyle.textColor,
                   },
                 ]}
               >
                 {isHard
-                  ? `Confirmar palabra ${state.currentChallengeIndex + 1}`
-                  : 'Confirmar'}
+                  ? isSpanish
+                    ? `Confirmar palabra ${
+                        state.currentChallengeIndex + 1
+                      }`
+                    : `Confirm word ${
+                        state.currentChallengeIndex + 1
+                      }`
+                  : isSpanish
+                    ? 'Confirmar'
+                    : 'Confirm'}
               </Text>
             </TouchableOpacity>
           </View>

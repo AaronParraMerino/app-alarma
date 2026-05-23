@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 type StopwatchStatus = 'idle' | 'running' | 'paused';
 
@@ -87,13 +88,35 @@ function ControlButton({
       onPress={onPress}
       disabled={disabled}
     >
-      <Ionicons name={icon} size={19} color={color} />
-      <Text style={[styles.controlText, { color }]}>{label}</Text>
+      <Ionicons
+        name={icon}
+        size={19}
+        color={color}
+      />
+
+      <Text
+        style={[
+          styles.controlText,
+          {
+            color,
+          },
+        ]}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-function LapRow({ item }: { item: Lap }) {
+function LapRow({
+  item,
+  lapLabel,
+  totalLabel,
+}: {
+  item: Lap;
+  lapLabel: string;
+  totalLabel: string;
+}) {
   const { colors } = useAppTheme();
 
   return (
@@ -115,25 +138,62 @@ function LapRow({ item }: { item: Lap }) {
           },
         ]}
       >
-        <Text style={[styles.lapIndexText, { color: colors.primaryLight }]}>
+        <Text
+          style={[
+            styles.lapIndexText,
+            {
+              color: colors.primaryLight,
+            },
+          ]}
+        >
           {item.index}
         </Text>
       </View>
 
       <View style={styles.lapColumn}>
-        <Text style={[styles.lapLabel, { color: colors.textMuted }]}>
-          Parcial
+        <Text
+          style={[
+            styles.lapLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {lapLabel}
         </Text>
-        <Text style={[styles.lapTime, { color: colors.text }]}>
+
+        <Text
+          style={[
+            styles.lapTime,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           {formatTime(item.lapTime)}
         </Text>
       </View>
 
       <View style={styles.lapColumn}>
-        <Text style={[styles.lapLabel, { color: colors.textMuted }]}>
-          Total
+        <Text
+          style={[
+            styles.lapLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {totalLabel}
         </Text>
-        <Text style={[styles.lapTotal, { color: colors.primaryLight }]}>
+
+        <Text
+          style={[
+            styles.lapTotal,
+            {
+              color: colors.primaryLight,
+            },
+          ]}
+        >
           {formatTime(item.totalTime)}
         </Text>
       </View>
@@ -143,6 +203,9 @@ function LapRow({ item }: { item: Lap }) {
 
 export default function StopwatchScreen() {
   const { colors, statusBarStyle } = useAppTheme();
+  const { t, language } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   const [status, setStatus] = useState<StopwatchStatus>('idle');
   const [elapsed, setElapsed] = useState(0);
@@ -160,7 +223,9 @@ export default function StopwatchScreen() {
     const interval = setInterval(() => {
       if (startTimeRef.current === null) return;
 
-      setElapsed(accumulatedRef.current + Date.now() - startTimeRef.current);
+      setElapsed(
+        accumulatedRef.current + Date.now() - startTimeRef.current,
+      );
     }, 30);
 
     return () => clearInterval(interval);
@@ -168,6 +233,7 @@ export default function StopwatchScreen() {
 
   const lastLapTime = useMemo(() => {
     if (laps.length === 0) return 0;
+
     return laps[0].totalTime;
   }, [laps]);
 
@@ -201,7 +267,7 @@ export default function StopwatchScreen() {
     const nextIndex = laps.length + 1;
     const lapTime = elapsed - lastLapTime;
 
-    setLaps(current => [
+    setLaps((current) => [
       {
         id: `${Date.now()}-${nextIndex}`,
         index: nextIndex,
@@ -213,27 +279,60 @@ export default function StopwatchScreen() {
   };
 
   const primaryAction = isRunning
-    ? { label: 'Pausar', icon: 'pause' as const, onPress: handlePause }
+    ? {
+        label: isSpanish ? 'Pausar' : 'Pause',
+        icon: 'pause' as const,
+        onPress: handlePause,
+      }
     : status === 'paused'
-      ? { label: 'Reanudar', icon: 'play' as const, onPress: handleResume }
-      : { label: 'Iniciar', icon: 'play' as const, onPress: handleStart };
+      ? {
+          label: isSpanish ? 'Reanudar' : 'Resume',
+          icon: 'play' as const,
+          onPress: handleResume,
+        }
+      : {
+          label: isSpanish ? 'Iniciar' : 'Start',
+          icon: 'play' as const,
+          onPress: handleStart,
+        };
 
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor: colors.bg }]}
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
       edges={['top', 'left', 'right']}
     >
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Cronometro</Text>
+        <Text
+          style={[
+            styles.title,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {t('tabs.stopwatch')}
+        </Text>
 
         <View
           style={[
             styles.statusBadge,
             {
-              backgroundColor: isRunning ? colors.successDim : colors.bgCard,
-              borderColor: isRunning ? colors.success : colors.border,
+              backgroundColor: isRunning
+                ? colors.successDim
+                : colors.bgCard,
+              borderColor: isRunning
+                ? colors.success
+                : colors.border,
             },
           ]}
         >
@@ -241,7 +340,9 @@ export default function StopwatchScreen() {
             style={[
               styles.statusDot,
               {
-                backgroundColor: isRunning ? colors.success : colors.textMuted,
+                backgroundColor: isRunning
+                  ? colors.success
+                  : colors.textMuted,
               },
             ]}
           />
@@ -250,11 +351,23 @@ export default function StopwatchScreen() {
             style={[
               styles.statusText,
               {
-                color: isRunning ? colors.success : colors.textSecondary,
+                color: isRunning
+                  ? colors.success
+                  : colors.textSecondary,
               },
             ]}
           >
-            {isRunning ? 'En marcha' : status === 'paused' ? 'Pausado' : 'Listo'}
+            {isRunning
+              ? isSpanish
+                ? 'En marcha'
+                : 'Running'
+              : status === 'paused'
+                ? isSpanish
+                  ? 'Pausado'
+                  : 'Paused'
+                : isSpanish
+                  ? 'Listo'
+                  : 'Ready'}
           </Text>
         </View>
       </View>
@@ -277,24 +390,46 @@ export default function StopwatchScreen() {
             },
           ]}
         >
-          <Ionicons name="timer-outline" size={30} color={colors.primaryLight} />
+          <Ionicons
+            name="timer-outline"
+            size={30}
+            color={colors.primaryLight}
+          />
         </View>
 
-        <Text style={[styles.timer, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.timer,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           {formatTime(elapsed)}
         </Text>
 
-        <Text style={[styles.timerHint, { color: colors.textSecondary }]}>
+        <Text
+          style={[
+            styles.timerHint,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
           {laps.length > 0
-            ? `${laps.length} parciales registrados`
-            : 'Registra parciales mientras el cronometro avanza'}
+            ? isSpanish
+              ? `${laps.length} parciales registrados`
+              : `${laps.length} laps recorded`
+            : isSpanish
+              ? 'Registra parciales mientras el cronómetro avanza'
+              : 'Record laps while the stopwatch is running'}
         </Text>
       </View>
 
       <View style={styles.controls}>
         <ControlButton
           icon="flag-outline"
-          label="Parcial"
+          label={isSpanish ? 'Parcial' : 'Lap'}
           onPress={handleLap}
           disabled={!hasTime}
         />
@@ -308,7 +443,7 @@ export default function StopwatchScreen() {
 
         <ControlButton
           icon="refresh-outline"
-          label="Reset"
+          label={isSpanish ? 'Reiniciar' : 'Reset'}
           onPress={handleReset}
           disabled={!hasTime}
           variant="danger"
@@ -325,11 +460,25 @@ export default function StopwatchScreen() {
         ]}
       >
         <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
-            Ultimo parcial
+          <Text
+            style={[
+              styles.summaryLabel,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {isSpanish ? 'Último parcial' : 'Last lap'}
           </Text>
 
-          <Text style={[styles.summaryValue, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.summaryValue,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
             {laps[0] ? formatTime(laps[0].lapTime) : '--:--.--'}
           </Text>
         </View>
@@ -344,30 +493,64 @@ export default function StopwatchScreen() {
         />
 
         <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
-            Tiempo total
+          <Text
+            style={[
+              styles.summaryLabel,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {isSpanish ? 'Tiempo total' : 'Total time'}
           </Text>
 
-          <Text style={[styles.summaryValue, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.summaryValue,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
             {formatTime(elapsed)}
           </Text>
         </View>
       </View>
 
       <View style={styles.lapsHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Parciales
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish ? 'Parciales' : 'Laps'}
         </Text>
 
-        <Text style={[styles.sectionCount, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionCount,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
           {laps.length}
         </Text>
       </View>
 
       <FlatList
         data={laps}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => <LapRow item={item} />}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <LapRow
+            item={item}
+            lapLabel={isSpanish ? 'Parcial' : 'Lap'}
+            totalLabel={isSpanish ? 'Total' : 'Total'}
+          />
+        )}
         style={styles.lapsFrame}
         contentContainerStyle={[
           styles.lapsList,
@@ -375,14 +558,34 @@ export default function StopwatchScreen() {
         ]}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="flag-outline" size={28} color={colors.textMuted} />
+            <Ionicons
+              name="flag-outline"
+              size={28}
+              color={colors.textMuted}
+            />
 
-            <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-              Sin parciales todavia
+            <Text
+              style={[
+                styles.emptyTitle,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish ? 'Sin parciales todavía' : 'No laps yet'}
             </Text>
 
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              Toca Parcial para guardar el tiempo del tramo actual.
+            <Text
+              style={[
+                styles.emptyText,
+                {
+                  color: colors.textMuted,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'Toca Parcial para guardar el tiempo del tramo actual.'
+                : 'Tap Lap to save the current segment time.'}
             </Text>
           </View>
         }

@@ -1,14 +1,32 @@
+// src/features/history/components/HistorySummaryCards.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
+
 import { HistorySummary } from '../types/missionHistory.types';
 
 interface Props {
   resumen: HistorySummary;
 }
 
-export function HistorySummaryCards({ resumen }: Props) {
-  const { colors } = useAppTheme();
+export function HistorySummaryCards({
+  resumen,
+}: Props) {
+  const {
+    colors,
+  } = useAppTheme();
+
+  const {
+    language,
+  } = useTranslation();
+
+  const isSpanish = language === 'es';
 
   return (
     <View style={styles.grid}>
@@ -21,11 +39,26 @@ export function HistorySummaryCards({ resumen }: Props) {
           },
         ]}
       >
-        <Text style={[styles.val, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.val,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           {resumen.completadas}
         </Text>
-        <Text style={[styles.lbl, { color: colors.textSecondary }]}>
-          Completadas
+
+        <Text
+          style={[
+            styles.lbl,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish ? 'Completadas' : 'Completed'}
         </Text>
       </View>
 
@@ -38,11 +71,26 @@ export function HistorySummaryCards({ resumen }: Props) {
           },
         ]}
       >
-        <Text style={[styles.val, { color: colors.warning }]}>
+        <Text
+          style={[
+            styles.val,
+            {
+              color: colors.warning,
+            },
+          ]}
+        >
           {resumen.fallidas}
         </Text>
-        <Text style={[styles.lbl, { color: colors.textSecondary }]}>
-          Fallidas
+
+        <Text
+          style={[
+            styles.lbl,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish ? 'Fallidas' : 'Failed'}
         </Text>
       </View>
 
@@ -55,11 +103,26 @@ export function HistorySummaryCards({ resumen }: Props) {
           },
         ]}
       >
-        <Text style={[styles.val, { color: colors.primaryLight }]}>
+        <Text
+          style={[
+            styles.val,
+            {
+              color: colors.primaryLight,
+            },
+          ]}
+        >
           {resumen.tasaExito}%
         </Text>
-        <Text style={[styles.lbl, { color: colors.textSecondary }]}>
-          Tasa éxito
+
+        <Text
+          style={[
+            styles.lbl,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish ? 'Tasa éxito' : 'Success rate'}
         </Text>
       </View>
     </View>
@@ -72,6 +135,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     marginBottom: 12,
   },
+
   card: {
     flex: 1,
     minHeight: 64,
@@ -83,12 +147,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginHorizontal: 3,
   },
+
   val: {
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',
   },
+
   lbl: {
     fontSize: 14,
     fontWeight: '700',

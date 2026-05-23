@@ -1,5 +1,9 @@
 // src/features/missions/screens/MissionSelectorScreen.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -16,28 +20,24 @@ import { Colors } from '../../../shared/theme/colors';
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 
-// Palabras
 import { useWordCompletionStore } from '../wordCompletion/store/wordCompletionStore';
 import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/constants/wordCompletion.config';
 
-// Matemáticas
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
 import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
 
-// Movimiento
 import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
 import {
   DIFFICULTY_COLORS as MOVEMENT_DIFFICULTY_COLORS,
   DIFFICULTY_LABELS as MOVEMENT_DIFFICULTY_LABELS,
 } from '../MovementMission/constants/movementConstants';
 
-// Colores
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
 import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
 
-// Objetos
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
@@ -55,10 +55,16 @@ const MOVEMENT_BG_COLORS: Record<Difficulty, string> = {
   hard: Colors.dangerDim,
 };
 
-const OBJECT_DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: 'FACIL',
+const OBJECT_DIFFICULTY_LABELS_ES: Record<Difficulty, string> = {
+  easy: 'FÁCIL',
   medium: 'MEDIO',
-  hard: 'DIFICIL',
+  hard: 'DIFÍCIL',
+};
+
+const OBJECT_DIFFICULTY_LABELS_EN: Record<Difficulty, string> = {
+  easy: 'EASY',
+  medium: 'MEDIUM',
+  hard: 'HARD',
 };
 
 const OBJECT_DIFFICULTY_QUANTITY: Record<Difficulty, number> = {
@@ -69,55 +75,258 @@ const OBJECT_DIFFICULTY_QUANTITY: Record<Difficulty, number> = {
 
 const OBJECT_DIFFICULTY_STYLES: Record<
   Difficulty,
-  { accentColor: string; bgColor: string }
+  {
+    accentColor: string;
+    bgColor: string;
+  }
 > = {
   easy: {
     accentColor: '#4ADE80',
     bgColor: '#1A3D2B',
   },
+
   medium: {
     accentColor: '#FBBF24',
     bgColor: '#3D2E0A',
   },
+
   hard: {
     accentColor: '#F87171',
     bgColor: '#3D1010',
   },
 };
 
+function translateDifficultyLabel(
+  label: string,
+  isSpanish: boolean,
+): string {
+  const normalized = label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('facil') || normalized.includes('easy')) {
+    return isSpanish ? 'FÁCIL' : 'EASY';
+  }
+
+  if (
+    normalized.includes('medio') ||
+    normalized.includes('normal') ||
+    normalized.includes('medium')
+  ) {
+    return isSpanish ? 'MEDIO' : 'MEDIUM';
+  }
+
+  if (normalized.includes('dificil') || normalized.includes('hard')) {
+    return isSpanish ? 'DIFÍCIL' : 'HARD';
+  }
+
+  return label;
+}
+
+function formatQuantity(
+  quantity: number,
+  isSpanish: boolean,
+): string {
+  if (isSpanish) {
+    return `${quantity} vez${quantity === 1 ? '' : 'es'}`;
+  }
+
+  return `${quantity} time${quantity === 1 ? '' : 's'}`;
+}
+
+function getObjectDifficultyLabel(
+  difficulty: Difficulty,
+  isSpanish: boolean,
+): string {
+  return isSpanish
+    ? OBJECT_DIFFICULTY_LABELS_ES[difficulty]
+    : OBJECT_DIFFICULTY_LABELS_EN[difficulty];
+}
+
+function MissionCard({
+  title,
+  configureLabel,
+  executeLabel,
+  summary,
+  colors,
+  buttonColor,
+  buttonTextColor,
+  executeBgColor,
+  executeBorderColor,
+  executeTextColor,
+  onConfigure,
+  onExecute,
+  disabled = false,
+}: {
+  title: string;
+  configureLabel: string;
+  executeLabel: string;
+  summary: string;
+  colors: ReturnType<typeof useAppTheme>['colors'];
+  buttonColor: string;
+  buttonTextColor: string;
+  executeBgColor: string;
+  executeBorderColor: string;
+  executeTextColor: string;
+  onConfigure: () => void;
+  onExecute: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.cardTitle,
+          {
+            color: colors.text,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <TouchableOpacity
+        style={[
+          styles.btn,
+          {
+            backgroundColor: buttonColor,
+          },
+        ]}
+        onPress={onConfigure}
+        activeOpacity={0.85}
+      >
+        <Text
+          style={[
+            styles.btnText,
+            {
+              color: buttonTextColor,
+            },
+          ]}
+        >
+          {configureLabel}
+        </Text>
+      </TouchableOpacity>
+
+      <Text
+        style={[
+          styles.summary,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        {summary}
+      </Text>
+
+      <TouchableOpacity
+        style={[
+          styles.executeBtn,
+          {
+            backgroundColor: executeBgColor,
+            borderColor: executeBorderColor,
+            opacity: disabled ? 0.45 : 1,
+          },
+        ]}
+        onPress={onExecute}
+        disabled={disabled}
+        activeOpacity={0.85}
+      >
+        <Text
+          style={[
+            styles.executeBtnText,
+            {
+              color: executeTextColor,
+            },
+          ]}
+        >
+          {executeLabel}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function MissionSelectorScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, statusBarStyle } = useAppTheme();
 
-  // Config de palabras
-  const { config: wordConfig } = useWordCompletionStore();
-  const wordStyle = WORD_DIFFICULTY_STYLES[wordConfig.difficulty];
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
 
-  // Config de matemáticas
-  const { config: mathConfig } = useMathExercisesStore();
-  const mathStyle = MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
+  const {
+    language,
+  } = useTranslation();
 
-  // Config de movimiento
-  const { userConfig: movementConfig } = useMovementMissionStore();
+  const isSpanish = language === 'es';
+
+  const {
+    config: wordConfig,
+  } = useWordCompletionStore();
+
+  const wordStyle =
+    WORD_DIFFICULTY_STYLES[wordConfig.difficulty];
+
+  const {
+    config: mathConfig,
+  } = useMathExercisesStore();
+
+  const mathStyle =
+    MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
+
+  const {
+    userConfig: movementConfig,
+  } = useMovementMissionStore();
 
   const movementStyle = {
-    label: MOVEMENT_DIFFICULTY_LABELS[movementConfig.difficulty].toUpperCase(),
-    accentColor: MOVEMENT_DIFFICULTY_COLORS[movementConfig.difficulty],
-    bgColor: MOVEMENT_BG_COLORS[movementConfig.difficulty],
+    label: translateDifficultyLabel(
+      MOVEMENT_DIFFICULTY_LABELS[
+        movementConfig.difficulty
+      ].toUpperCase(),
+      isSpanish,
+    ),
+    accentColor:
+      MOVEMENT_DIFFICULTY_COLORS[
+        movementConfig.difficulty
+      ],
+    bgColor:
+      MOVEMENT_BG_COLORS[
+        movementConfig.difficulty
+      ],
   };
 
-  // Config de colores
-  const { config: colorConfig } = useColoredFiguresStore();
-  const colorStyle = COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
+  const {
+    config: colorConfig,
+  } = useColoredFiguresStore();
+
+  const colorStyle =
+    COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
 
   const colorLevelLabel =
     colorConfig.difficulty === 'easy'
-      ? 'NORMAL'
-      : colorStyle.label;
+      ? isSpanish
+        ? 'NORMAL'
+        : 'NORMAL'
+      : translateDifficultyLabel(
+          colorStyle.label,
+          isSpanish,
+        );
 
-  // Config de objetos
-  const { config: objectConfig } = useObjectRecognitionStore();
-  const [objectBank, setObjectBank] = useState<RecognizableObject[]>([]);
+  const {
+    config: objectConfig,
+  } = useObjectRecognitionStore();
+
+  const [objectBank, setObjectBank] =
+    useState<RecognizableObject[]>([]);
 
   useEffect(() => {
     setObjectBank(ObjectBankService.getEnabled());
@@ -128,302 +337,299 @@ export default function MissionSelectorScreen() {
       objectBank.filter((object) =>
         objectConfig.targetObjectIds.includes(object.id),
       ),
-    [objectBank, objectConfig.targetObjectIds],
+    [
+      objectBank,
+      objectConfig.targetObjectIds,
+    ],
   );
 
-  const objectPoolCount = selectedObjects.length || objectBank.length;
-  const objectStyle = OBJECT_DIFFICULTY_STYLES[objectConfig.difficulty];
+  const objectPoolCount =
+    selectedObjects.length || objectBank.length;
+
+  const objectStyle =
+    OBJECT_DIFFICULTY_STYLES[
+      objectConfig.difficulty
+    ];
+
+  const wordSummary = `${translateDifficultyLabel(
+    wordStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
+    wordConfig.quantity,
+    isSpanish,
+  )}`;
+
+  const mathSummary = `${translateDifficultyLabel(
+    mathStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
+    mathConfig.quantity,
+    isSpanish,
+  )}`;
+
+  const movementSummary = `${movementStyle.label} · ${formatQuantity(
+    movementConfig.quantity,
+    isSpanish,
+  )}`;
+
+  const colorSummary = `${colorLevelLabel} · ${formatQuantity(
+    colorConfig.quantity,
+    isSpanish,
+  )}`;
+
+  const objectSummary = isSpanish
+    ? `${getObjectDifficultyLabel(
+        objectConfig.difficulty,
+        true,
+      )} - ${
+        OBJECT_DIFFICULTY_QUANTITY[
+          objectConfig.difficulty
+        ]
+      } de ${objectPoolCount} al azar`
+    : `${getObjectDifficultyLabel(
+        objectConfig.difficulty,
+        false,
+      )} - ${
+        OBJECT_DIFFICULTY_QUANTITY[
+          objectConfig.difficulty
+        ]
+      } of ${objectPoolCount} random`;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+    <SafeAreaView
+      style={[
+        styles.safe,
+        {
+          backgroundColor: colors.bg,
+        },
+      ]}
+    >
+      <StatusBar
+        backgroundColor={colors.bg}
+        barStyle={statusBarStyle}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.text }]}>
-          Selecciona una misión
+        <Text
+          style={[
+            styles.title,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'Selecciona una misión'
+            : 'Select a mission'}
         </Text>
 
-        {/* ── Misión de palabras ── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Misión de palabras
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('ConfigWordCompletionMission', {})}
-          >
-            <Text style={[styles.btnText, { color: colors.white }]}>
-              Configurar misión de palabras
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {wordStyle.label} · {wordConfig.quantity} vec
-            {wordConfig.quantity > 1 ? 'es' : ''}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.executeBtn,
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de palabras'
+              : 'Word mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar misión de palabras'
+              : 'Configure word mission'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar misión de palabras'
+              : 'Run word mission'
+          }
+          summary={wordSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={wordStyle.bgColor}
+          executeBorderColor={wordStyle.accentColor + '50'}
+          executeTextColor={wordStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigWordCompletionMission',
+              {},
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'WordCompletionMissionScreen',
               {
-                backgroundColor: wordStyle.bgColor,
-                borderColor: wordStyle.accentColor + '50',
-              },
-            ]}
-            onPress={() =>
-              navigation.navigate('WordCompletionMissionScreen', {
                 difficulty: wordConfig.difficulty,
                 quantity: wordConfig.quantity,
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: wordStyle.accentColor },
-              ]}
-            >
-              Ejecutar misión de palabras
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Misión de matemáticas ── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Misión de matemáticas
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('ConfigMathMission', {})}
-          >
-            <Text style={[styles.btnText, { color: colors.white }]}>
-              Configurar misión de matemáticas
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {mathStyle.label} · {mathConfig.quantity} vec
-            {mathConfig.quantity > 1 ? 'es' : ''}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.executeBtn,
-              {
-                backgroundColor: mathStyle.bgColor,
-                borderColor: mathStyle.accentColor + '50',
               },
-            ]}
-            onPress={() =>
-              navigation.navigate('MathMissionScreen', {
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de matemáticas'
+              : 'Math mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar misión de matemáticas'
+              : 'Configure math mission'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar misión de matemáticas'
+              : 'Run math mission'
+          }
+          summary={mathSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={mathStyle.bgColor}
+          executeBorderColor={mathStyle.accentColor + '50'}
+          executeTextColor={mathStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigMathMission',
+              {},
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'MathMissionScreen',
+              {
                 difficulty: mathConfig.difficulty,
                 quantity: mathConfig.quantity,
                 operationType: mathConfig.operationType,
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: mathStyle.accentColor },
-              ]}
-            >
-              Ejecutar misión de matemáticas
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Misión de movimientos ── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Misión de movimientos
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('ConfigMovementMission')}
-          >
-            <Text style={[styles.btnText, { color: colors.white }]}>
-              Configurar misión de movimientos
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {movementStyle.label} · {movementConfig.quantity} vec
-            {movementConfig.quantity > 1 ? 'es' : ''}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.executeBtn,
-              {
-                backgroundColor: movementStyle.bgColor,
-                borderColor: movementStyle.accentColor + '50',
               },
-            ]}
-            onPress={() =>
-              navigation.navigate('MovementMissionScreen', {
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de movimientos'
+              : 'Movement mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar misión de movimientos'
+              : 'Configure movement mission'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar misión de movimientos'
+              : 'Run movement mission'
+          }
+          summary={movementSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={movementStyle.bgColor}
+          executeBorderColor={movementStyle.accentColor + '50'}
+          executeTextColor={movementStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate('ConfigMovementMission')
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'MovementMissionScreen',
+              {
                 difficulty: movementConfig.difficulty,
                 quantity: movementConfig.quantity,
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: movementStyle.accentColor },
-              ]}
-            >
-              Ejecutar misión de movimientos
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Misión de colores ── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Misión de colores
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            onPress={() =>
-              navigation.navigate('ConfigColoredFiguresMission', {})
-            }
-          >
-            <Text style={[styles.btnText, { color: colors.white }]}>
-              Configurar misión de colores
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {colorLevelLabel} · {colorConfig.quantity} vec
-            {colorConfig.quantity > 1 ? 'es' : ''}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.executeBtn,
-              {
-                backgroundColor: colorStyle.bgColor,
-                borderColor: colorStyle.accentColor + '50',
               },
-            ]}
-            onPress={() =>
-              navigation.navigate('ColoredFiguresMissionScreen', {
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de colores'
+              : 'Color mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar misión de colores'
+              : 'Configure color mission'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar misión de colores'
+              : 'Run color mission'
+          }
+          summary={colorSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={colorStyle.bgColor}
+          executeBorderColor={colorStyle.accentColor + '50'}
+          executeTextColor={colorStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigColoredFiguresMission',
+              {},
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'ColoredFiguresMissionScreen',
+              {
                 difficulty: colorConfig.difficulty,
                 quantity: colorConfig.quantity,
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: colorStyle.accentColor },
-              ]}
-            >
-              Ejecutar misión de colores
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Misión de objetos ── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Misión de objetos
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('ConfigObjectRecognitionMission')}
-          >
-            <Text style={[styles.btnText, { color: colors.white }]}>
-              Configurar objeto
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {OBJECT_DIFFICULTY_LABELS[objectConfig.difficulty]} -{' '}
-            {OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} de{' '}
-            {objectPoolCount} al azar
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.executeBtn,
-              {
-                backgroundColor: objectStyle.bgColor,
-                borderColor: objectStyle.accentColor + '50',
-                opacity: objectPoolCount === 0 ? 0.45 : 1,
               },
-            ]}
-            onPress={() =>
-              navigation.navigate('ObjectRecognitionMissionScreen', {
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Misión de objetos'
+              : 'Object mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar objeto'
+              : 'Configure object'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar misión de objetos'
+              : 'Run object mission'
+          }
+          summary={objectSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={objectStyle.bgColor}
+          executeBorderColor={objectStyle.accentColor + '50'}
+          executeTextColor={objectStyle.accentColor}
+          disabled={objectPoolCount === 0}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigObjectRecognitionMission',
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'ObjectRecognitionMissionScreen',
+              {
                 difficulty: objectConfig.difficulty,
                 targetObjectIds:
                   selectedObjects.length > 0
-                    ? selectedObjects.map((object) => object.id)
-                    : objectBank.map((object) => object.id),
-              })
-            }
-            disabled={objectPoolCount === 0}
-          >
-            <Text
-              style={[
-                styles.executeBtnText,
-                { color: objectStyle.accentColor },
-              ]}
-            >
-              Ejecutar misión de objetos
-            </Text>
-          </TouchableOpacity>
-        </View>
+                    ? selectedObjects.map(
+                        (object) => object.id,
+                      )
+                    : objectBank.map(
+                        (object) => object.id,
+                      ),
+              },
+            )
+          }
+        />
       </ScrollView>
     </SafeAreaView>
   );
