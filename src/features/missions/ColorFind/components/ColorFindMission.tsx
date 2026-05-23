@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
+  StatusBar,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { useAuth } from '../../../auth/hooks/useAuth';
-import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 import { ColorFindGrid } from './ColorFindGrid';
@@ -32,8 +34,51 @@ function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
   return currentIndex > 0 ? DIFFICULTY_ORDER[currentIndex - 1] : null;
 }
 
-function getDifficultyLabel(difficulty: Difficulty) {
-  return DIFFICULTY_STYLES[difficulty].label.toLowerCase();
+function getDifficultyLabel(difficulty: Difficulty, isSpanish: boolean) {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'facil' : 'easy';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'medio' : 'medium';
+  }
+
+  return isSpanish ? 'dificil' : 'hard';
+}
+
+function getDifficultyBadgeLabel(difficulty: Difficulty, isSpanish: boolean) {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'FACIL' : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'MEDIO' : 'MEDIUM';
+  }
+
+  return isSpanish ? 'DIFICIL' : 'HARD';
+}
+
+function translateDay(day: string, isSpanish: boolean): string {
+  if (isSpanish) {
+    return day;
+  }
+
+  const normalized = day
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const days: Record<string, string> = {
+    domingo: 'Sunday',
+    lunes: 'Monday',
+    martes: 'Tuesday',
+    miercoles: 'Wednesday',
+    jueves: 'Thursday',
+    viernes: 'Friday',
+    sabado: 'Saturday',
+  };
+
+  return days[normalized] ?? day;
 }
 
 export function ColorFindMission({
@@ -43,8 +88,11 @@ export function ColorFindMission({
   alarmLabel,
 }: Props) {
   const { width } = useWindowDimensions();
+  const { colors, statusBarStyle } = useAppTheme();
+  const { language } = useTranslation();
   const { user, isAuthenticated, isGuest } = useAuth();
   const { time, day } = useCurrentTime();
+  const isSpanish = language === 'es';
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [completedCount, setCompletedCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
@@ -56,7 +104,9 @@ export function ColorFindMission({
   const style = DIFFICULTY_STYLES[difficulty];
   const totalQuantity = Math.max(1, quantity);
   const displayAlarmLabel = !alarmLabel || alarmLabel === 'Alarma'
-    ? 'Hora de levantarse'
+    ? isSpanish
+      ? 'Hora de levantarse'
+      : 'Time to wake up'
     : alarmLabel;
 
   const saveMissionHistory = React.useCallback(
@@ -108,7 +158,9 @@ export function ColorFindMission({
       setErrorCount(0);
       setFeedbackType('warning');
       setFeedbackMessage(
-        `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty)}.`,
+        isSpanish
+          ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty, true)}.`
+          : `You failed 3 times. You dropped to ${getDifficultyLabel(previousDifficulty, false)}.`,
       );
       return;
     }
@@ -117,7 +169,9 @@ export function ColorFindMission({
       setErrorCount(0);
       setFeedbackType('error');
       setFeedbackMessage(
-        'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.',
+        isSpanish
+          ? 'Fallaste 3 veces, pero ya estas en el nivel mas bajo. Intenta nuevamente.'
+          : 'You failed 3 times, but you are already at the lowest level. Try again.',
       );
       reset();
       return;
@@ -128,7 +182,9 @@ export function ColorFindMission({
     if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
       setFeedbackType('warning');
       setFeedbackMessage(
-        `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty)}.`,
+        isSpanish
+          ? `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty, true)}.`
+          : `1 more mistake and you drop to ${getDifficultyLabel(previousDifficulty, false)}.`,
       );
       return;
     }
@@ -136,9 +192,13 @@ export function ColorFindMission({
     const remainingErrors = MAX_ERRORS - nextErrorCount;
     setFeedbackType('error');
     setFeedbackMessage(
-      `No es ese color. Te quedan ${remainingErrors} intento${
-        remainingErrors === 1 ? '' : 's'
-      }.`,
+      isSpanish
+        ? `No es ese color. Te quedan ${remainingErrors} intento${
+            remainingErrors === 1 ? '' : 's'
+          }.`
+        : `That is not the different color. You have ${remainingErrors} attempt${
+            remainingErrors === 1 ? '' : 's'
+          } left.`,
     );
   };
 
@@ -154,7 +214,7 @@ export function ColorFindMission({
     setCompletedCount(nextCompleted);
     setErrorCount(0);
     setFeedbackType('success');
-    setFeedbackMessage('Correcto.');
+    setFeedbackMessage(isSpanish ? 'Correcto.' : 'Correct.');
 
     if (nextCompleted >= totalQuantity) {
       onComplete();
@@ -169,14 +229,16 @@ export function ColorFindMission({
 
   const feedbackColor =
     feedbackType === 'success'
-      ? Colors.success
+      ? colors.success
       : feedbackType === 'warning'
       ? style.accentColor
-      : Colors.danger;
+      : colors.danger;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.screen}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
+
+      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
         <View
           style={[
             styles.pill,
@@ -184,23 +246,43 @@ export function ColorFindMission({
           ]}
         >
           <Text style={[styles.pillText, { color: style.accentColor }]}>
-            {style.label}
+            {getDifficultyBadgeLabel(difficulty, isSpanish)}
           </Text>
         </View>
 
         <View style={styles.timeBlock}>
-          <Text style={[styles.time, { fontSize: width < 380 ? 44 : 52 }]}>
+          <Text
+            style={[
+              styles.time,
+              {
+                color: colors.text,
+                fontSize: width < 380 ? 44 : 52,
+              },
+            ]}
+          >
             {time}
           </Text>
-          <Text style={styles.dateLabel}>{day} - {displayAlarmLabel}</Text>
+          <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
+            {translateDay(day, isSpanish)} - {displayAlarmLabel}
+          </Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.body}>
-          <Text style={styles.instruction}>Encuentra el color diferente:</Text>
+          <Text style={[styles.instruction, { color: colors.textSecondary }]}>
+            {isSpanish ? 'Encuentra el color diferente:' : 'Find the different color:'}
+          </Text>
 
-          <View style={styles.gridBox}>
+          <View
+            style={[
+              styles.gridBox,
+              {
+                backgroundColor: colors.bgCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <ColorFindGrid
               challenge={current}
               accentColor={style.accentColor}
@@ -208,7 +290,7 @@ export function ColorFindMission({
             />
           </View>
 
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { color: colors.textMuted }]}>
             {completedCount} / {totalQuantity}
           </Text>
 
@@ -226,10 +308,9 @@ export function ColorFindMission({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1 },
   screen: {
     flex: 1,
-    backgroundColor: Colors.bg,
     paddingTop: 40,
   },
   pill: {
@@ -242,11 +323,10 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5 },
   timeBlock: { alignItems: 'center', paddingVertical: 10 },
-  time: { fontWeight: '500', color: Colors.text, letterSpacing: -1, lineHeight: 56 },
-  dateLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  time: { fontWeight: '500', letterSpacing: -1, lineHeight: 56 },
+  dateLabel: { fontSize: 12, marginTop: 2 },
   divider: {
     height: 0.5,
-    backgroundColor: Colors.border,
     marginHorizontal: 16,
     marginVertical: 10,
   },
@@ -258,17 +338,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     paddingBottom: 16,
   },
-  instruction: { fontSize: 12, color: Colors.textSecondary, marginBottom: 12 },
+  instruction: { fontSize: 12, marginBottom: 12 },
   gridBox: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Layout.controlRadius,
+    borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressText: {
-    color: Colors.textMuted,
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',

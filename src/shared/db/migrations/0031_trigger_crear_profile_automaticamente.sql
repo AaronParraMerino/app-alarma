@@ -1,3 +1,7 @@
+-- Context only.
+-- This trigger is not included in the provided Supabase table snapshot.
+-- Verify it in Supabase before treating it as part of the current database.
+
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 

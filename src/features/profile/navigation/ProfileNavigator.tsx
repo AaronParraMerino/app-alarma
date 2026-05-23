@@ -2,14 +2,25 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { Colors } from '../../../shared/theme/colors';
 import SettingsScreen from '../../settings/screens/SettingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MissionHistoryScreen from '../../history/screens/MissionHistoryScreen';
+import VerifyRecoveryCodeScreen from '../../auth/screens/VerifyRecoveryCodeScreen';
+import ResetPasswordScreen from '../../auth/screens/ResetPasswordScreen';
 
 export type ProfileStackParamList = {
   Settings: undefined;
   Profile: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  VerifyRecoveryCode: {
+    email: string;
+  };
+  ResetPassword: {
+    email: string;
+  };
   MissionHistory: {
     userId: string;
   };
@@ -23,12 +34,21 @@ export default function ProfileNavigator() {
       initialRouteName="Settings"
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.bg },
         animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen
+        name="VerifyRecoveryCode"
+        component={VerifyRecoveryCodeScreen as React.ComponentType<any>}
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen as React.ComponentType<any>}
+      />
       <Stack.Screen name="MissionHistory" component={MissionHistoryScreen} />
     </Stack.Navigator>
   );

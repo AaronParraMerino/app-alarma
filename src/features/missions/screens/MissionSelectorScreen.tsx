@@ -36,6 +36,9 @@ import {
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
 import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
 
+import { useColorFindStore } from '../ColorFind/store/colorFindStore';
+import { DIFFICULTY_STYLES as COLOR_FIND_DIFFICULTY_STYLES } from '../ColorFind/constants/colorFind.config';
+
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
@@ -370,6 +373,23 @@ export default function MissionSelectorScreen() {
     isSpanish,
   )}`;
 
+  const {
+    config: colorFindConfig,
+  } = useColorFindStore();
+
+  const colorFindStyle =
+    COLOR_FIND_DIFFICULTY_STYLES[
+      colorFindConfig.difficulty
+    ];
+
+  const colorFindSummary = `${translateDifficultyLabel(
+    colorFindStyle.label,
+    isSpanish,
+  )} · ${formatQuantity(
+    colorFindConfig.quantity,
+    isSpanish,
+  )}`;
+
   const pairsSummary = `${translateDifficultyLabel(
     pairsStyle.label,
     isSpanish,
@@ -580,6 +600,46 @@ export default function MissionSelectorScreen() {
               {
                 difficulty: colorConfig.difficulty,
                 quantity: colorConfig.quantity,
+              },
+            )
+          }
+        />
+
+        <MissionCard
+          title={
+            isSpanish
+              ? 'Mision de color diferente'
+              : 'Different color mission'
+          }
+          configureLabel={
+            isSpanish
+              ? 'Configurar color diferente'
+              : 'Configure different color'
+          }
+          executeLabel={
+            isSpanish
+              ? 'Ejecutar color diferente'
+              : 'Run different color'
+          }
+          summary={colorFindSummary}
+          colors={colors}
+          buttonColor={colors.primary}
+          buttonTextColor={colors.white}
+          executeBgColor={colorFindStyle.bgColor}
+          executeBorderColor={colorFindStyle.accentColor + '50'}
+          executeTextColor={colorFindStyle.accentColor}
+          onConfigure={() =>
+            navigation.navigate(
+              'ConfigColorFindMission',
+              {},
+            )
+          }
+          onExecute={() =>
+            navigation.navigate(
+              'ColorFindMissionScreen',
+              {
+                difficulty: colorFindConfig.difficulty,
+                quantity: colorFindConfig.quantity,
               },
             )
           }

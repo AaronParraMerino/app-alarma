@@ -7,7 +7,8 @@ import {
   useWindowDimensions,
   type DimensionValue,
 } from 'react-native';
-import { Colors } from '../../../../shared/theme/colors';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { ColorFindChallenge } from '../types/colorFind.types';
 
 interface ColorFindGridProps {
@@ -26,6 +27,9 @@ export function ColorFindGrid({
   compact = false,
 }: ColorFindGridProps) {
   const { width } = useWindowDimensions();
+  const { colors } = useAppTheme();
+  const { language } = useTranslation();
+  const isSpanish = language === 'es';
   const gridSize = challenge.gridSize;
   const maxSize = compact ? 176 : Math.min(width - 48, 344);
   const tileGap = compact ? 4 : gridSize >= 4 ? 6 : 8;
@@ -38,6 +42,8 @@ export function ColorFindGrid({
           width: maxSize,
           height: maxSize,
           padding: tileGap,
+          backgroundColor: colors.bgElevated,
+          borderColor: colors.border,
         },
       ]}
     >
@@ -50,6 +56,7 @@ export function ColorFindGrid({
               {
                 backgroundColor: tile.color,
                 borderRadius: gridSize >= 4 ? 10 : 12,
+                borderColor: colors.white + '24',
               },
               revealOdd && tile.isOdd && {
                 borderColor: accentColor,
@@ -59,7 +66,9 @@ export function ColorFindGrid({
           >
             {revealOdd && tile.isOdd ? (
               <View style={[styles.marker, { backgroundColor: accentColor }]}>
-                <Text style={styles.markerText}>Aqui</Text>
+                <Text style={[styles.markerText, { color: colors.bg }]}>
+                  {isSpanish ? 'Aqui' : 'Here'}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -83,7 +92,15 @@ export function ColorFindGrid({
                 onPress={() => onTilePress(tile.id)}
                 activeOpacity={0.82}
                 accessibilityRole="button"
-                accessibilityLabel={tile.isOdd ? 'Color diferente' : 'Color similar'}
+                accessibilityLabel={
+                  tile.isOdd
+                    ? isSpanish
+                      ? 'Color diferente'
+                      : 'Different color'
+                    : isSpanish
+                      ? 'Color similar'
+                      : 'Similar color'
+                }
               >
                 {content}
               </TouchableOpacity>
@@ -101,10 +118,8 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: Colors.bgElevated,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   tileSlot: {
     minWidth: 0,
@@ -115,7 +130,6 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Colors.white + '24',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -126,7 +140,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   markerText: {
-    color: Colors.bg,
     fontSize: 10,
     fontWeight: '800',
   },
