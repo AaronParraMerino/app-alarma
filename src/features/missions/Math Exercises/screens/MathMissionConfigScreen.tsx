@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
@@ -21,6 +22,7 @@ import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 
 import { useMathExercisesStore } from '../store/mathExercisesStore';
 import {
@@ -123,6 +125,7 @@ export function MathMissionConfigScreen({
 
   const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
 
@@ -188,6 +191,10 @@ export function MathMissionConfigScreen({
 
   const difficultyStyle =
     DIFFICULTY_STYLES[difficulty];
+  const previewBgColor =
+    isDark ? colors.white : Colors.bgCard;
+  const previewTextColor =
+    isDark ? colors.black : colors.white;
 
   const sliderIdx =
     LEVELS.indexOf(difficulty);
@@ -198,6 +205,16 @@ export function MathMissionConfigScreen({
       quantity,
       operationType,
     });
+
+    if (route.params?.practice) {
+      navigation.navigate('MathMissionScreen', {
+        difficulty,
+        quantity,
+        operationType,
+        practice: true,
+      });
+      return;
+    }
 
     completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
@@ -244,15 +261,23 @@ export function MathMissionConfigScreen({
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor:
+                difficultyStyle.accentColor,
             },
           ]}
         >
+          <Ionicons
+            name="calculator-outline"
+            size={24}
+            color={difficultyStyle.textColor}
+          />
+
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color:
+                  difficultyStyle.textColor,
               },
             ]}
           >
@@ -292,7 +317,7 @@ export function MathMissionConfigScreen({
           style={[
             styles.previewBox,
             {
-              backgroundColor: colors.white,
+              backgroundColor: previewBgColor,
               borderColor: colors.border,
             },
           ]}
@@ -301,7 +326,7 @@ export function MathMissionConfigScreen({
             style={[
               styles.previewExpression,
               {
-                color: colors.black,
+                color: previewTextColor,
                 fontSize:
                   width < 380 ? 13 : 15,
               },
@@ -624,8 +649,12 @@ export function MathMissionConfigScreen({
             ]}
           >
             {isSpanish
-              ? 'Guardar'
-              : 'Save'}
+              ? route.params?.practice
+                ? 'Probar'
+                : 'Guardar'
+              : route.params?.practice
+                ? 'Try'
+                : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -657,6 +686,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 24,
     marginBottom: 24,
   },

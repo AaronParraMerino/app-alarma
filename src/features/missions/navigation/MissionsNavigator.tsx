@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import {
   createNativeStackNavigator,
   NativeStackScreenProps,
@@ -32,6 +33,8 @@ import ObjectRecognitionMissionScreen from '../ObjectRecognition/screens/ObjectR
 import { ParesMissionConfigScreen } from '../ParesMission/screens/ParesMissionConfigScreen';
 import ParesMissionRouteScreen from '../ParesMission/screens/ParesMissionRouteScreen';
 import { PairsMissionProvider } from '../ParesMission/store/paresMissionStore';
+import { PracticeExitButton } from '../../../shared/components/missions/PracticeExitButton';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 
 export type MissionsStackParamList = {
   MissionSelector: undefined;
@@ -60,24 +63,28 @@ export type MissionsStackParamList = {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId?: string;
+    practice?: boolean;
   };
 
   WordCompletionMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    practice?: boolean;
   };
 
   ConfigParesMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId?: string;
+    practice?: boolean;
   };
 
   ParesMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    practice?: boolean;
   };
 
   ConfigMathMission: {
@@ -85,6 +92,7 @@ export type MissionsStackParamList = {
     quantity?: number;
     operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
     alarmConfigSessionId?: string;
+    practice?: boolean;
   };
 
   MathMissionScreen: {
@@ -92,6 +100,7 @@ export type MissionsStackParamList = {
     quantity: number;
     alarmLabel?: string;
     operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+    practice?: boolean;
   };
 
   MathMissionLauncher: {
@@ -104,46 +113,54 @@ export type MissionsStackParamList = {
   ConfigMovementMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
+    practice?: boolean;
   } | undefined;
 
   MovementMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    practice?: boolean;
   };
 
   ConfigColoredFiguresMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId?: string;
+    practice?: boolean;
   };
 
   ColoredFiguresMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    practice?: boolean;
   };
 
   ConfigColorFindMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId?: string;
+    practice?: boolean;
   };
 
   ColorFindMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     quantity: number;
     alarmLabel?: string;
+    practice?: boolean;
   };
 
   ConfigObjectRecognitionMission: {
     alarmConfigSessionId?: string;
+    practice?: boolean;
   } | undefined;
 
   ObjectRecognitionMissionScreen: {
     difficulty?: 'easy' | 'medium' | 'hard';
     targetObjectIds?: string[];
     alarmLabel?: string;
+    practice?: boolean;
   } | undefined;
 };
 
@@ -161,14 +178,26 @@ type MovementMissionProps = NativeStackScreenProps<
 
 function ConfigMovementMissionRoute({ navigation, route }: ConfigMovementMissionProps) {
   const { setUserConfig } = useMovementMissionStore();
+  const { language } = useTranslation();
+  const practice = route.params?.practice;
 
   return (
     <MovementMissionConfigScreen
       initialDifficulty={route.params?.difficulty}
       initialQuantity={route.params?.quantity}
       onBack={() => navigation.goBack()}
+      confirmLabel={practice ? (language === 'es' ? 'Probar' : 'Try') : undefined}
       onConfirm={(config) => {
         setUserConfig(config);
+
+        if (practice) {
+          navigation.navigate('MovementMissionScreen', {
+            difficulty: config.difficulty,
+            quantity: config.quantity,
+            practice: true,
+          });
+          return;
+        }
 
         // Solo vuelve al selector. NO ejecuta la misión.
         navigation.navigate('MissionSelector');
@@ -179,16 +208,26 @@ function ConfigMovementMissionRoute({ navigation, route }: ConfigMovementMission
 
 function MovementMissionRoute({ navigation, route }: MovementMissionProps) {
   return (
-    <MovementMissionScreen
-      userConfig={{
-        difficulty: route.params.difficulty,
-        quantity: route.params.quantity,
-      }}
-      alarmLabel={route.params.alarmLabel}
-      onSuccess={() => {
-        navigation.navigate('MissionSelector');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <MovementMissionScreen
+        userConfig={{
+          difficulty: route.params.difficulty,
+          quantity: route.params.quantity,
+        }}
+        alarmLabel={route.params.alarmLabel}
+        onSuccess={() => {
+          if (route.params.practice) {
+            navigation.goBack();
+            return;
+          }
+
+          navigation.navigate('MissionSelector');
+        }}
+      />
+      {route.params.practice ? (
+        <PracticeExitButton onPress={() => navigation.goBack()} />
+      ) : null}
+    </View>
   );
 }
 

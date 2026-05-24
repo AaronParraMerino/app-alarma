@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
@@ -20,6 +21,7 @@ import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 
 import { useColoredFiguresStore } from '../store/ColoredFiguresStore';
 import {
@@ -201,6 +203,7 @@ export function ColoredMissionConfigScreen({
 }: Props) {
   const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
 
@@ -266,6 +269,8 @@ export function ColoredMissionConfigScreen({
 
   const difficultyStyle =
     DIFFICULTY_STYLES[difficulty];
+  const previewBgColor =
+    isDark ? colors.white : Colors.bgCard;
 
   const sliderIdx =
     LEVELS.indexOf(difficulty);
@@ -275,6 +280,15 @@ export function ColoredMissionConfigScreen({
       difficulty,
       quantity,
     });
+
+    if (route.params?.practice) {
+      navigation.navigate('ColoredFiguresMissionScreen', {
+        difficulty,
+        quantity,
+        practice: true,
+      });
+      return;
+    }
 
     const savedInAlarmConfig =
       completeAlarmMissionConfigSession(
@@ -327,15 +341,23 @@ export function ColoredMissionConfigScreen({
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor:
+                difficultyStyle.accentColor,
             },
           ]}
         >
+          <Ionicons
+            name="color-palette-outline"
+            size={24}
+            color={difficultyStyle.textColor}
+          />
+
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color:
+                  difficultyStyle.textColor,
               },
             ]}
           >
@@ -376,7 +398,7 @@ export function ColoredMissionConfigScreen({
             styles.previewBox,
             {
               backgroundColor:
-                difficultyStyle.bgColor,
+                previewBgColor,
               borderColor:
                 difficultyStyle.accentColor + '40',
             },
@@ -707,8 +729,12 @@ export function ColoredMissionConfigScreen({
             ]}
           >
             {isSpanish
-              ? 'Guardar'
-              : 'Save'}
+              ? route.params?.practice
+                ? 'Probar'
+                : 'Guardar'
+              : route.params?.practice
+                ? 'Try'
+                : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -740,6 +766,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 24,
     marginBottom: 24,
   },

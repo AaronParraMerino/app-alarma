@@ -13,12 +13,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 
 import { Difficulty } from '../types/wordCompletion.types';
 import {
@@ -85,6 +87,7 @@ export function WordCompletionConfigScreen({
 
   const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
 
@@ -124,6 +127,10 @@ export function WordCompletionConfigScreen({
 
   const previews =
     EXAMPLE_PREVIEWS[language][difficulty];
+  const previewBgColor =
+    isDark ? colors.white : Colors.bgCard;
+  const previewTextColor =
+    isDark ? colors.black : colors.white;
 
   const isSmall =
     width < 360;
@@ -154,6 +161,15 @@ export function WordCompletionConfigScreen({
       difficulty,
       quantity,
     });
+
+    if (route.params?.practice) {
+      navigation.navigate('WordCompletionMissionScreen', {
+        difficulty,
+        quantity,
+        practice: true,
+      });
+      return;
+    }
 
     completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
@@ -206,17 +222,24 @@ export function WordCompletionConfigScreen({
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor:
+                difficultyStyle.accentColor,
               paddingVertical: pillPadV,
               marginBottom: sectionGap,
             },
           ]}
         >
+          <Ionicons
+            name="text-outline"
+            size={24}
+            color={difficultyStyle.textColor}
+          />
+
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color: difficultyStyle.textColor,
                 fontSize:
                   isSmall ? 12 : 14,
               },
@@ -262,7 +285,7 @@ export function WordCompletionConfigScreen({
           style={[
             styles.previewBox,
             {
-              backgroundColor: colors.white,
+              backgroundColor: previewBgColor,
               borderColor: colors.border,
               minHeight: previewMin,
               marginBottom: sectionGap,
@@ -297,7 +320,7 @@ export function WordCompletionConfigScreen({
                         ? 20
                         : 24
                   }
-                  textColor={colors.black}
+                  textColor={previewTextColor}
                 />
               </View>
             ),
@@ -563,8 +586,12 @@ export function WordCompletionConfigScreen({
             ]}
           >
             {isSpanish
-              ? 'Confirmar'
-              : 'Confirm'}
+              ? route.params?.practice
+                ? 'Probar'
+                : 'Confirmar'
+              : route.params?.practice
+                ? 'Try'
+                : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -594,6 +621,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
   },
 

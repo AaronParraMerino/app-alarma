@@ -20,6 +20,7 @@ import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
@@ -213,6 +214,7 @@ export function ObjectRecognitionConfigScreen({
 }: Props) {
   const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
 
@@ -276,6 +278,10 @@ export function ObjectRecognitionConfigScreen({
 
   const difficultyStyle =
     DIFFICULTY_STYLES[difficulty];
+  const previewBgColor =
+    isDark ? colors.white : Colors.bgCard;
+  const previewTextColor =
+    isDark ? colors.black : colors.white;
 
   const canSave =
     selectedObjectIds.length >= requiredQuantity;
@@ -304,6 +310,15 @@ export function ObjectRecognitionConfigScreen({
       difficulty,
       targetObjectIds: selectedObjectIds,
     });
+
+    if ((route.params as any)?.practice) {
+      navigation.navigate('ObjectRecognitionMissionScreen', {
+        difficulty,
+        targetObjectIds: selectedObjectIds,
+        practice: true,
+      });
+      return;
+    }
 
     const alarmConfigSessionId =
       (route.params as any)?.alarmConfigSessionId as
@@ -362,8 +377,12 @@ export function ObjectRecognitionConfigScreen({
   const confirmText =
     canSave
       ? isSpanish
-        ? 'Guardar'
-        : 'Save'
+        ? (route.params as any)?.practice
+          ? 'Probar'
+          : 'Guardar'
+        : (route.params as any)?.practice
+          ? 'Try'
+          : 'Save'
       : isSpanish
         ? `Selecciona mínimo ${requiredQuantity}`
         : `Select at least ${requiredQuantity}`;
@@ -407,14 +426,15 @@ export function ObjectRecognitionConfigScreen({
           <Ionicons
             name="scan-outline"
             size={22}
-            color={colors.white}
+            color={difficultyStyle.textColor}
           />
 
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color:
+                  difficultyStyle.textColor,
               },
             ]}
           >
@@ -432,7 +452,7 @@ export function ObjectRecognitionConfigScreen({
                 difficultyStyle.accentColor +
                 '55',
               backgroundColor:
-                difficultyStyle.bgColor,
+                previewBgColor,
             },
           ]}
         >
@@ -448,7 +468,7 @@ export function ObjectRecognitionConfigScreen({
             style={[
               styles.previewLabel,
               {
-                color: colors.white,
+                color: previewTextColor,
               },
             ]}
           >
@@ -459,7 +479,10 @@ export function ObjectRecognitionConfigScreen({
             style={[
               styles.previewCategory,
               {
-                color: colors.white + 'CC',
+                color:
+                  isDark
+                    ? colors.black + 'CC'
+                    : colors.white + 'CC',
               },
             ]}
           >

@@ -13,12 +13,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 
 import {
   MovementDifficulty,
@@ -40,6 +42,7 @@ interface MovementMissionConfigScreenProps {
   onBack?: () => void;
   initialDifficulty?: MovementDifficulty;
   initialQuantity?: number;
+  confirmLabel?: string;
 }
 
 const LEVELS: MovementDifficulty[] = [
@@ -174,6 +177,7 @@ export function MovementMissionConfigScreen({
   onBack,
   initialDifficulty = 'easy',
   initialQuantity = 3,
+  confirmLabel,
 }: MovementMissionConfigScreenProps) {
   const {
     width,
@@ -182,6 +186,7 @@ export function MovementMissionConfigScreen({
 
   const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
 
@@ -214,6 +219,10 @@ export function MovementMissionConfigScreen({
 
   const difficultyStyle =
     DIFFICULTY_STYLES[difficulty];
+  const previewBgColor =
+    isDark ? colors.white : Colors.bgCard;
+  const previewTextColor =
+    isDark ? colors.black : colors.white;
 
   const sliderIdx =
     LEVELS.indexOf(difficulty);
@@ -282,17 +291,24 @@ export function MovementMissionConfigScreen({
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor:
+                difficultyStyle.accentColor,
               paddingVertical: pillPadV,
               marginBottom: sectionGap,
             },
           ]}
         >
+          <Ionicons
+            name="footsteps-outline"
+            size={24}
+            color={difficultyStyle.textColor}
+          />
+
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color: difficultyStyle.textColor,
                 fontSize:
                   isSmall ? 12 : 14,
               },
@@ -338,7 +354,7 @@ export function MovementMissionConfigScreen({
           style={[
             styles.previewBox,
             {
-              backgroundColor: colors.bgCard,
+              backgroundColor: previewBgColor,
               borderColor:
                 difficultyStyle.accentColor +
                 '40',
@@ -386,7 +402,7 @@ export function MovementMissionConfigScreen({
                       styles.exampleLabel,
                       {
                         color:
-                          colors.textSecondary,
+                          previewTextColor,
                       },
                     ]}
                   >
@@ -666,8 +682,8 @@ export function MovementMissionConfigScreen({
             ]}
           >
             {isSpanish
-              ? 'Confirmar'
-              : 'Confirm'}
+              ? confirmLabel ?? 'Confirmar'
+              : confirmLabel ?? 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -697,6 +713,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
   },
 

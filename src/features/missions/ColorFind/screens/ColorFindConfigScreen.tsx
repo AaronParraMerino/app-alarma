@@ -15,6 +15,7 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { Colors } from '../../../../shared/theme/colors';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { completeAlarmMissionConfigSession } from '../../../alarm/services/alarmMissionConfigSession';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
@@ -51,7 +52,7 @@ function getDifficultyDisplayLabel(difficulty: Difficulty, isSpanish: boolean): 
 
 export function ColorFindConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+  const { colors, isDark, statusBarStyle } = useAppTheme();
   const { language } = useTranslation();
   const { config, setConfig } = useColorFindStore();
   const [difficulty, setDifficulty] = useState<Difficulty>(
@@ -62,6 +63,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
   );
 
   const style = DIFFICULTY_STYLES[difficulty];
+  const previewBgColor = isDark ? colors.white : Colors.bgCard;
   const sliderIdx = LEVELS.indexOf(difficulty);
   const preview = EXAMPLE_PREVIEWS[difficulty];
   const isSmall = width < 360;
@@ -73,6 +75,15 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
 
   const handleSave = () => {
     setConfig({ difficulty, quantity });
+
+    if (route.params?.practice) {
+      navigation.navigate('ColorFindMissionScreen', {
+        difficulty,
+        quantity,
+        practice: true,
+      });
+      return;
+    }
 
     const savedInAlarmConfig = completeAlarmMissionConfigSession(
       route.params?.alarmConfigSessionId,
@@ -106,17 +117,23 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor: style.accentColor,
               paddingVertical: pillPadV,
               marginBottom: sectionGap,
             },
           ]}
         >
+          <Ionicons
+            name="grid-outline"
+            size={24}
+            color={style.textColor}
+          />
+
           <Text
             style={[
               styles.headerText,
               {
-                color: colors.white,
+                color: style.textColor,
                 fontSize: isSmall ? 12 : 14,
               },
             ]}
@@ -155,7 +172,7 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
           style={[
             styles.previewBox,
             {
-              backgroundColor: colors.bgCard,
+              backgroundColor: previewBgColor,
               marginBottom: sectionGap,
               borderColor: style.accentColor + '40',
             },
@@ -269,13 +286,13 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
                 onPress={() => setQuantity(q => Math.min(MAX_QUANTITY, q + 1))}
                 style={styles.arrowBtn}
               >
-                <Ionicons name="chevron-up" size={16} color={colors.textSecondary} />
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setQuantity(q => Math.max(MIN_QUANTITY, q - 1))}
                 style={styles.arrowBtn}
               >
-                <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -303,7 +320,13 @@ export function ColorFindConfigScreen({ navigation, route }: Props) {
           activeOpacity={0.85}
         >
           <Text style={[styles.confirmText, { color: style.textColor, fontSize: isSmall ? 14 : 16 }]}>
-            {isSpanish ? 'Confirmar' : 'Confirm'}
+            {isSpanish
+              ? route.params?.practice
+                ? 'Probar'
+                : 'Confirmar'
+              : route.params?.practice
+                ? 'Try'
+                : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -328,6 +351,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
   },
   headerText: {
@@ -382,6 +408,7 @@ const styles = StyleSheet.create({
   quantityNum: { fontWeight: '500', minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
+  arrowText: { fontSize: 13, fontWeight: '900' },
   vecesText: {},
   confirmBtn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontWeight: '500' },
