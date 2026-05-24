@@ -21,7 +21,11 @@ export function hasRepeatSchedule(days: readonly number[] | null | undefined): b
 export function shouldDisableAfterAlarmResolution(
   alarm: Pick<Alarm, 'repeatDays'>,
 ): boolean {
-  return !hasRepeatSchedule(alarm.repeatDays);
+  const repeatDays = normalizeRepeatDays(alarm.repeatDays);
+
+  // [] = one-time alarm. A single selected day is also consumed after it rings;
+  // multiple days stay enabled so future selected days can continue firing.
+  return repeatDays.length <= 1;
 }
 
 export function shouldShowAlarmSwitchOn(

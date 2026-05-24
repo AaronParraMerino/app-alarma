@@ -28,6 +28,8 @@ import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
 
 interface Props {
   difficulty: Difficulty;
@@ -193,6 +195,11 @@ export function ColoredFiguresMission({
   ] = useState<
     'error' | 'warning' | 'success'
   >('error');
+
+  const [
+    missionCompleted,
+    setMissionCompleted,
+  ] = useState(false);
 
   const {
     current,
@@ -392,7 +399,7 @@ export function ColoredFiguresMission({
     );
 
     if (nextCompleted >= totalQuantity) {
-      onComplete();
+      setMissionCompleted(true);
 
       return;
     }
@@ -653,6 +660,12 @@ export function ColoredFiguresMission({
             </Text>
           ) : null}
 
+          <MissionErrorCounter
+            count={errorCount}
+            max={MAX_ERRORS}
+            color={feedbackType === 'warning' ? difficultyStyle.accentColor : undefined}
+          />
+
           <View style={styles.spacer} />
 
           <TouchableOpacity
@@ -681,6 +694,13 @@ export function ColoredFiguresMission({
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <MissionCompleteModal
+        visible={missionCompleted}
+        completedCount={totalQuantity}
+        totalCount={totalQuantity}
+        onContinue={onComplete}
+      />
     </SafeAreaView>
   );
 }

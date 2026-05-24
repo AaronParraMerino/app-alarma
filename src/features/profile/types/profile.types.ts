@@ -5,6 +5,8 @@ export interface Profile {
   username: string;
   avatar_url: string | null;
   bio: string | null;
+  theme_mode: 'dark' | 'light' | null;
+  language: 'es' | 'en' | null;
   total_alarms_completed: number;
   total_missions_completed: number;
   streak_days: number;

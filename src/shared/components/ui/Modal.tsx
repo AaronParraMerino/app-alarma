@@ -47,7 +47,7 @@ function getModalConfig(
 ): Record<MenssageType, ModalConfig> {
   return {
     success: {
-      icon: 'checkmark-circle-outline',
+      icon: 'trophy-outline',
       color: colors.success,
       backgroundColor: colors.successDim,
       borderColor: colors.success,
@@ -85,6 +85,7 @@ export function Modal({
 }: Props) {
   const { colors, isDark } = useAppTheme();
   const config = getModalConfig(colors)[type];
+  const hasActions = Boolean(cancelAction || confirmAction);
 
   const handleBackdropPress = () => {
     if (closeOnBackdropPress) {
@@ -141,59 +142,61 @@ export function Modal({
             </Text>
           ) : null}
 
-          <View style={styles.actions}>
-            {cancelAction ? (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: colors.bgElevated,
-                    borderColor: colors.border,
-                  },
-                ]}
-                activeOpacity={0.82}
-                onPress={cancelAction.onPress}
-                disabled={cancelAction.disabled || cancelAction.loading}
-              >
-                {cancelAction.loading ? (
-                  <ActivityIndicator color={colors.textSecondary} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.buttonSecondaryText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {cancelAction.label}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
+          {hasActions ? (
+            <View style={styles.actions}>
+              {cancelAction ? (
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    {
+                      backgroundColor: colors.bgElevated,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  activeOpacity={0.82}
+                  onPress={cancelAction.onPress}
+                  disabled={cancelAction.disabled || cancelAction.loading}
+                >
+                  {cancelAction.loading ? (
+                    <ActivityIndicator color={colors.textSecondary} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.buttonSecondaryText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {cancelAction.label}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
 
-            {confirmAction ? (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: config.color,
-                    borderColor: config.borderColor,
-                  },
-                  confirmAction.disabled && styles.buttonDisabled,
-                ]}
-                activeOpacity={0.82}
-                onPress={confirmAction.onPress}
-                disabled={confirmAction.disabled || confirmAction.loading}
-              >
-                {confirmAction.loading ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={[styles.buttonPrimaryText, { color: colors.white }]}>
-                    {confirmAction.label}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
-          </View>
+              {confirmAction ? (
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    {
+                      backgroundColor: config.color,
+                      borderColor: config.borderColor,
+                    },
+                    confirmAction.disabled && styles.buttonDisabled,
+                  ]}
+                  activeOpacity={0.82}
+                  onPress={confirmAction.onPress}
+                  disabled={confirmAction.disabled || confirmAction.loading}
+                >
+                  {confirmAction.loading ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <Text style={[styles.buttonPrimaryText, { color: colors.white }]}>
+                      {confirmAction.label}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
         </Pressable>
       </Pressable>
     </NativeModal>

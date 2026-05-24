@@ -1,7 +1,5 @@
 // src/features/missions/MovementMission/screens/MovementMissionScreen.tsx
-import React, {
-  useEffect,
-} from 'react';
+import React from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -34,6 +32,8 @@ import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
 
 interface MovementMissionScreenProps {
   userConfig: MovementMissionUserConfig;
@@ -579,29 +579,15 @@ export function MovementMissionScreen({
       start,
     ]);
 
-  useEffect(() => {
-    if (
-      phase === 'success' &&
-      result
-    ) {
-      const timeout = setTimeout(
-        () =>
-          onSuccess({
-            durationMs: result.durationMs,
-          }),
-        900,
-      );
-
-      return () =>
-        clearTimeout(timeout);
-    }
-
-    return undefined;
-  }, [
-    onSuccess,
-    phase,
-    result,
-  ]);
+  const handleCompleteMission =
+    React.useCallback(() => {
+      onSuccess({
+        durationMs: result?.durationMs ?? 0,
+      });
+    }, [
+      onSuccess,
+      result?.durationMs,
+    ]);
 
   if (
     capabilities &&
@@ -652,6 +638,13 @@ export function MovementMissionScreen({
   if (phase === 'success') {
     return (
       <CenteredState>
+        <MissionCompleteModal
+          visible
+          completedCount={config.steps.length}
+          totalCount={config.steps.length}
+          onContinue={handleCompleteMission}
+        />
+
         <Text
           style={[
             styles.stateIcon,
@@ -1003,6 +996,12 @@ export function MovementMissionScreen({
                     )}
                 </Text>
               ) : null}
+
+              <MissionErrorCounter
+                count={errorCount}
+                max={MAX_ERRORS}
+                color={feedbackType === 'warning' ? difficultyStyle.accentColor : undefined}
+              />
 
               <TouchableOpacity
                 style={[

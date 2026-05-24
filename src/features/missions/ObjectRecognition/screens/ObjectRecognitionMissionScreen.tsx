@@ -27,6 +27,8 @@ import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ObjectBankService } from '../services/objectBank.service';
@@ -696,7 +698,7 @@ export function ObjectRecognitionMissionContent({
 
       <Modal
         visible={Boolean(
-          recognitionResult?.matched,
+          recognitionResult?.matched && !isLastTarget,
         )}
         transparent
         animationType="fade"
@@ -803,6 +805,13 @@ export function ObjectRecognitionMissionContent({
           </View>
         </View>
       </Modal>
+
+      <MissionCompleteModal
+        visible={Boolean(recognitionResult?.matched && isLastTarget)}
+        completedCount={targetObjects.length}
+        totalCount={targetObjects.length}
+        onContinue={handleComplete}
+      />
 
       <View style={styles.content}>
         <BackButton
@@ -911,6 +920,12 @@ export function ObjectRecognitionMissionContent({
           <Text style={styles.note}>
             {noteText}
           </Text>
+
+          <MissionErrorCounter
+            count={failedAttempts}
+            max={3}
+            color={difficultyStyle.accentColor}
+          />
         </View>
 
         {photo ? (

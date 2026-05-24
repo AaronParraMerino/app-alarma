@@ -7,6 +7,8 @@ CREATE TABLE public.profiles (
   username text NOT NULL,
   avatar_url text,
   bio text,
+  theme_mode text DEFAULT 'dark'::text,
+  language text DEFAULT 'es'::text,
   total_alarms_completed integer DEFAULT 0,
   total_missions_completed integer DEFAULT 0,
   streak_days integer DEFAULT 0,

@@ -10,6 +10,7 @@ import {
 } from '../../../shared/services/storage/sync.service';
 import { supabase } from '../../../shared/db/supabaseClient';
 import { googleAuthService } from '../services/googleAuthService';
+import { syncPreferencesFromCloud } from '../../../shared/services/preferences/preferencesSync.service';
 
 const initialState: AuthState = {
   user: null,
@@ -175,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
           if (session.user.id) {
+            void syncPreferencesFromCloud(session.user.id);
             void syncAlarms(session.user.id);
             startSyncListener(session.user.id);
           }
@@ -253,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (session.user.id) {
+          void syncPreferencesFromCloud(session.user.id);
           void syncAlarms(session.user.id);
           startSyncListener(session.user.id);
         }
@@ -294,6 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (user?.id) {
+        void syncPreferencesFromCloud(user.id);
         await syncAlarms(user.id);
         startSyncListener(user.id);
       }
@@ -319,6 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (user?.id) {
+        void syncPreferencesFromCloud(user.id);
         await syncAlarms(user.id);
         startSyncListener(user.id);
       }
@@ -357,6 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (session.user.id) {
+          void syncPreferencesFromCloud(session.user.id);
           await syncAlarms(session.user.id);
           startSyncListener(session.user.id);
         }

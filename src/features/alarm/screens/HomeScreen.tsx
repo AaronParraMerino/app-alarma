@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '../../../shared/theme/colors';
@@ -671,9 +671,18 @@ export default function HomeScreen() {
     alarms,
     toggleAlarm,
     deleteAlarm,
+    reloadAlarms,
   } = useAlarmStore();
 
   const isSpanish = language === 'es';
+
+  useFocusEffect(
+    useCallback(() => {
+      reloadAlarms();
+    }, [
+      reloadAlarms,
+    ]),
+  );
 
   const [alarmToDelete, setAlarmToDelete] =
     useState<Alarm | null>(null);

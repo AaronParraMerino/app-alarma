@@ -9,9 +9,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
@@ -84,7 +86,7 @@ function getPreviewCards(difficulty: PairsDifficulty) {
 
 export function ParesMissionConfigScreen({ navigation, route }: Props) {
   const { width, height } = useWindowDimensions();
-  const { colors, statusBarStyle } = useAppTheme();
+  const { colors, isDark, statusBarStyle } = useAppTheme();
   const { language } = useTranslation();
   const isSpanish = language === 'es';
   const { config, setConfig } = usePairsMissionStore();
@@ -99,6 +101,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
   );
 
   const style = DIFFICULTY_STYLES[difficulty];
+  const previewBgColor = isDark ? colors.white : Colors.bgCard;
   const sliderIdx = LEVELS.indexOf(difficulty);
   const previews = getPreviewCards(difficulty);
   const pairCount = PAIRS_BY_DIFFICULTY[difficulty];
@@ -114,6 +117,15 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
   // Guarda la configuracion elegida
   const handleSave = () => {
     setConfig({ difficulty, quantity });
+
+    if (route.params?.practice) {
+      navigation.navigate('ParesMissionScreen', {
+        difficulty,
+        quantity,
+        practice: true,
+      });
+      return;
+    }
 
     completeAlarmMissionConfigSession(route.params?.alarmConfigSessionId, {
       type: 'memory',
@@ -139,13 +151,19 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           style={[
             styles.headerPill,
             {
-              backgroundColor: colors.primary,
+              backgroundColor: style.accentColor,
               paddingVertical: pillPadV,
               marginBottom: sectionGap,
             },
           ]}
         >
-          <Text style={[styles.headerText, { color: colors.white, fontSize: isSmall ? 12 : 14 }]}>
+          <Ionicons
+            name="albums-outline"
+            size={24}
+            color={style.textColor}
+          />
+
+          <Text style={[styles.headerText, { color: style.textColor, fontSize: isSmall ? 12 : 14 }]}>
             {isSpanish ? 'MISION' : 'FIND'}{'\n'}
             {isSpanish ? 'ENCONTRAR PARES' : 'PAIRS'}
           </Text>
@@ -162,7 +180,7 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           style={[
             styles.previewBox,
             {
-              backgroundColor: colors.bgCard,
+              backgroundColor: previewBgColor,
               minHeight: previewMin,
               marginBottom: sectionGap,
               borderColor: style.accentColor + '40',
@@ -289,7 +307,13 @@ export function ParesMissionConfigScreen({ navigation, route }: Props) {
           activeOpacity={0.85}
         >
           <Text style={[styles.confirmText, { color: style.textColor, fontSize: isSmall ? 14 : 16 }]}>
-            {isSpanish ? 'Confirmar' : 'Confirm'}
+            {isSpanish
+              ? route.params?.practice
+                ? 'Probar'
+                : 'Confirmar'
+              : route.params?.practice
+                ? 'Try'
+                : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -314,6 +338,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
   },
   headerText: {

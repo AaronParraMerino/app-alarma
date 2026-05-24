@@ -29,6 +29,8 @@ import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
 
 interface Props {
   difficulty: Difficulty;
@@ -500,9 +502,6 @@ export function WordCompletionMission({
     if (next >= quantity) {
       Keyboard.dismiss();
       setCompleted(true);
-
-      completionTimeoutRef.current =
-        setTimeout(onComplete, 900);
     } else {
       setMissionCount(next);
       setErrorCount(0);
@@ -544,51 +543,6 @@ export function WordCompletionMission({
       : feedbackType === 'warning'
         ? difficultyStyle.accentColor
         : colors.danger;
-
-  if (completed) {
-    return (
-      <CenteredState>
-        <Text
-          style={[
-            styles.stateIcon,
-            {
-              color:
-                difficultyStyle.accentColor,
-            },
-          ]}
-        >
-          OK
-        </Text>
-
-        <Text
-          style={[
-            styles.stateTitle,
-            {
-              color:
-                difficultyStyle.accentColor,
-            },
-          ]}
-        >
-          {isSpanish
-            ? 'Mision completada'
-            : 'Mission complete'}
-        </Text>
-
-        <Text
-          style={[
-            styles.stateText,
-            {
-              color: colors.textSecondary,
-            },
-          ]}
-        >
-          {isSpanish
-            ? `${quantity} palabra${quantity === 1 ? '' : 's'} completada${quantity === 1 ? '' : 's'}.`
-            : `${quantity} word${quantity === 1 ? '' : 's'} completed.`}
-        </Text>
-      </CenteredState>
-    );
-  }
 
   return (
     <SafeAreaView
@@ -814,6 +768,12 @@ export function WordCompletionMission({
               </Text>
             ) : null}
 
+            <MissionErrorCounter
+              count={errorCount}
+              max={MAX_ERRORS}
+              color={feedbackType === 'warning' ? difficultyStyle.accentColor : undefined}
+            />
+
             <Text
               style={[
                 styles.hint,
@@ -868,6 +828,13 @@ export function WordCompletionMission({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <MissionCompleteModal
+        visible={completed}
+        completedCount={Math.max(1, quantity)}
+        totalCount={Math.max(1, quantity)}
+        onContinue={onComplete}
+      />
     </SafeAreaView>
   );
 }

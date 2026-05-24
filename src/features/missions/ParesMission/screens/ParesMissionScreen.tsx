@@ -12,9 +12,11 @@ import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
+import { OpportunityBar } from '../../../../shared/components/missions/OpportunityBar';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { PairCardTile } from '../components/PairCardTile';
-import { OpportunityBar } from '../components/OpportunityBar';
 import {
   BOARD_CELLS_BY_DIFFICULTY,
   DIFFICULTY_STYLES,
@@ -358,8 +360,7 @@ export function ParesMissionScreen({
 
     if (next >= quantity) {
       setCompleted(true);
-      const timeout = setTimeout(onComplete, 900);
-      return () => clearTimeout(timeout);
+      return undefined;
     }
 
     const timeout = setTimeout(() => {
@@ -371,23 +372,6 @@ export function ParesMissionScreen({
 
     return () => clearTimeout(timeout);
   }, [matchedPairs, totalPairs]);
-
-  // Pantalla corta antes de volver al flujo de alarma.
-  if (completed) {
-    return (
-      <CenteredState>
-        <Text style={[styles.stateIcon, { color: style.accentColor }]}>OK</Text>
-        <Text style={[styles.stateTitle, { color: style.accentColor }]}>
-          {isSpanish ? 'Mision completada' : 'Mission complete'}
-        </Text>
-        <Text style={[styles.stateText, { color: colors.textSecondary }]}>
-          {isSpanish
-            ? `${quantity} tablero${quantity === 1 ? '' : 's'} completado${quantity === 1 ? '' : 's'}.`
-            : `${quantity} board${quantity === 1 ? '' : 's'} completed.`}
-        </Text>
-      </CenteredState>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -484,8 +468,21 @@ export function ParesMissionScreen({
               {feedbackMessage}
             </Text>
           ) : null}
+
+          <MissionErrorCounter
+            count={gameErrorCount}
+            max={MAX_GAME_ERRORS}
+            color={feedbackType === 'warning' ? style.accentColor : undefined}
+          />
         </View>
       </View>
+
+      <MissionCompleteModal
+        visible={completed}
+        completedCount={Math.max(1, quantity)}
+        totalCount={Math.max(1, quantity)}
+        onContinue={onComplete}
+      />
     </SafeAreaView>
   );
 }

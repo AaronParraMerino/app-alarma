@@ -31,6 +31,7 @@ interface AlarmContextType {
   updateAlarm: (id: string, data: Partial<Alarm>) => void;
   deleteAlarm: (id: string) => void;
   toggleAlarm: (id: string) => void;
+  reloadAlarms: () => void;
 }
 
 const AlarmContext = createContext<AlarmContextType | null>(null);
@@ -128,7 +129,14 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
 
   return (
     <AlarmContext.Provider
-      value={{ alarms, addAlarm, updateAlarm, deleteAlarm, toggleAlarm }}
+      value={{
+        alarms,
+        addAlarm,
+        updateAlarm,
+        deleteAlarm,
+        toggleAlarm,
+        reloadAlarms: reloadLocalAlarms,
+      }}
     >
       {children}
     </AlarmContext.Provider>

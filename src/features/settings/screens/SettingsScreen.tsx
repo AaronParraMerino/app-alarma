@@ -28,6 +28,7 @@ import {
 } from '../../../shared/i18n/useTranslation';
 
 import { Menssage } from '../../../shared/components/ui/Menssage';
+import { saveCurrentPreferencesToCloud } from '../../../shared/services/preferences/preferencesSync.service';
 import { useAuth } from '../../auth/store/authStore';
 import { ProfileStackParamList } from '../../profile/navigation/ProfileNavigator';
 
@@ -184,11 +185,19 @@ export default function SettingsScreen({ navigation }: Props) {
   const handleSelectTheme = (mode: ThemeMode) => {
     setThemeMode(mode);
     setAppearanceVisible(false);
+
+    if (isAuthenticated && user?.id) {
+      void saveCurrentPreferencesToCloud(user.id);
+    }
   };
 
   const handleSelectLanguage = (nextLanguage: AppLanguage) => {
     setLanguage(nextLanguage);
     setLanguageVisible(false);
+
+    if (isAuthenticated && user?.id) {
+      void saveCurrentPreferencesToCloud(user.id);
+    }
   };
 
   const isSpanish = language === 'es';

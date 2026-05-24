@@ -13,6 +13,9 @@ import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
+import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
+import { OpportunityBar } from '../../../../shared/components/missions/OpportunityBar';
 import { ColorFindGrid } from './ColorFindGrid';
 import { DIFFICULTY_STYLES } from '../constants/colorFind.config';
 import { useColorFind } from '../hooks/useColorFind';
@@ -27,7 +30,12 @@ interface Props {
 }
 
 const DIFFICULTY_ORDER: Difficulty[] = ['easy', 'medium', 'hard'];
-const MAX_ERRORS = 3;
+const MAX_GAME_ERRORS = 3;
+const MAX_CHALLENGE_MISSES: Record<Difficulty, number> = {
+  easy: 2,
+  medium: 4,
+  hard: 6,
+};
 
 function getPreviousDifficulty(difficulty: Difficulty): Difficulty | null {
   const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
@@ -95,14 +103,18 @@ export function ColorFindMission({
   const isSpanish = language === 'es';
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [completedCount, setCompletedCount] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
+  const [misses, setMisses] = useState(0);
+  const [gameErrorCount, setGameErrorCount] = useState(0);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackType, setFeedbackType] =
     useState<'error' | 'warning' | 'success'>('error');
+  const [missionCompleted, setMissionCompleted] = useState(false);
   const { current, reset, isCorrectTile } = useColorFind(difficulty);
 
   const style = DIFFICULTY_STYLES[difficulty];
   const totalQuantity = Math.max(1, quantity);
+  const maxMisses = MAX_CHALLENGE_MISSES[difficulty];
+  const remaining = maxMisses - misses;
   const displayAlarmLabel = !alarmLabel || alarmLabel === 'Alarma'
     ? isSpanish
       ? 'Hora de levantarse'
@@ -147,26 +159,29 @@ export function ColorFindMission({
     ],
   );
 
-  const handleWrongAnswer = (tileId: string) => {
-    const nextErrorCount = errorCount + 1;
+  const handleChallengeFailure = (tileId: string, nextMisses: number) => {
+    const nextGameErrorCount = gameErrorCount + 1;
     const previousDifficulty = getPreviousDifficulty(difficulty);
 
-    saveMissionHistory(false, nextErrorCount, tileId);
+    saveMissionHistory(false, nextMisses, tileId);
 
-    if (nextErrorCount >= MAX_ERRORS && previousDifficulty) {
+    if (nextGameErrorCount >= MAX_GAME_ERRORS && previousDifficulty) {
       setDifficulty(previousDifficulty);
-      setErrorCount(0);
+      setMisses(0);
+      setGameErrorCount(0);
       setFeedbackType('warning');
       setFeedbackMessage(
         isSpanish
           ? `Fallaste 3 veces. Bajaste a ${getDifficultyLabel(previousDifficulty, true)}.`
           : `You failed 3 times. You dropped to ${getDifficultyLabel(previousDifficulty, false)}.`,
       );
+      reset();
       return;
     }
 
-    if (nextErrorCount >= MAX_ERRORS && !previousDifficulty) {
-      setErrorCount(0);
+    if (nextGameErrorCount >= MAX_GAME_ERRORS && !previousDifficulty) {
+      setMisses(0);
+      setGameErrorCount(0);
       setFeedbackType('error');
       setFeedbackMessage(
         isSpanish
@@ -177,27 +192,48 @@ export function ColorFindMission({
       return;
     }
 
-    setErrorCount(nextErrorCount);
+    setMisses(0);
+    setGameErrorCount(nextGameErrorCount);
+    setFeedbackType(previousDifficulty ? 'warning' : 'error');
+    setFeedbackMessage(
+      previousDifficulty
+        ? isSpanish
+          ? `Se agotaron tus oportunidades. Te quedan ${
+              MAX_GAME_ERRORS - nextGameErrorCount
+            } intento${
+              MAX_GAME_ERRORS - nextGameErrorCount === 1 ? '' : 's'
+            } antes de bajar de nivel.`
+          : `You ran out of chances. You have ${
+              MAX_GAME_ERRORS - nextGameErrorCount
+            } attempt${
+              MAX_GAME_ERRORS - nextGameErrorCount === 1 ? '' : 's'
+            } before dropping a level.`
+        : isSpanish
+          ? 'Se agotaron tus oportunidades. Intenta nuevamente.'
+          : 'You ran out of chances. Try again.',
+    );
+    reset();
+  };
 
-    if (nextErrorCount === MAX_ERRORS - 1 && previousDifficulty) {
-      setFeedbackType('warning');
-      setFeedbackMessage(
-        isSpanish
-          ? `1 fallo mas y bajas a ${getDifficultyLabel(previousDifficulty, true)}.`
-          : `1 more mistake and you drop to ${getDifficultyLabel(previousDifficulty, false)}.`,
-      );
+  const handleWrongAnswer = (tileId: string) => {
+    const nextMisses = misses + 1;
+
+    setMisses(nextMisses);
+
+    if (nextMisses >= maxMisses) {
+      handleChallengeFailure(tileId, nextMisses);
       return;
     }
 
-    const remainingErrors = MAX_ERRORS - nextErrorCount;
+    const remainingMisses = maxMisses - nextMisses;
     setFeedbackType('error');
     setFeedbackMessage(
       isSpanish
-        ? `No es ese color. Te quedan ${remainingErrors} intento${
-            remainingErrors === 1 ? '' : 's'
+        ? `No es ese color. Te quedan ${remainingMisses} oportunidad${
+            remainingMisses === 1 ? '' : 'es'
           }.`
-        : `That is not the different color. You have ${remainingErrors} attempt${
-            remainingErrors === 1 ? '' : 's'
+        : `That is not the different color. You have ${remainingMisses} chance${
+            remainingMisses === 1 ? '' : 's'
           } left.`,
     );
   };
@@ -210,14 +246,15 @@ export function ColorFindMission({
 
     const nextCompleted = completedCount + 1;
 
-    saveMissionHistory(true, errorCount, tileId);
+    saveMissionHistory(true, misses, tileId);
     setCompletedCount(nextCompleted);
-    setErrorCount(0);
+    setMisses(0);
+    setGameErrorCount(0);
     setFeedbackType('success');
     setFeedbackMessage(isSpanish ? 'Correcto.' : 'Correct.');
 
     if (nextCompleted >= totalQuantity) {
-      onComplete();
+      setMissionCompleted(true);
       return;
     }
 
@@ -269,6 +306,18 @@ export function ColorFindMission({
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
+        <View style={styles.progressWrap}>
+          <OpportunityBar
+            remaining={remaining}
+            total={maxMisses}
+            color={style.accentColor}
+            trackColor={colors.border}
+          />
+          <Text style={[styles.chancesText, { color: style.accentColor + 'AA' }]}>
+            {remaining} {isSpanish ? 'oportunidades' : 'chances'}
+          </Text>
+        </View>
+
         <View style={styles.body}>
           <Text style={[styles.instruction, { color: colors.textSecondary }]}>
             {isSpanish ? 'Encuentra el color diferente:' : 'Find the different color:'}
@@ -300,9 +349,22 @@ export function ColorFindMission({
             </Text>
           ) : null}
 
+          <MissionErrorCounter
+            count={gameErrorCount}
+            max={MAX_GAME_ERRORS}
+            color={feedbackType === 'warning' ? style.accentColor : undefined}
+          />
+
           <View style={styles.spacer} />
         </View>
       </View>
+
+      <MissionCompleteModal
+        visible={missionCompleted}
+        completedCount={totalQuantity}
+        totalCount={totalQuantity}
+        onContinue={onComplete}
+      />
     </SafeAreaView>
   );
 }
@@ -330,6 +392,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 10,
   },
+  progressWrap: {
+    width: '100%',
+    maxWidth: Layout.maxWideContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.screenPadding,
+    gap: 6,
+    marginBottom: 10,
+  },
+  chancesText: { fontSize: 11, textAlign: 'center' },
   body: {
     flex: 1,
     width: '100%',
