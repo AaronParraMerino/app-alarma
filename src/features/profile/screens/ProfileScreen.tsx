@@ -558,8 +558,8 @@ export default function ProfileScreen({
             icon="time-outline"
             label={
               isSpanish
-                ? 'Historial de alarmas'
-                : 'Alarm history'
+                ? 'Historial de misiones'
+                : 'Mission history'
             }
             sublabel={
               isSpanish
