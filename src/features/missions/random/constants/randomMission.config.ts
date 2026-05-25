@@ -29,6 +29,10 @@ export const RANDOM_AVAILABLE_MISSIONS = [
     description: 'Encontrar el cuadro distinto dentro de la grilla.',
   },
   {
+    title: 'Encontrar pares',
+    description: 'Resolver un tablero de memoria emparejando cartas.',
+  },
+  {
     title: 'Detectar objetos',
     description: 'Validar objetos con la camara cuando suena la alarma.',
   },

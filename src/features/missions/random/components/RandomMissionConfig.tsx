@@ -66,6 +66,7 @@ const MISSION_ICONS = [
   'text-outline',
   'color-palette-outline',
   'grid-outline',
+  'albums-outline',
   'scan-outline',
 ] as const;
 

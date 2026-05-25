@@ -29,6 +29,7 @@ import { MovementMissionScreen } from '../../missions/MovementMission/screens/Mo
 import { ColoredFiguresMission } from '../../missions/ColoredFigures/components/ColoredFigureMission';
 import { ColorFindMission } from '../../missions/ColorFind/components/ColorFindMission';
 import { ObjectRecognitionMissionContent } from '../../missions/ObjectRecognition/screens/ObjectRecognitionMissionScreen';
+import { ParesMissionScreen } from '../../missions/ParesMission/screens/ParesMissionScreen';
 import { useAuth } from '../../auth/store/authStore';
 import {
   recordCompletedAlarmStreak,
@@ -56,6 +57,7 @@ type Props = NativeStackScreenProps<AlarmStackParamList, 'AlarmRinging'>;
 const RANDOM_MISSION_TYPES: MissionType[] = [
   'math',
   'wordCompletion',
+  'memory',
   'color',
   'colorFind',
   'photo',
@@ -168,6 +170,7 @@ export default function AlarmRingingScreen({
         mission.type === 'physical' ||
         mission.type === 'color' ||
         mission.type === 'colorFind' ||
+        mission.type === 'memory' ||
         mission.type === 'photo'
       ) {
         return mission;
@@ -782,6 +785,18 @@ export default function AlarmRingingScreen({
         key={`color-find-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 5}
+        onComplete={completeMission}
+        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+      />,
+    );
+  }
+
+  if (activeMission.type === 'memory') {
+    return renderMissionWithGiveUp(
+      <ParesMissionScreen
+        key={`memory-${currentMissionIndex}`}
+        difficulty={toMissionDifficulty(activeMission.difficulty)}
+        quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
