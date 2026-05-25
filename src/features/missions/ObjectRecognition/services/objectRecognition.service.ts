@@ -1,4 +1,7 @@
-import { Detection } from 'react-native-executorch';
+import {
+  Bbox,
+  Detection,
+} from 'react-native-executorch';
 
 import { RecognizableObject } from '../types/objectRecognition.types';
 
@@ -8,6 +11,7 @@ export interface ObjectRecognitionResult {
   detectedLabel: string;
   confidence: number;
   matched: boolean;
+  boundingBox: Bbox | null;
 }
 
 interface ValidateObjectParams {
@@ -26,13 +30,21 @@ export class ObjectRecognitionService {
     const matched = Boolean(
       bestMatch && bestMatch.score >= targetObject.minConfidence,
     );
+    const bestDetection =
+      matched
+        ? bestMatch
+        : [...detections]
+            .sort((a, b) => b.score - a.score)[0];
 
     return Promise.resolve({
       expectedObjectId: targetObject.id,
       expectedLabel: targetObject.label,
-      detectedLabel: bestMatch ? targetObject.label : 'No detectado',
-      confidence: bestMatch?.score ?? 0,
+      detectedLabel: bestDetection
+        ? String(bestDetection.label)
+        : 'No detectado',
+      confidence: bestDetection?.score ?? 0,
       matched,
+      boundingBox: bestDetection?.bbox ?? null,
     });
   }
 }

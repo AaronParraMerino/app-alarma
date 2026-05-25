@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import {
   Image,
+  LayoutChangeEvent,
   Modal,
   SafeAreaView,
   StatusBar,
@@ -23,11 +24,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BackButton } from '../../../../shared/components/ui/BackButton';
+import { Modal as AppModal } from '../../../../shared/components/ui/Modal';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
-import { MissionCompleteModal } from '../../../../shared/components/missions/MissionCompleteModal';
 import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
@@ -49,7 +50,7 @@ type ObjectDifficulty =
   | 'medium'
   | 'hard';
 
-const DIFFICULTY_QUANTITY: Record<
+const REQUIRED_RECOGNITIONS: Record<
   ObjectDifficulty,
   number
 > = {
@@ -58,13 +59,13 @@ const DIFFICULTY_QUANTITY: Record<
   hard: 3,
 };
 
-const LOWER_DIFFICULTY: Record<
+const ATTEMPTS_PER_OBJECT: Record<
   ObjectDifficulty,
-  ObjectDifficulty
+  number
 > = {
-  easy: 'easy',
-  medium: 'easy',
-  hard: 'medium',
+  easy: Number.POSITIVE_INFINITY,
+  medium: 3,
+  hard: 1,
 };
 
 const DIFFICULTY_STYLES: Record<
@@ -94,19 +95,11 @@ const DIFFICULTY_STYLES: Record<
   },
 };
 
-function pickRandomObjects(
+function shuffleObjects(
   objects: RecognizableObject[],
-  quantity: number,
 ): RecognizableObject[] {
   return [...objects]
-    .sort(() => Math.random() - 0.5)
-    .slice(
-      0,
-      Math.min(
-        quantity,
-        objects.length,
-      ),
-    );
+    .sort(() => Math.random() - 0.5);
 }
 
 function pickReplacementObject(
@@ -219,6 +212,87 @@ function getDifficultyLabel(
     : 'HARD';
 }
 
+type DetectionBoxStyle = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function getDetectionBoxStyle(
+  boundingBox: ObjectRecognitionResult['boundingBox'],
+  imageWidth: number,
+  imageHeight: number,
+  frameWidth: number,
+  frameHeight: number,
+): DetectionBoxStyle | null {
+  if (
+    !boundingBox ||
+    imageWidth <= 0 ||
+    imageHeight <= 0 ||
+    frameWidth <= 0 ||
+    frameHeight <= 0
+  ) {
+    return null;
+  }
+
+  const normalizedCoordinates =
+    Math.max(
+      boundingBox.x1,
+      boundingBox.x2,
+      boundingBox.y1,
+      boundingBox.y2,
+    ) <= 1.5;
+  const xFactor =
+    normalizedCoordinates ? imageWidth : 1;
+  const yFactor =
+    normalizedCoordinates ? imageHeight : 1;
+  const scale =
+    Math.max(
+      frameWidth / imageWidth,
+      frameHeight / imageHeight,
+    );
+  const offsetX =
+    (frameWidth - imageWidth * scale) / 2;
+  const offsetY =
+    (frameHeight - imageHeight * scale) / 2;
+  const left =
+    Math.max(
+      0,
+      boundingBox.x1 * xFactor * scale +
+        offsetX,
+    );
+  const top =
+    Math.max(
+      0,
+      boundingBox.y1 * yFactor * scale +
+        offsetY,
+    );
+  const right =
+    Math.min(
+      frameWidth,
+      boundingBox.x2 * xFactor * scale +
+        offsetX,
+    );
+  const bottom =
+    Math.min(
+      frameHeight,
+      boundingBox.y2 * yFactor * scale +
+        offsetY,
+    );
+
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
 type ObjectRecognitionMissionContentProps = {
   difficulty?: ObjectDifficulty;
   targetObjectIds?: string[];
@@ -293,6 +367,38 @@ export function ObjectRecognitionMissionContent({
   ] = useState(0);
 
   const [
+    recognizedObjectIds,
+    setRecognizedObjectIds,
+  ] = useState<string[]>([]);
+
+  const [
+    recognitionGoal,
+    setRecognitionGoal,
+  ] = useState(
+    REQUIRED_RECOGNITIONS[initialDifficulty],
+  );
+
+  const [
+    roundExhausted,
+    setRoundExhausted,
+  ] = useState(false);
+
+  const [
+    ,
+    setFailedObjectIds,
+  ] = useState<string[]>([]);
+
+  const [
+    lowerLevelAvailable,
+    setLowerLevelAvailable,
+  ] = useState(false);
+
+  const [
+    giveUpVisible,
+    setGiveUpVisible,
+  ] = useState(false);
+
+  const [
     photo,
     setPhoto,
   ] = useState<CameraCapturedPicture | null>(
@@ -321,12 +427,51 @@ export function ObjectRecognitionMissionContent({
     null,
   );
 
+  const [
+    photoFrame,
+    setPhotoFrame,
+  ] = useState({
+    width: 0,
+    height: 0,
+  });
+
+  const [
+    modalPhotoFrame,
+    setModalPhotoFrame,
+  ] = useState({
+    width: 0,
+    height: 0,
+  });
+
   const targetObject =
     targetObjects[currentTargetIndex] ?? null;
 
-  const isLastTarget =
-    currentTargetIndex >=
-    targetObjects.length - 1;
+  const requiredRecognitions =
+    recognitionGoal;
+
+  const recognizedCount =
+    recognizedObjectIds.length;
+
+  const maxAttempts =
+    ATTEMPTS_PER_OBJECT[activeDifficulty];
+
+  const missionCompleted =
+    Boolean(recognitionResult?.matched) &&
+    recognizedCount >= requiredRecognitions;
+
+  const lowerDifficulty =
+    activeDifficulty === 'hard'
+      ? 'medium'
+      : 'easy';
+
+  const remainingOnLowerLevel =
+    Math.min(
+      Math.max(
+        requiredRecognitions - recognizedCount,
+        1,
+      ),
+      REQUIRED_RECOGNITIONS[lowerDifficulty],
+    );
 
   const difficultyStyle =
     DIFFICULTY_STYLES[activeDifficulty];
@@ -351,19 +496,19 @@ export function ObjectRecognitionMissionContent({
         ? selectedPool
         : objectPool;
 
-    const quantity =
-      DIFFICULTY_QUANTITY[initialDifficulty];
-
     setActiveDifficulty(initialDifficulty);
     setObjectPool(pool);
-    setTargetObjects(
-      pickRandomObjects(
-        pool,
-        quantity,
-      ),
-    );
+    setTargetObjects(shuffleObjects(pool));
     setCurrentTargetIndex(0);
     setFailedAttempts(0);
+    setRecognizedObjectIds([]);
+    setRecognitionGoal(
+      REQUIRED_RECOGNITIONS[initialDifficulty],
+    );
+    setRoundExhausted(false);
+    setFailedObjectIds([]);
+    setLowerLevelAvailable(false);
+    setGiveUpVisible(false);
     setPhoto(null);
     setRecognitionResult(null);
   }, [
@@ -371,48 +516,125 @@ export function ObjectRecognitionMissionContent({
     targetObjectIds,
   ]);
 
-  const changeTargetAfterFailures =
+  const advanceTarget =
     useCallback(() => {
-      const nextDifficulty =
-        LOWER_DIFFICULTY[activeDifficulty];
+      setFailedAttempts(0);
+      setPhoto(null);
+      setRecognitionResult(null);
 
+      if (
+        currentTargetIndex >=
+        targetObjects.length - 1
+      ) {
+        setRoundExhausted(true);
+        if (activeDifficulty === 'hard') {
+          setLowerLevelAvailable(true);
+        }
+        return;
+      }
+
+      setCurrentTargetIndex(
+        (index) => index + 1,
+      );
+    }, [
+      activeDifficulty,
+      currentTargetIndex,
+      targetObjects.length,
+    ]);
+
+  const registerFailedObject =
+    useCallback(() => {
+      if (
+        activeDifficulty !== 'medium' ||
+        !targetObject
+      ) {
+        return;
+      }
+
+      setFailedObjectIds((ids) => {
+        if (ids.includes(targetObject.id)) {
+          return ids;
+        }
+
+        const nextIds = [
+          ...ids,
+          targetObject.id,
+        ];
+
+        if (nextIds.length >= 3) {
+          setLowerLevelAvailable(true);
+        }
+
+        return nextIds;
+      });
+    }, [
+      activeDifficulty,
+      targetObject,
+    ]);
+
+  const restartRound =
+    useCallback((nextDifficulty = activeDifficulty) => {
+      const roundPool =
+        nextDifficulty === 'easy'
+          ? objectPool
+          : objectPool.filter(
+              (object) =>
+                !recognizedObjectIds.includes(
+                  object.id,
+                ),
+            );
+
+      setActiveDifficulty(nextDifficulty);
+      setTargetObjects(shuffleObjects(roundPool));
+      setCurrentTargetIndex(0);
+      setFailedAttempts(0);
+      setRoundExhausted(false);
+      setPhoto(null);
+      setRecognitionResult(null);
+    }, [
+      activeDifficulty,
+      objectPool,
+      recognizedObjectIds,
+    ]);
+
+  const downgradeLevel =
+    useCallback(() => {
+      setActiveDifficulty(lowerDifficulty);
+      setRecognitionGoal(remainingOnLowerLevel);
+      setRecognizedObjectIds([]);
+      setTargetObjects(shuffleObjects(objectPool));
+      setCurrentTargetIndex(0);
+      setFailedAttempts(0);
+      setFailedObjectIds([]);
+      setRoundExhausted(false);
+      setLowerLevelAvailable(false);
+      setPhoto(null);
+      setRecognitionResult(null);
+    }, [
+      lowerDifficulty,
+      objectPool,
+      remainingOnLowerLevel,
+    ]);
+
+  const changeEasyTarget =
+    useCallback(() => {
       const replacement =
         pickReplacementObject(
           objectPool,
           targetObject?.id,
         );
 
-      setActiveDifficulty(nextDifficulty);
-      setFailedAttempts(0);
-      setPhoto(null);
-      setRecognitionResult(null);
-
       if (!replacement) {
         return;
       }
 
-      setTargetObjects((current) => {
-        const desiredTotal =
-          Math.max(
-            DIFFICULTY_QUANTITY[nextDifficulty],
-            currentTargetIndex + 1,
-          );
-
-        const nextObjects = [
-          ...current,
-        ];
-
-        nextObjects[currentTargetIndex] =
-          replacement;
-
-        return nextObjects.slice(
-          0,
-          desiredTotal,
-        );
-      });
+      setTargetObjects([replacement]);
+      setCurrentTargetIndex(0);
+      setFailedAttempts(0);
+      setRoundExhausted(false);
+      setPhoto(null);
+      setRecognitionResult(null);
     }, [
-      activeDifficulty,
-      currentTargetIndex,
       objectPool,
       targetObject?.id,
     ]);
@@ -442,9 +664,6 @@ export function ObjectRecognitionMissionContent({
                   0.25,
                 ),
               inputSize: 640,
-              classesOfInterest: [
-                targetObject.modelLabel as never,
-              ],
             },
           );
 
@@ -458,9 +677,9 @@ export function ObjectRecognitionMissionContent({
           const nextFailedAttempts =
             failedAttempts + 1;
 
-          if (nextFailedAttempts >= 3) {
-            changeTargetAfterFailures();
-
+          if (nextFailedAttempts >= maxAttempts) {
+            setFailedAttempts(nextFailedAttempts);
+            setRecognitionResult(result);
             return;
           }
 
@@ -469,6 +688,12 @@ export function ObjectRecognitionMissionContent({
           );
         } else {
           setFailedAttempts(0);
+          setRecognizedObjectIds(
+            (ids) =>
+              ids.includes(targetObject.id)
+                ? ids
+                : [...ids, targetObject.id],
+          );
         }
 
         setRecognitionResult(result);
@@ -482,9 +707,11 @@ export function ObjectRecognitionMissionContent({
       }
     },
     [
-      changeTargetAfterFailures,
+      advanceTarget,
       detector,
       failedAttempts,
+      maxAttempts,
+      registerFailedObject,
       targetObject,
       validating,
     ],
@@ -507,12 +734,37 @@ export function ObjectRecognitionMissionContent({
     validating,
   ]);
 
+  useEffect(() => {
+    if (
+      !recognitionResult ||
+      recognitionResult.matched ||
+      failedAttempts < maxAttempts
+    ) {
+      return;
+    }
+
+    const timer =
+      setTimeout(() => {
+        registerFailedObject();
+        advanceTarget();
+      }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    advanceTarget,
+    failedAttempts,
+    maxAttempts,
+    recognitionResult,
+    registerFailedObject,
+  ]);
+
   const takePhoto = async () => {
     if (
       !cameraRef.current ||
       !cameraReady ||
       capturing ||
-      !targetObject
+      !targetObject ||
+      roundExhausted
     ) {
       return;
     }
@@ -641,23 +893,66 @@ export function ObjectRecognitionMissionContent({
         ? 'Objeto'
         : 'Object';
 
+  const detectedObject =
+    objectPool.find(
+      (object) =>
+        object.modelLabel ===
+        recognitionResult?.detectedLabel,
+    );
+
   const detectedLabel =
     recognitionResult?.detectedLabel
-      ? translateObjectLabel(
-          recognitionResult.detectedLabel,
-          isSpanish,
-        )
+      ? detectedObject
+        ? translateObjectLabel(
+            detectedObject.label,
+            isSpanish,
+          )
+        : recognitionResult.detectedLabel
       : '';
 
+  const detectionBoxStyle =
+    photo
+      ? getDetectionBoxStyle(
+          recognitionResult?.boundingBox ?? null,
+          photo.width,
+          photo.height,
+          photoFrame.width,
+          photoFrame.height,
+        )
+      : null;
+
+  const modalDetectionBoxStyle =
+    photo
+      ? getDetectionBoxStyle(
+          recognitionResult?.boundingBox ?? null,
+          photo.width,
+          photo.height,
+          modalPhotoFrame.width,
+          modalPhotoFrame.height,
+        )
+      : null;
+
   const noteText =
-    recognitionResult
-      ? isSpanish
-        ? `Detectado: ${detectedLabel} (${Math.round(
-            recognitionResult.confidence * 100,
-          )}%)`
-        : `Detected: ${detectedLabel} (${Math.round(
-            recognitionResult.confidence * 100,
-          )}%)`
+    roundExhausted
+      ? activeDifficulty === 'hard'
+        ? isSpanish
+          ? 'Terminaste la ronda. Puedes pedir una mision mas sencilla.'
+          : 'You finished the round. You can request an easier mission.'
+        : isSpanish
+          ? 'Terminaste la ronda. Busca otro objeto para continuar.'
+          : 'You finished the round. Find another object to continue.'
+      : recognitionResult
+        ? recognitionResult.matched
+          ? isSpanish
+            ? `Detectado: ${detectedLabel} (${Math.round(
+                recognitionResult.confidence * 100,
+              )}%)`
+            : `Detected: ${detectedLabel} (${Math.round(
+                recognitionResult.confidence * 100,
+              )}%)`
+          : isSpanish
+            ? 'Toma una nueva foto para continuar.'
+            : 'Take a new photo to continue.'
       : validating
         ? isSpanish
           ? 'Analizando la foto...'
@@ -676,8 +971,8 @@ export function ObjectRecognitionMissionContent({
                 )}%`
             : failedAttempts > 0
               ? isSpanish
-                ? `Intentos fallidos ${failedAttempts}/3. Toma otra foto.`
-                : `Failed attempts ${failedAttempts}/3. Take another photo.`
+                ? `Intentos fallidos ${failedAttempts}/${maxAttempts}. Toma otra foto.`
+                : `Failed attempts ${failedAttempts}/${maxAttempts}. Take another photo.`
               : isSpanish
                 ? 'Toma una foto y valida el objeto antes de completar.'
                 : 'Take a photo and validate the object before completing.';
@@ -698,11 +993,15 @@ export function ObjectRecognitionMissionContent({
 
       <Modal
         visible={Boolean(
-          recognitionResult?.matched && !isLastTarget,
+          recognitionResult?.matched,
         )}
         transparent
         animationType="fade"
-        onRequestClose={handleComplete}
+        onRequestClose={
+          missionCompleted
+            ? handleComplete
+            : advanceTarget
+        }
       >
         <View style={styles.modalOverlay}>
           <View style={styles.successModal}>
@@ -723,7 +1022,7 @@ export function ObjectRecognitionMissionContent({
             </View>
 
             <Text style={styles.modalTitle}>
-              {isLastTarget
+              {missionCompleted
                 ? isSpanish
                   ? 'Misión completada'
                   : 'Mission completed'
@@ -731,6 +1030,78 @@ export function ObjectRecognitionMissionContent({
                   ? 'Objeto reconocido'
                   : 'Object recognized'}
             </Text>
+
+            {photo && (
+              <View style={styles.modalPhoto}>
+                <Image
+                  source={{
+                    uri: photo.uri,
+                  }}
+                  style={styles.modalPhotoImage}
+                  resizeMode="cover"
+                  onLayout={(
+                    event: LayoutChangeEvent,
+                  ) => {
+                    const {
+                      width,
+                      height,
+                    } = event.nativeEvent.layout;
+
+                    setModalPhotoFrame({
+                      width,
+                      height,
+                    });
+                  }}
+                />
+
+                {modalDetectionBoxStyle && (
+                  <View
+                    pointerEvents="none"
+                    style={styles.detectionOverlay}
+                  >
+                    <View
+                      style={[
+                        styles.detectionBox,
+                        modalDetectionBoxStyle,
+                        {
+                          borderColor:
+                            difficultyStyle.accentColor,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.detectionLabel,
+                          {
+                            backgroundColor:
+                              difficultyStyle.accentColor,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.detectionLabelText,
+                            {
+                              color:
+                                difficultyStyle.textColor,
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {detectedLabel}
+                          {' '}
+                          {Math.round(
+                            (recognitionResult?.confidence ??
+                              0) * 100,
+                          )}
+                          %
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
 
             <Text
               style={[
@@ -746,15 +1117,15 @@ export function ObjectRecognitionMissionContent({
 
             <Text style={styles.modalNote}>
               {isSpanish
-                ? `${currentTargetIndex + 1} de ${
-                    targetObjects.length
-                  } - Confianza ${Math.round(
+                ? `${recognizedCount} de ${
+                    requiredRecognitions
+                  } reconocidos - Confianza ${Math.round(
                     (recognitionResult?.confidence ??
                       0) * 100,
                   )}%`
-                : `${currentTargetIndex + 1} of ${
-                    targetObjects.length
-                  } - Confidence ${Math.round(
+                : `${recognizedCount} of ${
+                    requiredRecognitions
+                  } recognized - Confidence ${Math.round(
                     (recognitionResult?.confidence ??
                       0) * 100,
                   )}%`}
@@ -769,18 +1140,12 @@ export function ObjectRecognitionMissionContent({
                 },
               ]}
               onPress={() => {
-                if (isLastTarget) {
+                if (missionCompleted) {
                   handleComplete();
-
                   return;
                 }
 
-                setCurrentTargetIndex(
-                  (index) => index + 1,
-                );
-                setFailedAttempts(0);
-                setPhoto(null);
-                setRecognitionResult(null);
+                advanceTarget();
               }}
               activeOpacity={0.85}
             >
@@ -793,7 +1158,7 @@ export function ObjectRecognitionMissionContent({
                   },
                 ]}
               >
-                {isLastTarget
+                {missionCompleted
                   ? isSpanish
                     ? 'Aceptar'
                     : 'Accept'
@@ -806,11 +1171,32 @@ export function ObjectRecognitionMissionContent({
         </View>
       </Modal>
 
-      <MissionCompleteModal
-        visible={Boolean(recognitionResult?.matched && isLastTarget)}
-        completedCount={targetObjects.length}
-        totalCount={targetObjects.length}
-        onContinue={handleComplete}
+      <AppModal
+        visible={giveUpVisible}
+        type="warning"
+        title={
+          isSpanish
+            ? '¿Seguro que quieres bajar de nivel?'
+            : 'Are you sure you want to lower the level?'
+        }
+        message={
+          isSpanish
+            ? `La misión bajará a ${lowerDifficulty === 'medium' ? 'medio' : 'fácil'}. Deberás reconocer ${remainingOnLowerLevel} objeto${remainingOnLowerLevel === 1 ? '' : 's'}.`
+            : `The mission will change to ${lowerDifficulty}. You will need to recognize ${remainingOnLowerLevel} object${remainingOnLowerLevel === 1 ? '' : 's'}.`
+        }
+        closeOnBackdropPress
+        onClose={() => setGiveUpVisible(false)}
+        cancelAction={{
+          label: isSpanish ? 'Seguir intentando' : 'Keep trying',
+          onPress: () => setGiveUpVisible(false),
+        }}
+        confirmAction={{
+          label: isSpanish ? 'Sí, bajar nivel' : 'Yes, lower level',
+          onPress: () => {
+            setGiveUpVisible(false);
+            downgradeLevel();
+          },
+        }}
       />
 
       <View style={styles.content}>
@@ -834,13 +1220,100 @@ export function ObjectRecognitionMissionContent({
           ]}
         >
           {photo ? (
-            <Image
-              source={{
-                uri: photo.uri,
-              }}
-              style={styles.camera}
-              resizeMode="cover"
-            />
+            <>
+              <Image
+                source={{
+                  uri: photo.uri,
+                }}
+                style={styles.camera}
+                resizeMode="cover"
+                onLayout={(
+                  event: LayoutChangeEvent,
+                ) => {
+                  const {
+                    width,
+                    height,
+                  } = event.nativeEvent.layout;
+
+                  setPhotoFrame({
+                    width,
+                    height,
+                  });
+                }}
+              />
+
+              {recognitionResult &&
+                detectionBoxStyle && (
+                  <View
+                    pointerEvents="none"
+                    style={styles.detectionOverlay}
+                  >
+                    <View
+                      style={[
+                        styles.detectionBox,
+                        detectionBoxStyle,
+                        {
+                          borderColor:
+                            recognitionResult.matched
+                              ? difficultyStyle.accentColor
+                              : Colors.danger,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.detectionLabel,
+                          {
+                            backgroundColor:
+                              recognitionResult.matched
+                                ? difficultyStyle.accentColor
+                                : Colors.danger,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.detectionLabelText,
+                            {
+                              color:
+                                recognitionResult.matched
+                                  ? difficultyStyle.textColor
+                                  : Colors.white,
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {detectedLabel}
+                          {' '}
+                          {Math.round(
+                            recognitionResult.confidence *
+                              100,
+                          )}
+                          %
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+              {recognitionResult &&
+                !recognitionResult.matched && (
+                  <View style={styles.failedPhotoOverlay}>
+                    <View style={styles.failedPhotoMessage}>
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={22}
+                        color={Colors.white}
+                      />
+                      <Text style={styles.failedPhotoText}>
+                        {isSpanish
+                          ? 'Este no es el objeto'
+                          : 'This is not the object'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+            </>
           ) : (
             <>
               <CameraView
@@ -865,6 +1338,7 @@ export function ObjectRecognitionMissionContent({
               </View>
             </>
           )}
+
         </View>
 
         <View
@@ -879,15 +1353,166 @@ export function ObjectRecognitionMissionContent({
             },
           ]}
         >
-          <Text style={styles.title}>
-            {isSpanish
-              ? 'Busca este objeto'
-              : 'Find this object'}
-          </Text>
+          <View style={styles.targetTitleRow}>
+            <Text style={styles.title}>
+              {isSpanish
+                ? 'Busca este objeto'
+                : 'Find this object'}
+            </Text>
+            {activeDifficulty === 'medium' &&
+              failedAttempts > 0 &&
+              !roundExhausted &&
+              !missionCompleted && (
+                <TouchableOpacity
+                  style={[
+                    styles.targetChangeBtn,
+                    {
+                      borderColor:
+                        difficultyStyle.accentColor,
+                    },
+                  ]}
+                  onPress={() => {
+                    registerFailedObject();
+                    advanceTarget();
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.targetChangeText,
+                      {
+                        color:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  >
+                    {isSpanish
+                      ? 'Cambiar objeto'
+                      : 'Change object'}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
-          <Text style={styles.objectName}>
-            {targetObjectName}
-          </Text>
+            {activeDifficulty === 'easy' &&
+              objectPool.length > 1 &&
+              !missionCompleted && (
+                <TouchableOpacity
+                  style={[
+                    styles.targetChangeBtn,
+                    {
+                      borderColor:
+                        difficultyStyle.accentColor,
+                    },
+                  ]}
+                  onPress={changeEasyTarget}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.targetChangeText,
+                      {
+                        color:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  >
+                    {isSpanish
+                      ? 'Cambiar objeto'
+                      : 'Change object'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+          </View>
+
+          <View style={styles.objectActionRow}>
+            <Text style={styles.objectName}>
+              {targetObjectName}
+            </Text>
+
+            {!roundExhausted &&
+              !missionCompleted &&
+              !recognitionResult?.matched && (
+              <View
+                style={[
+                  styles.cameraCaptureHalo,
+                  {
+                    borderColor:
+                      difficultyStyle.accentColor +
+                      '66',
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.cameraCaptureBtn,
+                    {
+                      borderColor: Colors.black,
+                      backgroundColor: 'transparent',
+                    },
+                    (
+                      capturing ||
+                      (!photo && (
+                        !cameraReady ||
+                        !targetObject
+                      ))
+                    ) &&
+                      styles.disabledBtn,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    validating
+                      ? isSpanish
+                        ? 'Analizando imagen'
+                        : 'Analyzing image'
+                      : photo
+                        ? isSpanish
+                          ? 'Tomar otra foto'
+                          : 'Take another photo'
+                        : isSpanish
+                          ? 'Tomar foto'
+                          : 'Take photo'
+                  }
+                  onPress={() => {
+                    if (photo) {
+                      setPhoto(null);
+                      setRecognitionResult(null);
+                      return;
+                    }
+
+                    void takePhoto();
+                  }}
+                  activeOpacity={0.85}
+                  disabled={
+                    validating
+                    || capturing
+                    || (!photo && (
+                      !cameraReady ||
+                      !targetObject
+                    ))
+                  }
+                >
+                  <View
+                    style={[
+                      styles.cameraCaptureFill,
+                      {
+                        backgroundColor:
+                          difficultyStyle.accentColor,
+                      },
+                    ]}
+                  />
+                  <Ionicons
+                    name={
+                      photo
+                          ? 'camera-reverse-outline'
+                          : 'camera-outline'
+                    }
+                    size={34}
+                    color={difficultyStyle.textColor}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
           <Text
             style={[
@@ -900,15 +1525,11 @@ export function ObjectRecognitionMissionContent({
           >
             {targetObjects.length > 0
               ? isSpanish
-                ? `${currentTargetIndex + 1} de ${
-                    targetObjects.length
-                  } - ${getDifficultyLabel(
+                ? `${recognizedCount}/${requiredRecognitions} reconocidos - ${getDifficultyLabel(
                     activeDifficulty,
                     true,
                   )}`
-                : `${currentTargetIndex + 1} of ${
-                    targetObjects.length
-                  } - ${getDifficultyLabel(
+                : `${recognizedCount}/${requiredRecognitions} recognized - ${getDifficultyLabel(
                     activeDifficulty,
                     false,
                   )}`
@@ -917,74 +1538,42 @@ export function ObjectRecognitionMissionContent({
                 : 'No objects'}
           </Text>
 
-          <Text style={styles.note}>
+          <Text
+            style={[
+              styles.note,
+              validating && styles.analyzingText,
+              validating && {
+                color: colors.textSecondary,
+                textShadowColor:
+                  difficultyStyle.accentColor,
+              },
+            ]}
+          >
             {noteText}
           </Text>
 
-          <MissionErrorCounter
-            count={failedAttempts}
-            max={3}
-            color={difficultyStyle.accentColor}
-          />
+          {activeDifficulty !== 'easy' && !roundExhausted && (
+            <MissionErrorCounter
+              count={failedAttempts}
+              max={maxAttempts}
+              color={difficultyStyle.accentColor}
+            />
+          )}
+
         </View>
 
-        {photo ? (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.secondaryBtn,
-                {
-                  borderColor:
-                    difficultyStyle.accentColor,
-                },
-              ]}
-              onPress={() => {
-                setPhoto(null);
-                setRecognitionResult(null);
-              }}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[
-                  styles.secondaryText,
-                  {
-                    color:
-                      difficultyStyle.accentColor,
-                  },
-                ]}
-              >
-                {isSpanish
-                  ? 'Repetir'
-                  : 'Retake'}
-              </Text>
-            </TouchableOpacity>
-
+        {roundExhausted ? (
+          <View style={styles.roundActions}>
             <TouchableOpacity
               style={[
                 styles.completeBtn,
-                styles.actionBtn,
                 {
                   backgroundColor:
                     difficultyStyle.accentColor,
                 },
-                (
-                  validating ||
-                  !detector.isReady ||
-                  recognitionResult?.matched
-                ) &&
-                  styles.disabledBtn,
               ]}
-              onPress={() => {
-                if (photo) {
-                  void validatePhoto(photo);
-                }
-              }}
+              onPress={() => restartRound()}
               activeOpacity={0.85}
-              disabled={
-                validating ||
-                !detector.isReady ||
-                recognitionResult?.matched
-              }
             >
               <Text
                 style={[
@@ -995,62 +1584,72 @@ export function ObjectRecognitionMissionContent({
                   },
                 ]}
               >
-                {validating
-                  ? isSpanish
-                    ? 'Analizando...'
-                    : 'Analyzing...'
-                  : detector.isReady
-                    ? isSpanish
-                      ? 'Reintentar'
-                      : 'Retry'
-                    : isSpanish
-                      ? 'Cargando IA'
-                      : 'Loading AI'}
+                {isSpanish
+                  ? 'Encontrar otro'
+                  : 'Find another'}
               </Text>
             </TouchableOpacity>
+
+            {activeDifficulty !== 'easy' &&
+              lowerLevelAvailable && (
+              <TouchableOpacity
+                style={styles.giveUpBtn}
+                onPress={() => setGiveUpVisible(true)}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.giveUpText,
+                    {
+                      color:
+                        colors.textMuted,
+                    },
+                  ]}
+                >
+                  {activeDifficulty === 'hard'
+                    ? isSpanish
+                      ? 'Es muy difícil para mí'
+                      : 'This is too hard for me'
+                    : isSpanish
+                      ? 'Bajar a fácil'
+                      : 'Lower to easy'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.completeBtn,
-              {
-                backgroundColor:
-                  difficultyStyle.accentColor,
-              },
-              (
-                !cameraReady ||
-                capturing ||
-                !targetObject
-              ) &&
-                styles.disabledBtn,
-            ]}
-            onPress={takePhoto}
-            activeOpacity={0.85}
-            disabled={
-              !cameraReady ||
-              capturing ||
-              !targetObject
-            }
-          >
-            <Text
+        ) : null}
+
+        {activeDifficulty !== 'easy' &&
+          lowerLevelAvailable &&
+          !roundExhausted &&
+          !missionCompleted && (
+            <TouchableOpacity
               style={[
-                styles.completeText,
-                {
-                  color:
-                    difficultyStyle.textColor,
-                },
+                styles.giveUpBtn,
+                styles.persistedGiveUpBtn,
               ]}
+              onPress={() => setGiveUpVisible(true)}
+              activeOpacity={0.75}
             >
-              {capturing
-                ? isSpanish
-                  ? 'Capturando...'
-                  : 'Capturing...'
-                : isSpanish
-                  ? 'Tomar foto'
-                  : 'Take photo'}
-            </Text>
-          </TouchableOpacity>
-        )}
+              <Text
+                style={[
+                  styles.giveUpText,
+                  {
+                    color:
+                      colors.textMuted,
+                  },
+                ]}
+              >
+                {activeDifficulty === 'hard'
+                  ? isSpanish
+                    ? 'Es muy difícil para mí'
+                    : 'This is too hard for me'
+                  : isSpanish
+                    ? 'Bajar a fácil'
+                    : 'Lower to easy'}
+              </Text>
+            </TouchableOpacity>
+          )}
       </View>
     </SafeAreaView>
   );
@@ -1112,6 +1711,62 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  failedPhotoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+
+  detectionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  detectionBox: {
+    position: 'absolute',
+    borderWidth: 3,
+    borderRadius: 8,
+  },
+
+  detectionLabel: {
+    position: 'absolute',
+    left: -3,
+    top: -3,
+    minHeight: 29,
+    maxWidth: 190,
+    borderTopLeftRadius: 7,
+    borderTopRightRadius: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    justifyContent: 'center',
+  },
+
+  detectionLabelText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  failedPhotoMessage: {
+    minHeight: 46,
+    maxWidth: '94%',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.danger,
+    backgroundColor: 'rgba(130, 28, 28, 0.88)',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  failedPhotoText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -1126,6 +1781,40 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.primary,
     backgroundColor: 'transparent',
+  },
+
+  cameraCaptureBtn: {
+    width: 68,
+    height: 68,
+    aspectRatio: 1,
+    borderRadius: 18,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.45,
+    shadowRadius: 5,
+    elevation: 7,
+    overflow: 'hidden',
+  },
+
+  cameraCaptureFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  cameraCaptureHalo: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   targetInfo: {
@@ -1145,11 +1834,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  targetTitleRow: {
+    width: '100%',
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+
+  targetChangeBtn: {
+    minHeight: 30,
+    borderRadius: 9,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  targetChangeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  objectActionRow: {
+    width: '100%',
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    paddingLeft: 36,
+    paddingRight: 6,
+  },
+
   objectName: {
     color: Colors.text,
     fontSize: 32,
     fontWeight: '900',
     textAlign: 'center',
+    flexShrink: 1,
   },
 
   progressText: {
@@ -1165,6 +1890,51 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     textAlign: 'center',
     marginTop: 8,
+  },
+
+  analyzingText: {
+    fontWeight: '700',
+    textShadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    textShadowRadius: 8,
+  },
+
+  inlineActionBtn: {
+    minHeight: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+
+  inlineActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  roundActions: {
+    gap: 4,
+  },
+
+  giveUpBtn: {
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+
+  giveUpText: {
+    fontSize: 12,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+
+  persistedGiveUpBtn: {
+    marginTop: -14,
   },
 
   completeBtn: {
@@ -1226,15 +1996,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary + '66',
     backgroundColor: Colors.bgCard,
-    padding: 24,
+    padding: 18,
     alignItems: 'center',
     gap: 10,
   },
 
   successIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1253,6 +2023,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     textAlign: 'center',
+  },
+
+  modalPhoto: {
+    width: '100%',
+    height: 205,
+    borderRadius: 10,
+    backgroundColor: Colors.black,
+    overflow: 'hidden',
+  },
+
+  modalPhotoImage: {
+    width: '100%',
+    height: '100%',
   },
 
   modalNote: {

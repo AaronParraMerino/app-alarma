@@ -213,8 +213,8 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Detectar objetos' : 'Detect objects'}
           summary={
             isSpanish
-              ? `${difficultyLabel(objectConfig.difficulty, true)} - ${OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} de ${objectPoolCount} al azar`
-              : `${difficultyLabel(objectConfig.difficulty, false)} - ${OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} of ${objectPoolCount} random`
+              ? `${difficultyLabel(objectConfig.difficulty, true)} - reconoce ${OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} de ${objectPoolCount}`
+              : `${difficultyLabel(objectConfig.difficulty, false)} - recognize ${OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} of ${objectPoolCount}`
           }
           icon="scan-outline"
           tint={OBJECT_DIFFICULTY_COLORS[objectConfig.difficulty]}

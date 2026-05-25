@@ -59,21 +59,12 @@ export const initDB = () => {
       created_at      INTEGER DEFAULT (strftime('%s','now'))
     );
 
-    CREATE INDEX IF NOT EXISTS idx_alarm_history_user_created_at
-    ON alarm_history(user_id, created_at DESC);
-
-    CREATE INDEX IF NOT EXISTS idx_alarm_history_synced
-    ON alarm_history(synced);
-
     CREATE TABLE IF NOT EXISTS word_completion_words (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       word       TEXT NOT NULL,
       difficulty TEXT NOT NULL,
       language   TEXT NOT NULL DEFAULT 'es'
     );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_word_completion_words_language_unique
-    ON word_completion_words(word, difficulty, language);
 
     CREATE TABLE IF NOT EXISTS missions_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

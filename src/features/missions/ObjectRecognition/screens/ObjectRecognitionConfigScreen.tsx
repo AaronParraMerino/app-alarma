@@ -57,18 +57,21 @@ const DIFFICULTY_OPTIONS = [
     labelEs: 'Fácil',
     labelEn: 'Easy',
     quantity: 1,
+    minimumSelection: 3,
   },
   {
     value: 'medium',
     labelEs: 'Medio',
     labelEn: 'Medium',
     quantity: 2,
+    minimumSelection: 4,
   },
   {
     value: 'hard',
     labelEs: 'Difícil',
     labelEn: 'Hard',
     quantity: 3,
+    minimumSelection: 6,
   },
 ] as const;
 
@@ -276,6 +279,11 @@ export function ObjectRecognitionConfigScreen({
       (option) => option.value === difficulty,
     )?.quantity ?? 1;
 
+  const minimumSelection =
+    DIFFICULTY_OPTIONS.find(
+      (option) => option.value === difficulty,
+    )?.minimumSelection ?? 3;
+
   const difficultyStyle =
     DIFFICULTY_STYLES[difficulty];
   const previewBgColor =
@@ -284,7 +292,7 @@ export function ObjectRecognitionConfigScreen({
     isDark ? colors.black : colors.white;
 
   const canSave =
-    selectedObjectIds.length >= requiredQuantity;
+    selectedObjectIds.length >= minimumSelection;
 
   const toggleObject = (
     objectId: string,
@@ -359,14 +367,14 @@ export function ObjectRecognitionConfigScreen({
 
   const selectedPreviewText =
     isSpanish
-      ? `Se elegirán al azar entre ${
+      ? `Rotarán al azar entre ${
           selectedObjectIds.length
         } seleccionado${
           selectedObjectIds.length === 1
             ? ''
             : 's'
         }`
-      : `They will be randomly chosen from ${
+      : `They will rotate randomly among ${
           selectedObjectIds.length
         } selected object${
           selectedObjectIds.length === 1
@@ -384,8 +392,8 @@ export function ObjectRecognitionConfigScreen({
           ? 'Try'
           : 'Save'
       : isSpanish
-        ? `Selecciona mínimo ${requiredQuantity}`
-        : `Select at least ${requiredQuantity}`;
+        ? `Selecciona mínimo ${minimumSelection}`
+        : `Select at least ${minimumSelection}`;
 
   return (
     <SafeAreaView
