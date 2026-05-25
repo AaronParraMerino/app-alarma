@@ -53,7 +53,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       setMessageType('error');
       setMessage(
         isSpanish
-          ? 'Completa tu contrasena actual y la nueva contrasena.'
+          ? 'Completa tu contraseña actual y la nueva contraseña.'
           : 'Complete your current password and the new password.',
       );
       return;
@@ -63,7 +63,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       setMessageType('error');
       setMessage(
         isSpanish
-          ? 'La nueva contrasena debe tener al menos 6 caracteres.'
+          ? 'La nueva contraseña debe tener al menos 6 caracteres.'
           : 'The new password must have at least 6 characters.',
       );
       return;
@@ -73,7 +73,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       setMessageType('error');
       setMessage(
         isSpanish
-          ? 'Las nuevas contrasenas no coinciden.'
+          ? 'Las nuevas contraseñas no coinciden.'
           : 'The new passwords do not match.',
       );
       return;
@@ -95,7 +95,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       setMessageType('success');
       setMessage(
         isSpanish
-          ? 'Contrasena actualizada correctamente.'
+          ? 'Contraseña actualizada correctamente.'
           : 'Password updated successfully.',
       );
     } catch (error) {
@@ -104,7 +104,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
         error instanceof Error
           ? error.message
           : isSpanish
-            ? 'No se pudo cambiar la contrasena.'
+            ? 'No se pudo cambiar la contraseña.'
             : 'Could not change the password.',
       );
     } finally {
@@ -155,7 +155,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
         />
 
         <Text style={[styles.topTitle, { color: colors.text }]}>
-          {isSpanish ? 'Contrasena' : 'Password'}
+          {isSpanish ? 'Contraseña' : 'Password'}
         </Text>
 
         <View style={styles.topSpace} />
@@ -191,23 +191,23 @@ export default function ChangePasswordScreen({ navigation }: Props) {
 
               <View style={styles.cardTitleWrap}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>
-                  {isSpanish ? 'Cambiar contrasena' : 'Change password'}
+                  {isSpanish ? 'Cambiar contraseña' : 'Change password'}
                 </Text>
                 <Text style={[styles.cardSubtitle, { color: colors.textMuted }]}>
                   {isSpanish
-                    ? 'Confirma tu contrasena actual antes de guardar una nueva.'
+                    ? 'Confirma tu contraseña actual antes de guardar una nueva.'
                     : 'Confirm your current password before saving a new one.'}
                 </Text>
               </View>
             </View>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {isSpanish ? 'Contrasena actual' : 'Current password'}
+              {isSpanish ? 'Contraseña actual' : 'Current password'}
             </Text>
             <TextInput
               value={currentPassword}
               onChangeText={setCurrentPassword}
-              placeholder={isSpanish ? 'Tu contrasena actual' : 'Your current password'}
+              placeholder={isSpanish ? 'Tu contraseña actual' : 'Your current password'}
               placeholderTextColor={colors.textMuted}
               secureTextEntry
               style={[
@@ -221,12 +221,12 @@ export default function ChangePasswordScreen({ navigation }: Props) {
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {isSpanish ? 'Nueva contrasena' : 'New password'}
+              {isSpanish ? 'Nueva contraseña' : 'New password'}
             </Text>
             <TextInput
               value={newPassword}
               onChangeText={setNewPassword}
-              placeholder={isSpanish ? 'Nueva contrasena' : 'New password'}
+              placeholder={isSpanish ? 'Nueva contraseña' : 'New password'}
               placeholderTextColor={colors.textMuted}
               secureTextEntry
               style={[
@@ -240,12 +240,12 @@ export default function ChangePasswordScreen({ navigation }: Props) {
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {isSpanish ? 'Confirmar nueva contrasena' : 'Confirm new password'}
+              {isSpanish ? 'Confirmar nueva contraseña' : 'Confirm new password'}
             </Text>
             <TextInput
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder={isSpanish ? 'Repite la nueva contrasena' : 'Repeat the new password'}
+              placeholder={isSpanish ? 'Repite la nueva contraseña' : 'Repeat the new password'}
               placeholderTextColor={colors.textMuted}
               secureTextEntry
               style={[
@@ -277,7 +277,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={[styles.primaryButtonText, { color: colors.white }]}>
-                  {isSpanish ? 'Guardar contrasena' : 'Save password'}
+                  {isSpanish ? 'Guardar contraseña' : 'Save password'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -307,7 +307,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
 
             <View style={styles.recoveryText}>
               <Text style={[styles.recoveryTitle, { color: colors.text }]}>
-                {isSpanish ? 'No recuerdo mi contrasena' : 'I forgot my password'}
+                {isSpanish ? 'No recuerdo mi contraseña' : 'I forgot my password'}
               </Text>
               <Text style={[styles.recoverySubtitle, { color: colors.textMuted }]}>
                 {isSpanish

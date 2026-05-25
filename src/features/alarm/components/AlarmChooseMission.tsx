@@ -79,6 +79,13 @@ const MISSION_META: Record<
     color: Colors.missionColors.colorFind ?? Colors.primaryLight,
   },
 
+  memory: {
+    labelEs: 'Encontrar pares',
+    labelEn: 'Find pairs',
+    icon: 'albums-outline',
+    color: Colors.missionColors.memory ?? Colors.primaryLight,
+  },
+
   photo: {
     labelEs: 'Detectar objetos',
     labelEn: 'Detect objects',

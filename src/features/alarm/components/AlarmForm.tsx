@@ -91,6 +91,12 @@ const DEFAULT_COLOR_FIND_MISSION: AlarmMission = {
   quantity: 3,
 };
 
+const DEFAULT_MEMORY_MISSION: AlarmMission = {
+  type: 'memory',
+  difficulty: 'normal',
+  quantity: 3,
+};
+
 const DEFAULT_OBJECT_MISSION: AlarmMission = {
   type: 'photo',
   difficulty: 'normal',
@@ -818,9 +824,11 @@ export default function AlarmForm({
               ? 'color'
               : mission.type === 'colorFind'
                 ? 'colorFind'
-                : mission.type === 'photo'
-                  ? 'photo'
-                  : 'wordCompletion';
+                : mission.type === 'memory'
+                  ? 'memory'
+                  : mission.type === 'photo'
+                    ? 'photo'
+                    : 'wordCompletion';
 
     setEditingMissionIndex(index);
     setConfigSelection(selection);
@@ -869,9 +877,11 @@ export default function AlarmForm({
             ? DEFAULT_COLOR_MISSION
             : selection === 'colorFind'
               ? DEFAULT_COLOR_FIND_MISSION
-              : selection === 'photo'
-                ? DEFAULT_OBJECT_MISSION
-                : DEFAULT_WORD_MISSION;
+              : selection === 'memory'
+                ? DEFAULT_MEMORY_MISSION
+                : selection === 'photo'
+                  ? DEFAULT_OBJECT_MISSION
+                  : DEFAULT_WORD_MISSION;
 
     const existingMission =
       editingMissionIndex !== null
@@ -986,6 +996,18 @@ export default function AlarmForm({
       navigation.navigate('AlarmConfigColorFindMission', {
         difficulty: toRuntimeDifficulty(mission.difficulty),
         quantity: mission.quantity ?? 5,
+        alarmConfigSessionId: sessionId,
+      });
+
+      return;
+    }
+
+    if (selection === 'memory') {
+      persistDraft();
+
+      navigation.navigate('AlarmConfigParesMission', {
+        difficulty: toRuntimeDifficulty(mission.difficulty),
+        quantity: mission.quantity ?? 3,
         alarmConfigSessionId: sessionId,
       });
 

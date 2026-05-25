@@ -42,6 +42,7 @@ interface MovementMissionScreenProps {
       durationMs: number;
     },
   ) => void;
+  onMistake?: () => void;
   alarmLabel?: string;
 }
 
@@ -267,6 +268,7 @@ function translateMovementText(
 export function MovementMissionScreen({
   userConfig,
   onSuccess,
+  onMistake,
   alarmLabel,
 }: MovementMissionScreenProps) {
   const {
@@ -418,6 +420,8 @@ export function MovementMissionScreen({
       const nextErrorCount =
         errorCount + 1;
 
+      onMistake?.();
+
       const previousDifficulty =
         getPreviousDifficulty(difficulty);
 
@@ -520,6 +524,7 @@ export function MovementMissionScreen({
       saveStepResult,
       userConfig.quantity,
       isSpanish,
+      onMistake,
     ],
   );
 

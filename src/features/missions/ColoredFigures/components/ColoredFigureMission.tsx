@@ -35,6 +35,7 @@ interface Props {
   difficulty: Difficulty;
   quantity: number;
   onComplete: () => void;
+  onMistake?: () => void;
   alarmLabel?: string;
 }
 
@@ -149,6 +150,7 @@ export function ColoredFiguresMission({
   difficulty,
   quantity,
   onComplete,
+  onMistake,
   alarmLabel,
 }: Props) {
   const {
@@ -293,6 +295,8 @@ export function ColoredFiguresMission({
         false,
         nextErrorCount,
       );
+
+      onMistake?.();
 
       if (
         nextErrorCount >= MAX_ERRORS &&

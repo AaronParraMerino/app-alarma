@@ -33,6 +33,7 @@ interface Props {
   difficulty: PairsDifficulty;
   quantity: number;
   onComplete: () => void;
+  onMistake?: () => void;
   alarmLabel?: string;
 }
 
@@ -164,6 +165,7 @@ export function ParesMissionScreen({
   difficulty: initialDifficulty,
   quantity,
   onComplete,
+  onMistake,
   alarmLabel,
 }: Props) {
   const { width, height } = useWindowDimensions();
@@ -329,6 +331,7 @@ export function ParesMissionScreen({
 
     const nextMisses = misses + 1;
     setMisses(nextMisses);
+    onMistake?.();
     setLocked(true);
     setFeedbackType('error');
 

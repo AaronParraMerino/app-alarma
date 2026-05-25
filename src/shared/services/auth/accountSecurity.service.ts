@@ -23,7 +23,7 @@ export async function changePasswordWithCurrentPassword({
   });
 
   if (signInError) {
-    throw new Error('La contrasena actual no es correcta.');
+    throw new Error('La contraseña actual no es correcta.');
   }
 
   const { error: updateError } = await supabase.auth.updateUser({

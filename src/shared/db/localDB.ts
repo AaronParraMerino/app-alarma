@@ -59,6 +59,38 @@ export const initDB = () => {
       created_at      INTEGER DEFAULT (strftime('%s','now'))
     );
 
+    CREATE INDEX IF NOT EXISTS idx_alarm_history_user_created_at
+    ON alarm_history(user_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_alarm_history_synced
+    ON alarm_history(synced);
+
+    CREATE TABLE IF NOT EXISTS alarm_streak_events (
+      id                 TEXT PRIMARY KEY NOT NULL,
+      user_id            TEXT NOT NULL,
+      alarm_id           TEXT,
+      event_type         TEXT NOT NULL CHECK (
+        event_type IN (
+          'completed',
+          'missed',
+          'frozen'
+        )
+      ),
+      alarm_time         TEXT,
+      event_date         TEXT NOT NULL,
+      used_protection    INTEGER DEFAULT 0,
+      protections_before INTEGER DEFAULT 0,
+      protections_after  INTEGER DEFAULT 0,
+      synced             INTEGER DEFAULT 0,
+      created_at         INTEGER DEFAULT (strftime('%s','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_alarm_streak_events_user_date
+    ON alarm_streak_events(user_id, event_date DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_alarm_streak_events_synced
+    ON alarm_streak_events(synced);
+
     CREATE TABLE IF NOT EXISTS word_completion_words (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       word       TEXT NOT NULL,
@@ -145,6 +177,27 @@ export const initDB = () => {
   db.execSync(`
     CREATE INDEX IF NOT EXISTS idx_alarm_history_synced
     ON alarm_history(synced);
+  `);
+
+  ensureColumn('alarm_streak_events', 'user_id', 'TEXT');
+  ensureColumn('alarm_streak_events', 'alarm_id', 'TEXT');
+  ensureColumn('alarm_streak_events', 'event_type', 'TEXT');
+  ensureColumn('alarm_streak_events', 'alarm_time', 'TEXT');
+  ensureColumn('alarm_streak_events', 'event_date', 'TEXT');
+  ensureColumn('alarm_streak_events', 'used_protection', 'INTEGER DEFAULT 0');
+  ensureColumn('alarm_streak_events', 'protections_before', 'INTEGER DEFAULT 0');
+  ensureColumn('alarm_streak_events', 'protections_after', 'INTEGER DEFAULT 0');
+  ensureColumn('alarm_streak_events', 'synced', 'INTEGER DEFAULT 0');
+  ensureColumn('alarm_streak_events', 'created_at', 'INTEGER');
+
+  db.execSync(`
+    CREATE INDEX IF NOT EXISTS idx_alarm_streak_events_user_date
+    ON alarm_streak_events(user_id, event_date DESC);
+  `);
+
+  db.execSync(`
+    CREATE INDEX IF NOT EXISTS idx_alarm_streak_events_synced
+    ON alarm_streak_events(synced);
   `);
 
   ensureColumn('word_completion_words', 'language', "TEXT NOT NULL DEFAULT 'es'");

@@ -5,7 +5,9 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
+import { Colors } from '../../../shared/theme/colors';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../shared/i18n/useTranslation';
 
@@ -16,11 +18,198 @@ interface Props {
   porTipo: MissionTypeStat[];
 }
 
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+type MissionIconMeta = {
+  icon: IconName;
+  color: string;
+};
+
+const MISSION_ICON_META: Record<string, MissionIconMeta> = {
+  random: {
+    icon: 'shuffle-outline',
+    color: Colors.missionColors.random ?? Colors.primaryLight,
+  },
+
+  math: {
+    icon: 'calculator-outline',
+    color: Colors.missionColors.math ?? Colors.primaryLight,
+  },
+
+  memory: {
+    icon: 'albums-outline',
+    color: Colors.missionColors.memory ?? Colors.primaryLight,
+  },
+
+  physical: {
+    icon: 'footsteps-outline',
+    color: Colors.missionColors.physical ?? Colors.primaryLight,
+  },
+
+  movement: {
+    icon: 'footsteps-outline',
+    color: Colors.missionColors.physical ?? Colors.primaryLight,
+  },
+
+  photo: {
+    icon: 'scan-outline',
+    color: Colors.missionColors.photo ?? Colors.primaryLight,
+  },
+
+  object: {
+    icon: 'scan-outline',
+    color: Colors.missionColors.photo ?? Colors.primaryLight,
+  },
+
+  trivia: {
+    icon: 'help-circle-outline',
+    color: Colors.missionColors.trivia ?? Colors.primaryLight,
+  },
+
+  writing: {
+    icon: 'create-outline',
+    color: Colors.missionColors.writing ?? Colors.primaryLight,
+  },
+
+  color: {
+    icon: 'color-palette-outline',
+    color: Colors.missionColors.color ?? Colors.primaryLight,
+  },
+
+  colorFind: {
+    icon: 'grid-outline',
+    color: Colors.missionColors.colorFind ?? Colors.primaryLight,
+  },
+
+  shapes: {
+    icon: 'grid-outline',
+    color: Colors.missionColors.shapes ?? Colors.primaryLight,
+  },
+
+  sequence: {
+    icon: 'keypad-outline',
+    color: Colors.missionColors.sequence ?? Colors.primaryLight,
+  },
+
+  wordCompletion: {
+    icon: 'text-outline',
+    color: Colors.missionColors.wordCompletion ?? Colors.primaryLight,
+  },
+};
+
 function normalizeText(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+function getMissionIconMeta(
+  missionType: string,
+  iconName?: string,
+): MissionIconMeta {
+  const type = normalizeText(missionType);
+  const icon = normalizeText(String(iconName ?? ''));
+
+  if (
+    type.includes('random') ||
+    type.includes('aleatorio') ||
+    icon.includes('shuffle')
+  ) {
+    return MISSION_ICON_META.random;
+  }
+
+  if (
+    type.includes('math') ||
+    type.includes('matematica') ||
+    icon.includes('calculator')
+  ) {
+    return MISSION_ICON_META.math;
+  }
+
+  if (
+    type.includes('word') ||
+    type.includes('palabra') ||
+    type.includes('completion') ||
+    icon.includes('text')
+  ) {
+    return MISSION_ICON_META.wordCompletion;
+  }
+
+  if (
+    type.includes('movement') ||
+    type.includes('physical') ||
+    type.includes('movimiento') ||
+    icon.includes('footsteps')
+  ) {
+    return MISSION_ICON_META.physical;
+  }
+
+  if (
+    type.includes('colorfind') ||
+    type.includes('color_find') ||
+    type.includes('different') ||
+    type.includes('diferente') ||
+    icon.includes('grid')
+  ) {
+    return MISSION_ICON_META.colorFind;
+  }
+
+  if (
+    type.includes('color') ||
+    type.includes('colored') ||
+    type.includes('figure') ||
+    type.includes('figura') ||
+    icon.includes('palette')
+  ) {
+    return MISSION_ICON_META.color;
+  }
+
+  if (
+    type.includes('photo') ||
+    type.includes('object') ||
+    type.includes('objeto') ||
+    icon.includes('scan')
+  ) {
+    return MISSION_ICON_META.photo;
+  }
+
+  if (
+    type.includes('memory') ||
+    type.includes('memoria') ||
+    icon.includes('albums')
+  ) {
+    return MISSION_ICON_META.memory;
+  }
+
+  if (
+    type.includes('trivia') ||
+    type.includes('pregunta') ||
+    icon.includes('help')
+  ) {
+    return MISSION_ICON_META.trivia;
+  }
+
+  if (
+    type.includes('writing') ||
+    type.includes('escritura') ||
+    icon.includes('create')
+  ) {
+    return MISSION_ICON_META.writing;
+  }
+
+  if (
+    type.includes('sequence') ||
+    type.includes('secuencia') ||
+    icon.includes('keypad')
+  ) {
+    return MISSION_ICON_META.sequence;
+  }
+
+  return {
+    icon: 'apps-outline',
+    color: Colors.primaryLight,
+  };
 }
 
 function getMissionLabel(
@@ -207,7 +396,7 @@ export function MissionTypeStatsCard({
             return null;
           }
 
-          const iconText = getMissionIconText(
+          const iconMeta = getMissionIconMeta(
             String(tipo.tipo),
             missionConfig.iconName,
           );
@@ -227,20 +416,15 @@ export function MissionTypeStatsCard({
                 style={[
                   styles.iconBox,
                   {
-                    backgroundColor: missionConfig.bgColor,
+                    backgroundColor: iconMeta.color + '18',
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.iconText,
-                    {
-                      color: missionConfig.iconColor,
-                    },
-                  ]}
-                >
-                  {iconText}
-                </Text>
+                <Ionicons
+                  name={iconMeta.icon}
+                  size={24}
+                  color={iconMeta.color}
+                />
               </View>
 
               <View style={styles.info}>
@@ -332,54 +516,6 @@ export function MissionTypeStatsCard({
   );
 }
 
-function getMissionIconText(
-  missionType: string,
-  iconName?: string,
-): string {
-  const type = missionType.toLowerCase();
-  const icon = String(iconName ?? '').toLowerCase();
-
-  if (
-    type.includes('math') ||
-    type.includes('matematica') ||
-    icon.includes('calculator') ||
-    icon.includes('math')
-  ) {
-    return '∑';
-  }
-
-  if (
-    type.includes('word') ||
-    type.includes('palabra') ||
-    icon.includes('text') ||
-    icon.includes('format')
-  ) {
-    return 'Aa';
-  }
-
-  if (
-    type.includes('movement') ||
-    type.includes('movimiento') ||
-    icon.includes('run') ||
-    icon.includes('walk')
-  ) {
-    return '↯';
-  }
-
-  if (
-    type.includes('color') ||
-    type.includes('colored') ||
-    type.includes('figure') ||
-    type.includes('figura') ||
-    icon.includes('palette') ||
-    icon.includes('shape')
-  ) {
-    return '●';
-  }
-
-  return '◎';
-}
-
 const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
@@ -414,11 +550,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-
-  iconText: {
-    fontSize: 18,
-    fontWeight: '700',
   },
 
   info: {
