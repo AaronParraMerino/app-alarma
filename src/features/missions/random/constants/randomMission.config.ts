@@ -21,6 +21,10 @@ export const RANDOM_AVAILABLE_MISSIONS = [
     description: 'Palabras con letras ocultas para completar.',
   },
   {
+    title: 'Movimiento',
+    description: 'Completar acciones fisicas con el telefono.',
+  },
+  {
     title: 'Figuras y colores',
     description: 'Identificar el color correcto de una figura.',
   },

@@ -57,11 +57,14 @@ type Props = NativeStackScreenProps<AlarmStackParamList, 'AlarmRinging'>;
 const RANDOM_MISSION_TYPES: MissionType[] = [
   'math',
   'wordCompletion',
+  'physical',
   'memory',
   'color',
   'colorFind',
   'photo',
 ];
+
+const EMERGENCY_ERROR_LIMIT = 15;
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
   const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
@@ -131,6 +134,7 @@ export default function AlarmRingingScreen({
   const [canRenderAlarm, setCanRenderAlarm] = useState(false);
   const [isStoppingAlarm, setIsStoppingAlarm] = useState(false);
   const [isGivingUp, setIsGivingUp] = useState(false);
+  const [emergencyErrorCount, setEmergencyErrorCount] = useState(0);
 
   const stoppingAlarmRef = React.useRef(false);
   const mountedRef = React.useRef(true);
@@ -204,6 +208,7 @@ export default function AlarmRingingScreen({
     setCanRenderAlarm(false);
     setIsStoppingAlarm(false);
     setIsGivingUp(false);
+    setEmergencyErrorCount(0);
     stoppingAlarmRef.current = false;
     streakCompletedRecordedRef.current = false;
     streakFailedRecordedRef.current = false;
@@ -452,8 +457,21 @@ export default function AlarmRingingScreen({
     stopAlarm,
   ]);
 
+  const registerMissionMistake = React.useCallback(() => {
+    setEmergencyErrorCount((current) =>
+      Math.min(
+        EMERGENCY_ERROR_LIMIT,
+        current + 1,
+      ),
+    );
+  }, []);
+
   const giveUpAlarm = React.useCallback(() => {
-    if (isGivingUp || isStoppingAlarm) {
+    if (
+      isGivingUp ||
+      isStoppingAlarm ||
+      emergencyErrorCount < EMERGENCY_ERROR_LIMIT
+    ) {
       return;
     }
 
@@ -464,6 +482,7 @@ export default function AlarmRingingScreen({
       await stopAlarm();
     })();
   }, [
+    emergencyErrorCount,
     isGivingUp,
     isStoppingAlarm,
     recordFailedStreak,
@@ -471,7 +490,11 @@ export default function AlarmRingingScreen({
   ]);
 
   const renderGiveUpButton = () => {
-    if (isStoppingAlarm || isGivingUp) {
+    if (
+      isStoppingAlarm ||
+      isGivingUp ||
+      emergencyErrorCount < EMERGENCY_ERROR_LIMIT
+    ) {
       return null;
     }
 
@@ -714,28 +737,6 @@ export default function AlarmRingingScreen({
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.secondaryStopButton,
-              {
-                borderColor: colors.danger + '66',
-              },
-            ]}
-            onPress={giveUpAlarm}
-            activeOpacity={0.88}
-            disabled={isGivingUp}
-          >
-            <Text
-              style={[
-                styles.secondaryStopButtonText,
-                {
-                  color: colors.danger,
-                },
-              ]}
-            >
-              {isGivingUp ? 'Cerrando...' : 'No pude resolver'}
-            </Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -748,6 +749,7 @@ export default function AlarmRingingScreen({
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
+        onMistake={registerMissionMistake}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
     );
@@ -762,6 +764,7 @@ export default function AlarmRingingScreen({
           quantity: activeMission.quantity ?? 3,
         }}
         onSuccess={completeMission}
+        onMistake={registerMissionMistake}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
     );
@@ -774,6 +777,7 @@ export default function AlarmRingingScreen({
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
+        onMistake={registerMissionMistake}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
     );
@@ -786,6 +790,7 @@ export default function AlarmRingingScreen({
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 5}
         onComplete={completeMission}
+        onMistake={registerMissionMistake}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
     );
@@ -798,6 +803,7 @@ export default function AlarmRingingScreen({
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
+        onMistake={registerMissionMistake}
         alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
       />,
     );
@@ -810,6 +816,7 @@ export default function AlarmRingingScreen({
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         targetObjectIds={activeMission.targetObjectIds}
         onComplete={completeMission}
+        onMistake={registerMissionMistake}
       />,
     );
   }
@@ -821,6 +828,7 @@ export default function AlarmRingingScreen({
       quantity={activeMission.quantity ?? 3}
       operationType={(activeMission.operationType ?? 'addition') as OperationType}
       onComplete={completeMission}
+      onMistake={registerMissionMistake}
       alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
     />,
   );
@@ -916,21 +924,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  secondaryStopButton: {
-    minWidth: 210,
-    minHeight: 48,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-  },
-
-  secondaryStopButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
   giveUpButton: {
     position: 'absolute',
     right: 16,
@@ -947,4 +940,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+
 });

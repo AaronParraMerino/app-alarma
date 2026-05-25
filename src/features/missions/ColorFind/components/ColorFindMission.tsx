@@ -26,6 +26,7 @@ interface Props {
   difficulty: Difficulty;
   quantity: number;
   onComplete: () => void;
+  onMistake?: () => void;
   alarmLabel?: string;
 }
 
@@ -93,6 +94,7 @@ export function ColorFindMission({
   difficulty: initialDifficulty,
   quantity,
   onComplete,
+  onMistake,
   alarmLabel,
 }: Props) {
   const { width } = useWindowDimensions();
@@ -219,6 +221,7 @@ export function ColorFindMission({
     const nextMisses = misses + 1;
 
     setMisses(nextMisses);
+    onMistake?.();
 
     if (nextMisses >= maxMisses) {
       handleChallengeFailure(tileId, nextMisses);

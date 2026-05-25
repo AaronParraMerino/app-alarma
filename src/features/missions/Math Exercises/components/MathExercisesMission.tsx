@@ -34,6 +34,7 @@ interface Props {
   difficulty: Difficulty;
   quantity: number;
   onComplete: () => void;
+  onMistake?: () => void;
   alarmLabel?: string;
   operationType?: OperationType;
 }
@@ -149,6 +150,7 @@ export function MathExercisesMission({
   difficulty: initialDifficulty,
   quantity,
   onComplete,
+  onMistake,
   alarmLabel,
   operationType,
 }: Props) {
@@ -410,6 +412,8 @@ export function MathExercisesMission({
         nextErrorCount,
       );
 
+      onMistake?.();
+
       if (
         nextErrorCount >= MAX_ERRORS &&
         previousDifficulty
@@ -509,6 +513,7 @@ export function MathExercisesMission({
     handleReplace,
     saveMissionHistory,
     isSpanish,
+    onMistake,
   ]);
 
   React.useEffect(() => {

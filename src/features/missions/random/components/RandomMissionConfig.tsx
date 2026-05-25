@@ -64,6 +64,7 @@ const DIFFICULTY_META: Record<
 const MISSION_ICONS = [
   'calculator-outline',
   'text-outline',
+  'footsteps-outline',
   'color-palette-outline',
   'grid-outline',
   'albums-outline',
@@ -95,13 +96,36 @@ export function RandomMissionConfig({
   return (
     <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {onBack ? (
           <BackButton style={styles.backButton} onPress={onBack} />
         ) : null}
 
-        <View style={styles.headerPill}>
-          <Text style={styles.headerText}>MISION{'\n'}ALEATORIA</Text>
+        <View
+          style={[
+            styles.headerPill,
+            {
+              backgroundColor: selected.color,
+            },
+          ]}
+        >
+          <Ionicons
+            name="shuffle-outline"
+            size={24}
+            color={selected.textColor}
+          />
+
+          <Text
+            style={[
+              styles.headerText,
+              {
+                color: selected.textColor,
+              },
+            ]}
+          >
+            MISION{'\n'}ALEATORIA
+          </Text>
         </View>
 
         <Text style={styles.sectionLabel}>Como funciona</Text>
@@ -226,14 +250,14 @@ export function RandomMissionConfig({
                 onPress={() => setQuantity(value => Math.min(RANDOM_MISSION_MAX_QUANTITY, value + 1))}
                 activeOpacity={0.85}
               >
-                <Text style={styles.arrowText}>+</Text>
+                <Text style={styles.arrowText}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.arrowBtn}
                 onPress={() => setQuantity(value => Math.max(RANDOM_MISSION_MIN_QUANTITY, value - 1))}
                 activeOpacity={0.85}
               >
-                <Text style={styles.arrowText}>-</Text>
+                <Text style={styles.arrowText}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -270,16 +294,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerPill: {
-    backgroundColor: Colors.primary,
     borderRadius: 24,
     paddingVertical: 10,
     paddingHorizontal: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 12,
     marginBottom: 24,
   },
   headerText: {
-    color: Colors.white,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     textAlign: 'center',
@@ -373,7 +398,7 @@ const styles = StyleSheet.create({
   quantityNum: { fontSize: 22, fontWeight: '700', color: Colors.text, minWidth: 24, textAlign: 'center' },
   arrows: { gap: 2 },
   arrowBtn: { paddingHorizontal: 4 },
-  arrowText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '800' },
+  arrowText: { fontSize: 13, color: Colors.textSecondary, fontWeight: '900' },
   vecesText: { fontSize: 15, color: Colors.textSecondary },
   spacer: { flex: 1, minHeight: 14 },
   confirmBtn: { borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },

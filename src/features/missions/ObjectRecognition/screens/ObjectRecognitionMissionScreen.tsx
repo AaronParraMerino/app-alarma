@@ -225,6 +225,7 @@ type ObjectRecognitionMissionContentProps = {
   alarmLabel?: string;
   onBack?: () => void;
   onComplete?: () => void;
+  onMistake?: () => void;
 };
 
 export function ObjectRecognitionMissionContent({
@@ -232,6 +233,7 @@ export function ObjectRecognitionMissionContent({
   targetObjectIds: routeTargetObjectIds,
   onBack,
   onComplete,
+  onMistake,
 }: ObjectRecognitionMissionContentProps) {
   const {
     colors,
@@ -458,6 +460,8 @@ export function ObjectRecognitionMissionContent({
           const nextFailedAttempts =
             failedAttempts + 1;
 
+          onMistake?.();
+
           if (nextFailedAttempts >= 3) {
             changeTargetAfterFailures();
 
@@ -485,6 +489,7 @@ export function ObjectRecognitionMissionContent({
       changeTargetAfterFailures,
       detector,
       failedAttempts,
+      onMistake,
       targetObject,
       validating,
     ],
