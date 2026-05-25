@@ -27,6 +27,7 @@ import { Modal } from '../../../shared/components/ui/Modal';
 import { deleteCurrentAccountData } from '../../../shared/services/profile/profile.service';
 
 import { useAuth } from '../../auth/store/authStore';
+import { getStreakSummary } from '../../streak/services/streak';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileStackParamList } from '../navigation/ProfileNavigator';
 
@@ -257,30 +258,47 @@ export default function ProfileScreen({
     refetch,
   } = useProfile();
 
+  const currentUser = user as any;
+
+  const userId: string =
+    currentUser?.id ??
+    currentUser?.user_id ??
+    currentUser?.id_usuario ??
+    currentUser?.uid ??
+    '';
+
+  const [currentStreak, setCurrentStreak] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const [activeModal, setActiveModal] =
     useState<'logout' | 'delete-account' | null>(null);
 
+  const loadCurrentStreak = useCallback(async () => {
+    if (!userId) {
+      setCurrentStreak(0);
+      return;
+    }
+
+    try {
+      const summary = await getStreakSummary(userId);
+      setCurrentStreak(summary.currentStreak);
+    } catch (streakError) {
+      console.log('[Profile] No se pudo cargar la racha:', streakError);
+      setCurrentStreak(0);
+    }
+  }, [userId]);
+
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch]),
+      void loadCurrentStreak();
+    }, [refetch, loadCurrentStreak]),
   );
 
   if (!user) {
     return null;
   }
-
-  const currentUser = user as any;
-
-  const userId: string =
-    currentUser.id ??
-    currentUser.user_id ??
-    currentUser.id_usuario ??
-    currentUser.uid ??
-    '';
 
   const email = currentUser.email ?? '';
 
@@ -343,6 +361,16 @@ export default function ProfileScreen({
     }
 
     navigation.navigate('AlarmHistory', {
+      userId,
+    });
+  };
+
+  const handleOpenStreak = () => {
+    if (!userId) {
+      return;
+    }
+
+    navigation.navigate('Streak', {
       userId,
     });
   };
@@ -490,9 +518,95 @@ export default function ProfileScreen({
 
           <StatCard
             icon="flame-outline"
-            value={profile?.streak_days ?? 0}
+            value={currentStreak}
             label={isSpanish ? 'Racha' : 'Streak'}
             color={colors.danger}
+          />
+        </View>
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textMuted,
+            },
+          ]}
+        >
+          {isSpanish ? 'Progreso' : 'Progress'}
+        </Text>
+
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <ActionRow
+            icon="trophy-outline"
+            label={
+              isSpanish
+                ? 'Historial de misiones'
+                : 'Mission history'
+            }
+            sublabel={
+              isSpanish
+                ? 'Ver historial de misiones realizadas'
+                : 'View completed mission history'
+            }
+            color={colors.warning}
+            onPress={handleOpenMissionHistory}
+            disabled={!userId}
+          />
+
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
+
+          <ActionRow
+            icon="alarm-outline"
+            label={
+              isSpanish
+                ? 'Historial de alarmas'
+                : 'Alarm history'
+            }
+            sublabel={
+              isSpanish
+                ? 'Ver alarmas creadas, activadas y desactivadas'
+                : 'View created, enabled and disabled alarms'
+            }
+            color={colors.primary}
+            onPress={handleOpenAlarmHistory}
+            disabled={!userId}
+          />
+
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: colors.borderMuted,
+              },
+            ]}
+          />
+
+          <ActionRow
+            icon="flame-outline"
+            label={isSpanish ? 'Racha' : 'Streak'}
+            sublabel={
+              isSpanish
+                ? 'Ver progreso de alarmas completadas'
+                : 'View completed alarm progress'
+            }
+            color={colors.danger}
+            onPress={handleOpenStreak}
+            disabled={!userId}
           />
         </View>
 
@@ -524,6 +638,7 @@ export default function ProfileScreen({
                 ? 'Cambiar nombre y bio'
                 : 'Change name and bio'
             }
+            color={colors.primary}
             onPress={() => navigation.navigate('EditProfile')}
           />
 
@@ -538,63 +653,14 @@ export default function ProfileScreen({
 
           <ActionRow
             icon="lock-closed-outline"
-            label={isSpanish ? 'Cambiar contrasena' : 'Change password'}
+            label={isSpanish ? 'Cambiar contraseña' : 'Change password'}
             sublabel={
               isSpanish
                 ? 'Actualizar o restablecer acceso'
                 : 'Update or recover access'
             }
+            color={colors.primary}
             onPress={() => navigation.navigate('ChangePassword')}
-          />
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor: colors.borderMuted,
-              },
-            ]}
-          />
-
-          <ActionRow
-            icon="time-outline"
-            label={
-              isSpanish
-                ? 'Historial de misiones'
-                : 'Mission history'
-            }
-            sublabel={
-              isSpanish
-                ? 'Ver historial de misiones realizadas'
-                : 'View completed mission history'
-            }
-            onPress={handleOpenMissionHistory}
-            disabled={!userId}
-          />
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor: colors.borderMuted,
-              },
-            ]}
-          />
-
-          <ActionRow
-            icon="alarm-outline"
-            label={
-              isSpanish
-                ? 'Historial de alarmas'
-                : 'Alarm history'
-            }
-            sublabel={
-              isSpanish
-                ? 'Ver alarmas creadas, activadas y desactivadas'
-                : 'View created, enabled and disabled alarms'
-            }
-            onPress={handleOpenAlarmHistory}
-            disabled={!userId}
           />
         </View>
 
@@ -702,7 +768,7 @@ export default function ProfileScreen({
         title={isSpanish ? 'Eliminar cuenta' : 'Delete account'}
         message={
           isSpanish
-            ? 'Se eliminaran tus alarmas, historial y perfil guardados en la app. Esta accion cerrara tu sesion.'
+            ? 'Se eliminarán tus alarmas, historial y perfil guardados en la app. Esta acción cerrará tu sesión.'
             : 'Your alarms, mission history, and app profile will be deleted. This action will log you out.'
         }
         onClose={closeModal}

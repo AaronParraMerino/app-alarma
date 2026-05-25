@@ -54,7 +54,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
       setMessageType('error');
       setMessage(
         isSpanish
-          ? 'La contrasena debe tener al menos 6 caracteres.'
+          ? 'La contraseña debe tener al menos 6 caracteres.'
           : 'Password must have at least 6 characters.',
       );
       return;
@@ -62,7 +62,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
 
     if (password !== confirmPassword) {
       setMessageType('error');
-      setMessage(isSpanish ? 'Las contrasenas no coinciden.' : 'Passwords do not match.');
+      setMessage(isSpanish ? 'Las contraseñas no coinciden.' : 'Passwords do not match.');
       return;
     }
 
@@ -76,7 +76,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
       setMessageType('success');
       setMessage(
         isSpanish
-          ? 'Tu contrasena fue actualizada correctamente.'
+          ? 'Tu contraseña fue actualizada correctamente.'
           : 'Your password was updated successfully.',
       );
     } catch (error: any) {
@@ -150,20 +150,20 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
           <Text style={[styles.title, { color: colors.text }]}>
             {completed
               ? isSpanish
-                ? 'Contrasena actualizada'
+                ? 'Contraseña actualizada'
                 : 'Password updated'
               : isSpanish
-                ? 'Nueva contrasena'
+                ? 'Nueva contraseña'
                 : 'New password'}
           </Text>
 
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {completed
               ? isSpanish
-                ? 'Ahora puedes iniciar sesion con tu nueva contrasena.'
+                ? 'Ahora puedes iniciar sesion con tu nueva contraseña.'
                 : 'You can now log in with your new password.'
               : isSpanish
-                ? 'Crea una nueva contrasena para recuperar el acceso a tu cuenta.'
+                ? 'Crea una nueva contraseña para recuperar el acceso a tu cuenta.'
                 : 'Create a new password to recover access to your account.'}
           </Text>
 
@@ -188,7 +188,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
           ) : (
             <>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                {isSpanish ? 'Nueva contrasena:' : 'New password:'}
+                {isSpanish ? 'Nueva contraseña:' : 'New password:'}
               </Text>
 
               <View
@@ -223,7 +223,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
               </View>
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                {isSpanish ? 'Confirmar contrasena:' : 'Confirm password:'}
+                {isSpanish ? 'Confirmar contraseña:' : 'Confirm password:'}
               </Text>
 
               <View
@@ -262,7 +262,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
                   <ActivityIndicator color={colors.white} />
                 ) : (
                   <Text style={[styles.btnPrimaryText, { color: colors.white }]}>
-                    {isSpanish ? 'Actualizar contrasena' : 'Update password'}
+                    {isSpanish ? 'Actualizar contraseña' : 'Update password'}
                   </Text>
                 )}
               </TouchableOpacity>
