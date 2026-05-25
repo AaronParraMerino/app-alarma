@@ -7,6 +7,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MissionHistoryScreen from '../../history/screens/MissionHistoryScreen';
+import AlarmHistoryScreen from '../../alarm/screens/AlarmHistoryScreen';
 import VerifyRecoveryCodeScreen from '../../auth/screens/VerifyRecoveryCodeScreen';
 import ResetPasswordScreen from '../../auth/screens/ResetPasswordScreen';
 
@@ -22,6 +23,9 @@ export type ProfileStackParamList = {
     email: string;
   };
   MissionHistory: {
+    userId: string;
+  };
+  AlarmHistory: {
     userId: string;
   };
 };
@@ -41,15 +45,23 @@ export default function ProfileNavigator() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+
       <Stack.Screen
         name="VerifyRecoveryCode"
         component={VerifyRecoveryCodeScreen as React.ComponentType<any>}
       />
+
       <Stack.Screen
         name="ResetPassword"
         component={ResetPasswordScreen as React.ComponentType<any>}
       />
+
       <Stack.Screen name="MissionHistory" component={MissionHistoryScreen} />
+
+      <Stack.Screen
+        name="AlarmHistory"
+        component={AlarmHistoryScreen as React.ComponentType<any>}
+      />
     </Stack.Navigator>
   );
 }

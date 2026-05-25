@@ -50,10 +50,7 @@ function AvatarLarge({
     .map((word) => word[0])
     .join('')
     .toUpperCase()
-    .slice(
-      0,
-      2,
-    );
+    .slice(0, 2);
 
   return (
     <View style={styles.avatarWrap}>
@@ -260,11 +257,8 @@ export default function ProfileScreen({
     refetch,
   } = useProfile();
 
-  const [isLoggingOut, setIsLoggingOut] =
-    useState(false);
-
-  const [isDeletingAccount, setIsDeletingAccount] =
-    useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const [activeModal, setActiveModal] =
     useState<'logout' | 'delete-account' | null>(null);
@@ -272,9 +266,7 @@ export default function ProfileScreen({
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [
-      refetch,
-    ]),
+    }, [refetch]),
   );
 
   if (!user) {
@@ -328,11 +320,21 @@ export default function ProfileScreen({
       setIsDeletingAccount(true);
       await deleteCurrentAccountData(userId);
       await logout();
-    } catch (error) {
-      console.log('[Profile] No se pudo eliminar la cuenta:', error);
+    } catch (deleteError) {
+      console.log('[Profile] No se pudo eliminar la cuenta:', deleteError);
       setIsDeletingAccount(false);
       setActiveModal(null);
     }
+  };
+
+  const handleOpenMissionHistory = () => {
+    if (!userId) {
+      return;
+    }
+
+    navigation.navigate('MissionHistory', {
+      userId,
+    });
   };
 
   const handleOpenAlarmHistory = () => {
@@ -340,7 +342,7 @@ export default function ProfileScreen({
       return;
     }
 
-    navigation.navigate('MissionHistory', {
+    navigation.navigate('AlarmHistory', {
       userId,
     });
   };
@@ -566,7 +568,7 @@ export default function ProfileScreen({
                 ? 'Ver historial de misiones realizadas'
                 : 'View completed mission history'
             }
-            onPress={handleOpenAlarmHistory}
+            onPress={handleOpenMissionHistory}
             disabled={!userId}
           />
 
@@ -580,14 +582,19 @@ export default function ProfileScreen({
           />
 
           <ActionRow
-            icon="bar-chart-outline"
+            icon="alarm-outline"
             label={
               isSpanish
-                ? 'Ver estadísticas completas'
-                : 'View full statistics'
+                ? 'Historial de alarmas'
+                : 'Alarm history'
             }
-            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
-            disabled
+            sublabel={
+              isSpanish
+                ? 'Ver alarmas creadas, activadas y desactivadas'
+                : 'View created, enabled and disabled alarms'
+            }
+            onPress={handleOpenAlarmHistory}
+            disabled={!userId}
           />
         </View>
 
@@ -692,11 +699,7 @@ export default function ProfileScreen({
       <Modal
         visible={activeModal === 'delete-account'}
         type="error"
-        title={
-          isSpanish
-            ? 'Eliminar cuenta'
-            : 'Delete account'
-        }
+        title={isSpanish ? 'Eliminar cuenta' : 'Delete account'}
         message={
           isSpanish
             ? 'Se eliminaran tus alarmas, historial y perfil guardados en la app. Esta accion cerrara tu sesion.'
