@@ -17,6 +17,7 @@ import { MissionType } from '../types/alarm.types';
 export type AlarmMissionSelection =
   | 'random'
   | 'math'
+  | 'memory'
   | 'wordCompletion'
   | 'physical'
   | 'color'
@@ -97,8 +98,9 @@ const MISSION_OPTIONS: MissionOption[] = [
     labelEs: 'Encontrar pares',
     labelEn: 'Find pairs',
     icon: 'albums-outline',
+    value: 'memory',
     missionType: 'memory',
-    enabled: false,
+    enabled: true,
   },
 
   {

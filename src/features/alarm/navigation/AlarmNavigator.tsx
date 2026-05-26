@@ -16,6 +16,7 @@ import { ColorFindConfigScreen } from '../../missions/ColorFind/screens/ColorFin
 import { ObjectRecognitionConfigScreen } from '../../missions/ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import { TriviaConfigScreen } from '../../missions/Trivia/screens/TriviaConfigScreen';
 import { TriviaCategory, TriviaTimeLimits } from '../../missions/Trivia/types/trivia.types';
+import { ParesMissionConfigScreen } from '../../missions/ParesMission/screens/ParesMissionConfigScreen';
 import { completeAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 
 export type AlarmStackParamList = {
@@ -45,6 +46,11 @@ export type AlarmStackParamList = {
     alarmConfigSessionId: string;
   };
   AlarmConfigColorFindMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    quantity?: number;
+    alarmConfigSessionId: string;
+  };
+  AlarmConfigParesMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     quantity?: number;
     alarmConfigSessionId: string;
@@ -126,6 +132,10 @@ export default function AlarmNavigator() {
       <Stack.Screen
         name="AlarmConfigColorFindMission"
         component={ColorFindConfigScreen as any}
+      />
+      <Stack.Screen
+        name="AlarmConfigParesMission"
+        component={ParesMissionConfigScreen as any}
       />
       <Stack.Screen
         name="AlarmConfigObjectRecognitionMission"

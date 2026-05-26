@@ -102,7 +102,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
           </View>
 
           <Text style={[styles.title, { color: colors.text }]}>
-            {isSpanish ? 'Recuperar contrasena' : 'Recover password'}
+            {isSpanish ? 'Recuperar contraseña' : 'Recover password'}
           </Text>
 
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

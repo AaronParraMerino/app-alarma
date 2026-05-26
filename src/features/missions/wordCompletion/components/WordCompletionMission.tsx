@@ -36,6 +36,7 @@ interface Props {
   difficulty: Difficulty;
   quantity: number;
   onComplete: () => void;
+  onMistake?: () => void;
   alarmLabel?: string;
 }
 
@@ -146,6 +147,7 @@ export function WordCompletionMission({
   difficulty: initialDifficulty,
   quantity,
   onComplete,
+  onMistake,
   alarmLabel,
 }: Props) {
   const {
@@ -341,6 +343,8 @@ export function WordCompletionMission({
         nextErrorCount,
       );
 
+      onMistake?.();
+
       if (
         nextErrorCount >= MAX_ERRORS &&
         previousDifficulty
@@ -438,6 +442,7 @@ export function WordCompletionMission({
     handleReplace,
     saveMissionHistory,
     isSpanish,
+    onMistake,
   ]);
 
   React.useEffect(() => {

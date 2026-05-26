@@ -8,6 +8,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MissionHistoryScreen from '../../history/screens/MissionHistoryScreen';
 import AlarmHistoryScreen from '../../alarm/screens/AlarmHistoryScreen';
+import StreakScreen from '../../streak/screens/StreakScreen';
 import VerifyRecoveryCodeScreen from '../../auth/screens/VerifyRecoveryCodeScreen';
 import ResetPasswordScreen from '../../auth/screens/ResetPasswordScreen';
 
@@ -26,6 +27,9 @@ export type ProfileStackParamList = {
     userId: string;
   };
   AlarmHistory: {
+    userId: string;
+  };
+  Streak: {
     userId: string;
   };
 };
@@ -61,6 +65,11 @@ export default function ProfileNavigator() {
       <Stack.Screen
         name="AlarmHistory"
         component={AlarmHistoryScreen as React.ComponentType<any>}
+      />
+
+      <Stack.Screen
+        name="Streak"
+        component={StreakScreen as React.ComponentType<any>}
       />
     </Stack.Navigator>
   );

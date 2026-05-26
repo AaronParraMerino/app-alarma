@@ -48,6 +48,7 @@ interface TriviaMissionProps {
   targetScore?: number;
   alarmLabel?: string;
   onComplete: () => void;
+  onMistake?: () => void;
 }
 
 type RouteProps = NativeStackScreenProps<
@@ -202,6 +203,7 @@ export function TriviaMission({
     DEFAULT_TRIVIA_CONFIG.targetScore,
   alarmLabel,
   onComplete,
+  onMistake,
 }: TriviaMissionProps) {
   const {
     colors,
@@ -358,6 +360,10 @@ export function TriviaMission({
 
       setLocked(true);
       setScore(nextScore);
+      if (roundedPoints === 0) {
+        onMistake?.();
+      }
+
       if (
         roundedPoints === 0 &&
         activeDifficulty !== 'easy'
@@ -408,6 +414,7 @@ export function TriviaMission({
       isSpanish,
       locked,
       nextQuestion,
+      onMistake,
       score,
       targetScore,
     ]);
