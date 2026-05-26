@@ -108,6 +108,22 @@ export const initDB = () => {
     CREATE INDEX IF NOT EXISTS idx_oro_category
     ON object_recognition_objects(category);
 
+    CREATE TABLE IF NOT EXISTS trivia_custom_questions (
+      id                     TEXT PRIMARY KEY NOT NULL,
+      category               TEXT NOT NULL,
+      prompt_es              TEXT NOT NULL,
+      prompt_en              TEXT NOT NULL,
+      options_es             TEXT NOT NULL DEFAULT '[]',
+      options_en             TEXT NOT NULL DEFAULT '[]',
+      correct_option_indexes TEXT NOT NULL DEFAULT '[]',
+      accepted_answers_es    TEXT NOT NULL DEFAULT '[]',
+      accepted_answers_en    TEXT NOT NULL DEFAULT '[]',
+      created_at             INTEGER DEFAULT (strftime('%s','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trivia_custom_questions_category
+    ON trivia_custom_questions(category);
+
     CREATE TABLE IF NOT EXISTS app_metadata (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL

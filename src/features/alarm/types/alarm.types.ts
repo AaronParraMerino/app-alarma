@@ -22,6 +22,15 @@ export interface AlarmMission {
   quantity?: number;
   operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
   targetObjectIds?: string[];
+  triviaCategoryIds?: Array<
+    'history' | 'music' | 'math' | 'science' | 'geography' | 'custom'
+  >;
+  triviaTimeLimits?: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+  triviaTargetScore?: number;
 }
 
 export interface Alarm {

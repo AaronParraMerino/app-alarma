@@ -97,6 +97,22 @@ const DEFAULT_OBJECT_MISSION: AlarmMission = {
   quantity: 2,
 };
 
+const DEFAULT_TRIVIA_MISSION: AlarmMission = {
+  type: 'trivia',
+  difficulty: 'normal',
+  triviaCategoryIds: [
+    'history',
+    'music',
+    'math',
+  ],
+  triviaTimeLimits: {
+    easy: 45,
+    medium: 60,
+    hard: 90,
+  },
+  triviaTargetScore: 20,
+};
+
 const DEFAULT_RANDOM_CONFIG: AlarmMission = {
   type: 'random',
   difficulty: 'normal',
@@ -820,6 +836,8 @@ export default function AlarmForm({
                 ? 'colorFind'
                 : mission.type === 'photo'
                   ? 'photo'
+                  : mission.type === 'trivia'
+                    ? 'trivia'
                   : 'wordCompletion';
 
     setEditingMissionIndex(index);
@@ -871,6 +889,8 @@ export default function AlarmForm({
               ? DEFAULT_COLOR_FIND_MISSION
               : selection === 'photo'
                 ? DEFAULT_OBJECT_MISSION
+                : selection === 'trivia'
+                  ? DEFAULT_TRIVIA_MISSION
                 : DEFAULT_WORD_MISSION;
 
     const existingMission =
@@ -973,6 +993,28 @@ export default function AlarmForm({
           ),
           quantity: mission.quantity ?? 2,
           targetObjectIds: mission.targetObjectIds,
+          alarmConfigSessionId: sessionId,
+        },
+      );
+
+      return;
+    }
+
+    if (selection === 'trivia') {
+      persistDraft();
+
+      navigation.navigate(
+        'AlarmConfigTriviaMission',
+        {
+          difficulty: toRuntimeDifficulty(
+            mission.difficulty,
+          ),
+          categoryIds:
+            mission.triviaCategoryIds,
+          timeLimits:
+            mission.triviaTimeLimits,
+          targetScore:
+            mission.triviaTargetScore,
           alarmConfigSessionId: sessionId,
         },
       );

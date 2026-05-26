@@ -25,6 +25,7 @@ import { MovementMissionScreen } from '../../missions/MovementMission/screens/Mo
 import { ColoredFiguresMission } from '../../missions/ColoredFigures/components/ColoredFigureMission';
 import { ColorFindMission } from '../../missions/ColorFind/components/ColorFindMission';
 import { ObjectRecognitionMissionContent } from '../../missions/ObjectRecognition/screens/ObjectRecognitionMissionScreen';
+import { TriviaMission } from '../../missions/Trivia/screens/TriviaMissionScreen';
 
 import {
   closeNativeAlarmScreen,
@@ -46,6 +47,7 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
   'color',
   'colorFind',
   'photo',
+  'trivia',
 ];
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
@@ -127,7 +129,8 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         mission.type === 'physical' ||
         mission.type === 'color' ||
         mission.type === 'colorFind' ||
-        mission.type === 'photo'
+        mission.type === 'photo' ||
+        mission.type === 'trivia'
       ) {
         return mission;
       }
@@ -464,6 +467,20 @@ export default function AlarmRingingScreen({ route, navigation }: Props) {
         key={`object-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         targetObjectIds={activeMission.targetObjectIds}
+        onComplete={completeMission}
+      />
+    );
+  }
+
+  if (activeMission.type === 'trivia') {
+    return (
+      <TriviaMission
+        key={`trivia-${currentMissionIndex}`}
+        difficulty={toMissionDifficulty(activeMission.difficulty)}
+        categoryIds={activeMission.triviaCategoryIds}
+        timeLimits={activeMission.triviaTimeLimits}
+        targetScore={activeMission.triviaTargetScore}
+        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
         onComplete={completeMission}
       />
     );

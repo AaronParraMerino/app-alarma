@@ -36,6 +36,8 @@ import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/co
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
+import { useTriviaStore } from '../Trivia/store/triviaStore';
+import { TRIVIA_DIFFICULTY_STYLES } from '../Trivia/constants/trivia.config';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 type NavigationProp = NativeStackNavigationProp<MissionsStackParamList, 'MissionSelector'>;
@@ -129,6 +131,7 @@ export default function MissionSelectorScreen() {
   const { config: colorFindConfig } = useColorFindStore();
   const { config: pairsConfig } = usePairsMissionStore();
   const { config: objectConfig } = useObjectRecognitionStore();
+  const { config: triviaConfig } = useTriviaStore();
 
   const [objectBank, setObjectBank] = useState<RecognizableObject[]>([]);
 
@@ -152,6 +155,7 @@ export default function MissionSelectorScreen() {
   const colorStyle = COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
   const colorFindStyle = COLOR_FIND_DIFFICULTY_STYLES[colorFindConfig.difficulty];
   const pairsStyle = PAIRS_DIFFICULTY_STYLES[pairsConfig.difficulty];
+  const triviaStyle = TRIVIA_DIFFICULTY_STYLES[triviaConfig.difficulty];
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -220,6 +224,18 @@ export default function MissionSelectorScreen() {
           tint={OBJECT_DIFFICULTY_COLORS[objectConfig.difficulty]}
           disabled={objectPoolCount === 0}
           onPress={() => navigation.navigate('ConfigObjectRecognitionMission', { practice: true })}
+        />
+
+        <MissionPracticeCard
+          title={isSpanish ? 'Cultura general' : 'General knowledge'}
+          summary={
+            isSpanish
+              ? `${difficultyLabel(triviaConfig.difficulty, true)} - ${triviaConfig.targetScore} puntos - ${triviaConfig.timeLimits[triviaConfig.difficulty]} s`
+              : `${difficultyLabel(triviaConfig.difficulty, false)} - ${triviaConfig.targetScore} points - ${triviaConfig.timeLimits[triviaConfig.difficulty]} s`
+          }
+          icon="help-circle-outline"
+          tint={triviaStyle.accentColor}
+          onPress={() => navigation.navigate('ConfigTriviaMission', { practice: true })}
         />
 
         <MissionPracticeCard

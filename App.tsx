@@ -21,6 +21,7 @@ import { AlarmProvider } from './src/features/alarm/store/alarmStore';
 import { AuthProvider } from './src/features/auth/store/authStore';
 import { MissionsProvider } from './src/features/missions/store/missionsStore';
 import { ObjectRecognitionProvider } from './src/features/missions/ObjectRecognition/store/objectRecognitionStore';
+import { TriviaProvider } from './src/features/missions/Trivia/store/triviaStore';
 import {
   extractAlarmIdFromUrl,
   getPendingNativeRingingAlarmId,
@@ -138,7 +139,9 @@ export default function App() {
         <AlarmProvider>
           <MissionsProvider>
             <ObjectRecognitionProvider>
-              <AppContent />
+              <TriviaProvider>
+                <AppContent />
+              </TriviaProvider>
             </ObjectRecognitionProvider>
           </MissionsProvider>
         </AlarmProvider>

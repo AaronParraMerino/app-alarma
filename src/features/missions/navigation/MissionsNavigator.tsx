@@ -33,6 +33,10 @@ import ObjectRecognitionMissionScreen from '../ObjectRecognition/screens/ObjectR
 import { ParesMissionConfigScreen } from '../ParesMission/screens/ParesMissionConfigScreen';
 import ParesMissionRouteScreen from '../ParesMission/screens/ParesMissionRouteScreen';
 import { PairsMissionProvider } from '../ParesMission/store/paresMissionStore';
+import { TriviaConfigScreen } from '../Trivia/screens/TriviaConfigScreen';
+import TriviaMissionScreen from '../Trivia/screens/TriviaMissionScreen';
+import { TriviaProvider } from '../Trivia/store/triviaStore';
+import { TriviaCategory, TriviaTimeLimits } from '../Trivia/types/trivia.types';
 import { PracticeExitButton } from '../../../shared/components/missions/PracticeExitButton';
 import { useTranslation } from '../../../shared/i18n/useTranslation';
 
@@ -162,6 +166,24 @@ export type MissionsStackParamList = {
     alarmLabel?: string;
     practice?: boolean;
   } | undefined;
+
+  ConfigTriviaMission: {
+    difficulty?: 'easy' | 'medium' | 'hard';
+    categoryIds?: TriviaCategory[];
+    timeLimits?: TriviaTimeLimits;
+    targetScore?: number;
+    alarmConfigSessionId?: string;
+    practice?: boolean;
+  } | undefined;
+
+  TriviaMissionScreen: {
+    difficulty: 'easy' | 'medium' | 'hard';
+    categoryIds?: TriviaCategory[];
+    timeLimits?: TriviaTimeLimits;
+    targetScore?: number;
+    alarmLabel?: string;
+    practice?: boolean;
+  };
 };
 
 const Stack = createNativeStackNavigator<MissionsStackParamList>();
@@ -239,6 +261,7 @@ export default function MissionsNavigator() {
           <ColoredFiguresProvider>
             <ColorFindProvider>
              <PairsMissionProvider>
+              <TriviaProvider>
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen
                   name="MissionSelector"
@@ -313,7 +336,18 @@ export default function MissionsNavigator() {
                     name="ObjectRecognitionMissionScreen"
                     component={ObjectRecognitionMissionScreen}
                   />
+
+                  <Stack.Screen
+                    name="ConfigTriviaMission"
+                    component={TriviaConfigScreen}
+                  />
+
+                  <Stack.Screen
+                    name="TriviaMissionScreen"
+                    component={TriviaMissionScreen}
+                  />
                 </Stack.Navigator>
+              </TriviaProvider>
               </PairsMissionProvider>
             </ColorFindProvider>
           </ColoredFiguresProvider>

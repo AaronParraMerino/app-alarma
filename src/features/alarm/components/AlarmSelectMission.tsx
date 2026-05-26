@@ -21,7 +21,8 @@ export type AlarmMissionSelection =
   | 'physical'
   | 'color'
   | 'colorFind'
-  | 'photo';
+  | 'photo'
+  | 'trivia';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -66,8 +67,9 @@ const MISSION_OPTIONS: MissionOption[] = [
     labelEs: 'Preguntas cultura general',
     labelEn: 'General knowledge questions',
     icon: 'help-circle-outline',
+    value: 'trivia',
     missionType: 'trivia',
-    enabled: false,
+    enabled: true,
   },
 
   {

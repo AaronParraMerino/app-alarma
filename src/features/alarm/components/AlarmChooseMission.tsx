@@ -85,6 +85,13 @@ const MISSION_META: Record<
     icon: 'scan-outline',
     color: Colors.missionColors.photo ?? Colors.primaryLight,
   },
+
+  trivia: {
+    labelEs: 'Cultura general',
+    labelEn: 'General knowledge',
+    icon: 'help-circle-outline',
+    color: Colors.missionColors.trivia ?? Colors.primaryLight,
+  },
 };
 
 const RANDOM_META = {
