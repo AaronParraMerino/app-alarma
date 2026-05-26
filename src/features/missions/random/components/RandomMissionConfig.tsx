@@ -69,6 +69,7 @@ const MISSION_ICONS = [
   'grid-outline',
   'albums-outline',
   'scan-outline',
+  'help-circle-outline',
 ] as const;
 
 export function RandomMissionConfig({

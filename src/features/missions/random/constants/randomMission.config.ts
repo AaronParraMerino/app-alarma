@@ -40,4 +40,8 @@ export const RANDOM_AVAILABLE_MISSIONS = [
     title: 'Detectar objetos',
     description: 'Validar objetos con la camara cuando suena la alarma.',
   },
+  {
+    title: 'Cultura general',
+    description: 'Responder preguntas de conocimiento general por categorias.',
+  },
 ] as const;
