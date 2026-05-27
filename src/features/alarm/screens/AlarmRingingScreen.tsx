@@ -287,8 +287,6 @@ export default function AlarmRingingScreen({
   const validateAlarmStillActive = React.useCallback(async () => {
     if (!mountedRef.current) return false;
 
-    setCanRenderAlarm(false);
-
     const shouldOpen = await shouldOpenRingingAlarmId(alarmId);
 
     if (!mountedRef.current) return false;
@@ -319,10 +317,7 @@ export default function AlarmRingingScreen({
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         void validateAlarmStillActive();
-        return;
       }
-
-      setCanRenderAlarm(false);
     });
 
     return () => subscription.remove();

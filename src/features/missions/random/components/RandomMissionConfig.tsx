@@ -12,6 +12,8 @@ import { BackButton } from '../../../../shared/components/ui/BackButton';
 import { Colors } from '../../../../shared/theme/colors';
 import { Layout } from '../../../../shared/theme/layout';
 import { Typography } from '../../../../shared/theme/typography';
+import { useAppTheme } from '../../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import {
   RANDOM_AVAILABLE_MISSIONS,
   RANDOM_MISSION_DEFAULT_CONFIG,
@@ -39,25 +41,38 @@ const LEVELS: RandomMissionDifficulty[] = ['easy', 'medium', 'hard'];
 
 const DIFFICULTY_META: Record<
   RandomMissionDifficulty,
-  { label: string; color: string; textColor: string; detail: string }
+  {
+    labelEs: string;
+    labelEn: string;
+    color: string;
+    textColor: string;
+    detailEs: string;
+    detailEn: string;
+  }
 > = {
   easy: {
-    label: 'Facil',
+    labelEs: 'Facil',
+    labelEn: 'Easy',
     color: Colors.success,
     textColor: Colors.bg,
-    detail: 'Retos cortos para apagar rapido.',
+    detailEs: 'Retos cortos para apagar rapido.',
+    detailEn: 'Short challenges to turn off quickly.',
   },
   medium: {
-    label: 'Medio',
+    labelEs: 'Medio',
+    labelEn: 'Medium',
     color: Colors.warning,
     textColor: Colors.bg,
-    detail: 'Equilibrio entre rapidez y concentracion.',
+    detailEs: 'Equilibrio entre rapidez y concentracion.',
+    detailEn: 'A balance between speed and focus.',
   },
   hard: {
-    label: 'Dificil',
+    labelEs: 'Dificil',
+    labelEn: 'Hard',
     color: Colors.danger,
     textColor: Colors.bg,
-    detail: 'Mayor esfuerzo para despertar bien.',
+    detailEs: 'Mayor esfuerzo para despertar bien.',
+    detailEn: 'More effort to wake up properly.',
   },
 };
 
@@ -79,8 +94,17 @@ export function RandomMissionConfig({
   maxMissionCount = RANDOM_MISSION_MAX_COUNT,
   onBack,
   onSave,
-  saveLabel = 'Confirmar',
+  saveLabel,
 }: Props) {
+  const {
+    colors,
+    statusBarStyle,
+  } = useAppTheme();
+  const {
+    language,
+  } = useTranslation();
+  const isSpanish = language === 'es';
+
   const [difficulty, setDifficulty] = useState<RandomMissionDifficulty>(initialDifficulty);
   const [quantity, setQuantity] = useState(initialQuantity);
   const [missionCount, setMissionCount] = useState(
@@ -88,6 +112,7 @@ export function RandomMissionConfig({
   );
 
   const selected = DIFFICULTY_META[difficulty];
+  const confirmLabel = saveLabel ?? (isSpanish ? 'Confirmar' : 'Confirm');
   const sliderIdx = LEVELS.indexOf(difficulty);
   const countOptions = Array.from(
     { length: Math.max(RANDOM_MISSION_MIN_COUNT, maxMissionCount) },
@@ -95,8 +120,8 @@ export function RandomMissionConfig({
   );
 
   return (
-    <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+    <View style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={statusBarStyle} backgroundColor={colors.bg} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {onBack ? (
@@ -125,35 +150,65 @@ export function RandomMissionConfig({
               },
             ]}
           >
-            MISION{'\n'}ALEATORIA
+            {isSpanish
+              ? 'MISION\nALEATORIA'
+              : 'RANDOM\nMISSION'}
           </Text>
         </View>
 
-        <Text style={styles.sectionLabel}>Como funciona</Text>
-        <Text style={styles.description}>
-          Al sonar la alarma se elegiran misiones disponibles al azar con la dificultad
-          y cantidad que configures aqui.
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>
+          {isSpanish ? 'Como funciona' : 'How it works'}
+        </Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
+          {isSpanish
+            ? 'Al sonar la alarma se elegiran misiones disponibles al azar con la dificultad y cantidad que configures aqui.'
+            : 'When the alarm rings, available missions will be chosen randomly with the difficulty and quantity you configure here.'}
         </Text>
 
         <View style={styles.missionList}>
           {RANDOM_AVAILABLE_MISSIONS.map((mission, index) => (
-            <View key={mission.title} style={styles.missionRow}>
-              <View style={[styles.iconWrap, { borderColor: selected.color + '77' }]}>
+            <View
+              key={mission.titleEs}
+              style={[
+                styles.missionRow,
+                {
+                  backgroundColor: colors.bgCard,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconWrap,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: selected.color + '77',
+                  },
+                ]}
+              >
                 <Ionicons name={MISSION_ICONS[index]} size={22} color={selected.color} />
               </View>
               <View style={styles.missionCopy}>
-                <Text style={styles.missionTitle}>{mission.title}</Text>
-                <Text style={styles.missionDescription}>{mission.description}</Text>
+                <Text style={[styles.missionTitle, { color: colors.text }]}>
+                  {isSpanish ? mission.titleEs : mission.titleEn}
+                </Text>
+                <Text style={[styles.missionDescription, { color: colors.textSecondary }]}>
+                  {isSpanish ? mission.descriptionEs : mission.descriptionEn}
+                </Text>
               </View>
             </View>
           ))}
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        <Text style={styles.sectionLabel}>Misiones aleatorias</Text>
-        <Text style={styles.description}>
-          {missionCount} mision{missionCount === 1 ? '' : 'es'} al sonar la alarma.
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>
+          {isSpanish ? 'Misiones aleatorias' : 'Random missions'}
+        </Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
+          {isSpanish
+            ? `${missionCount} mision${missionCount === 1 ? '' : 'es'} al sonar la alarma.`
+            : `${missionCount} mission${missionCount === 1 ? '' : 's'} when the alarm rings.`}
         </Text>
         <View style={styles.countGrid}>
           {countOptions.map(option => {
@@ -163,6 +218,10 @@ export function RandomMissionConfig({
                 key={option}
                 style={[
                   styles.countButton,
+                  {
+                    backgroundColor: colors.bgElevated,
+                    borderColor: colors.border,
+                  },
                   active && {
                     backgroundColor: selected.color,
                     borderColor: selected.color,
@@ -174,6 +233,9 @@ export function RandomMissionConfig({
                 <Text
                   style={[
                     styles.countText,
+                    {
+                      color: colors.text,
+                    },
                     active && { color: selected.textColor },
                   ]}
                 >
@@ -184,15 +246,17 @@ export function RandomMissionConfig({
           })}
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        <Text style={styles.sectionLabel}>Seleccione la dificultad</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>
+          {isSpanish ? 'Seleccione la dificultad' : 'Select the difficulty'}
+        </Text>
         <Text style={[styles.difficultyHint, { color: selected.color }]}>
-          {selected.detail}
+          {isSpanish ? selected.detailEs : selected.detailEn}
         </Text>
 
         <View style={styles.sliderWrapper}>
-          <View style={styles.trackBg}>
+          <View style={[styles.trackBg, { backgroundColor: colors.bgElevated }]}>
             <View
               style={[
                 styles.trackFill,
@@ -210,8 +274,8 @@ export function RandomMissionConfig({
                   style={[
                     styles.thumb,
                     {
-                      backgroundColor: sliderIdx >= index ? selected.color : Colors.bgElevated,
-                      borderColor: sliderIdx >= index ? selected.color : Colors.textMuted,
+                      backgroundColor: sliderIdx >= index ? selected.color : colors.bgElevated,
+                      borderColor: sliderIdx >= index ? selected.color : colors.textMuted,
                     },
                   ]}
                 />
@@ -229,40 +293,55 @@ export function RandomMissionConfig({
                 <Text
                   style={[
                     styles.labelText,
+                    {
+                      color: colors.textMuted,
+                    },
                     difficulty === level && { color: selected.color, fontWeight: '800' },
                   ]}
                 >
-                  {DIFFICULTY_META[level].label}
+                  {isSpanish ? DIFFICULTY_META[level].labelEs : DIFFICULTY_META[level].labelEn}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        <Text style={styles.sectionLabel}>Retos por mision</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>
+          {isSpanish ? 'Retos por mision' : 'Challenges per mission'}
+        </Text>
         <View style={styles.quantityRow}>
-          <View style={styles.quantityBox}>
-            <Text style={styles.quantityNum}>{quantity}</Text>
+          <View
+            style={[
+              styles.quantityBox,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.quantityNum, { color: colors.text }]}>{quantity}</Text>
             <View style={styles.arrows}>
               <TouchableOpacity
                 style={styles.arrowBtn}
                 onPress={() => setQuantity(value => Math.min(RANDOM_MISSION_MAX_QUANTITY, value + 1))}
                 activeOpacity={0.85}
               >
-                <Text style={styles.arrowText}>▲</Text>
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▲</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.arrowBtn}
                 onPress={() => setQuantity(value => Math.max(RANDOM_MISSION_MIN_QUANTITY, value - 1))}
                 activeOpacity={0.85}
               >
-                <Text style={styles.arrowText}>▼</Text>
+                <Text style={[styles.arrowText, { color: colors.textSecondary }]}>▼</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.vecesText}>veces</Text>
+          <Text style={[styles.vecesText, { color: colors.textSecondary }]}>
+            {isSpanish ? 'veces' : 'times'}
+          </Text>
         </View>
 
         <View style={styles.spacer} />
@@ -272,7 +351,7 @@ export function RandomMissionConfig({
           onPress={() => onSave({ difficulty, quantity, missionCount })}
           activeOpacity={0.85}
         >
-          <Text style={[styles.confirmText, { color: selected.textColor }]}>{saveLabel}</Text>
+          <Text style={[styles.confirmText, { color: selected.textColor }]}>{confirmLabel}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
