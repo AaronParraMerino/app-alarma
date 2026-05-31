@@ -324,24 +324,6 @@ export default function SettingsScreen({ navigation }: Props) {
           ]}
         >
           <MenuRow
-            icon="notifications-outline"
-            label={t('settings.notifications')}
-            sublabel={isSpanish ? 'Próximamente' : 'Coming soon'}
-            tintColor={colors.warning}
-            disabled
-            colors={colors}
-          />
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor: colors.borderMuted,
-              },
-            ]}
-          />
-
-          <MenuRow
             icon="color-palette"
             label={t('settings.appearance')}
             sublabel={

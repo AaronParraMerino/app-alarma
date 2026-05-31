@@ -17,9 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { getAlarmsLocal } from '../../../shared/services/storage/localDB.service';
 
 import { MathExercisesMission } from '../../missions/Math Exercises/components/MathExercisesMission';
@@ -99,6 +101,10 @@ export default function AlarmRingingScreen({
     colors,
     statusBarStyle,
   } = useAppTheme();
+  const {
+    language,
+  } = useTranslation();
+  const isSpanish = language === 'es';
 
   const {
     user,
@@ -583,7 +589,7 @@ export default function AlarmRingingScreen({
               },
             ]}
           >
-            Alarma no encontrada
+            {isSpanish ? 'Alarma no encontrada' : 'Alarm not found'}
           </Text>
 
           <Text
@@ -594,7 +600,9 @@ export default function AlarmRingingScreen({
               },
             ]}
           >
-            Vuelve e intenta de nuevo.
+            {isSpanish
+              ? 'Vuelve e intenta de nuevo.'
+              : 'Go back and try again.'}
           </Text>
 
           <TouchableOpacity
@@ -616,7 +624,7 @@ export default function AlarmRingingScreen({
                 },
               ]}
             >
-              Cerrar alarma
+              {isSpanish ? 'Cerrar alarma' : 'Close alarm'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -661,7 +669,7 @@ export default function AlarmRingingScreen({
               },
             ]}
           >
-            ALARMA
+            {isSpanish ? 'ALARMA' : 'ALARM'}
           </Text>
 
           <Text
@@ -690,6 +698,22 @@ export default function AlarmRingingScreen({
         </View>
 
         <View style={styles.normalAlarmSection}>
+          <View
+            style={[
+              styles.normalAlarmIconWrap,
+              {
+                backgroundColor: colors.accentGlow,
+                borderColor: colors.primary + '55',
+              },
+            ]}
+          >
+            <Ionicons
+              name="alarm-outline"
+              size={38}
+              color={colors.primary}
+            />
+          </View>
+
           <Text
             style={[
               styles.title,
@@ -698,19 +722,50 @@ export default function AlarmRingingScreen({
               },
             ]}
           >
-            Alarma activa
+            {isSpanish ? 'Alarma activa' : 'Alarm active'}
           </Text>
 
           <Text
             style={[
-              styles.subtitle,
+              styles.normalAlarmSubtitle,
               {
                 color: colors.textSecondary,
               },
             ]}
           >
-            No hay misiones configuradas.
+            {isSpanish
+              ? 'Esta alarma no tiene una mision configurada. Puedes detenerla directamente para finalizar este aviso.'
+              : 'This alarm has no mission configured. You can stop it directly to finish this alert.'}
           </Text>
+
+          <View
+            style={[
+              styles.normalAlarmInfo,
+              {
+                backgroundColor: colors.bgCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={18}
+              color={colors.success}
+            />
+
+            <Text
+              style={[
+                styles.normalAlarmInfoText,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish
+                ? 'No necesitas resolver pasos adicionales.'
+                : 'No extra steps need to be solved.'}
+            </Text>
+          </View>
 
           <TouchableOpacity
             style={[
@@ -731,7 +786,7 @@ export default function AlarmRingingScreen({
                 },
               ]}
             >
-              Detener alarma
+              {isSpanish ? 'Detener alarma' : 'Stop alarm'}
             </Text>
           </TouchableOpacity>
 
@@ -891,6 +946,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPaddingWide,
     paddingVertical: 24,
     gap: 10,
+  },
+
+  normalAlarmIconWrap: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+
+  normalAlarmSubtitle: {
+    maxWidth: 310,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+
+  normalAlarmInfo: {
+    width: '100%',
+    maxWidth: 340,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+
+  normalAlarmInfoText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
   },
 
   badge: {
