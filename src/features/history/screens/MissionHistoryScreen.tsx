@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
@@ -67,6 +68,14 @@ export default function MissionHistoryScreen({
       navigation.goBack();
     }
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [
+      refetch,
+    ]),
+  );
 
   return (
     <SafeAreaView

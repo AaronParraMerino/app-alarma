@@ -3,12 +3,16 @@ export type MissionType =
   | 'math_exercises'
   | 'movement'
   | 'colored_figures'
-  | 'color_find';
+  | 'color_find'
+  | 'memory_pairs'
+  | 'trivia'
+  | 'object_recognition';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface MissionHistoryRecord {
   id: string | number;
+  sync_id?: string;
   user_id: string;
   mission_type: MissionType;
   difficulty: Difficulty | null;

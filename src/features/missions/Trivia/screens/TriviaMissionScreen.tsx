@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,26 +26,36 @@ import { Layout } from '../../../../shared/theme/layout';
 import { Colors } from '../../../../shared/theme/colors';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
+import { useAuth } from '../../../auth/hooks/useAuth';
+import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 
 import {
   DEFAULT_TRIVIA_CONFIG,
-  TRIVIA_CATEGORIES,
   TRIVIA_DIFFICULTY_STYLES,
   TRIVIA_POINTS,
-  getTriviaQuestions,
 } from '../constants/trivia.config';
 import {
   TriviaCategory,
   TriviaDifficulty,
   TriviaQuestion,
-  TriviaTimeLimits,
 } from '../types/trivia.types';
+import {
+  buildQuestionDeck,
+  getPossibleTriviaQuestions,
+  getTriviaCategoryLabel,
+  getTriviaFeedbackText,
+  roundHalf,
+  scoreEasyAnswer,
+  scoreMediumAnswer,
+  scoreWrittenAnswer,
+  shuffleSingleQuestionOptions,
+} from '../services/triviaMission.service';
 
 interface TriviaMissionProps {
   difficulty: TriviaDifficulty;
   categoryIds?: TriviaCategory[];
-  timeLimits?: TriviaTimeLimits;
   targetScore?: number;
   alarmLabel?: string;
   onComplete: () => void;
@@ -56,149 +67,40 @@ type RouteProps = NativeStackScreenProps<
   'TriviaMissionScreen'
 >;
 
-function shuffle<T>(items: T[]): T[] {
-  return [...items]
-    .sort(() => Math.random() - 0.5);
+function parseAlarmLabel(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/^(\d{2}:\d{2})(?:\s-\s(.+))?$/);
+
+  return {
+    time: match?.[1] ?? value,
+    label: match?.[2],
+  };
 }
 
-function normalizeText(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function levenshtein(
-  source: string,
-  target: string,
-): number {
-  const rows =
-    source.length + 1;
-  const columns =
-    target.length + 1;
-  const matrix =
-    Array.from(
-      {
-        length: rows,
-      },
-      () => Array(columns).fill(0),
-    );
-
-  for (let row = 0; row < rows; row += 1) {
-    matrix[row][0] = row;
-  }
-
-  for (
-    let column = 0;
-    column < columns;
-    column += 1
-  ) {
-    matrix[0][column] = column;
-  }
-
-  for (let row = 1; row < rows; row += 1) {
-    for (
-      let column = 1;
-      column < columns;
-      column += 1
-    ) {
-      const substitutionCost =
-        source[row - 1] ===
-        target[column - 1]
-          ? 0
-          : 1;
-
-      matrix[row][column] = Math.min(
-        matrix[row - 1][column] + 1,
-        matrix[row][column - 1] + 1,
-        matrix[row - 1][column - 1] +
-          substitutionCost,
-      );
-    }
-  }
-
-  return matrix[source.length][target.length];
-}
-
-function roundHalf(value: number): number {
-  return Math.round(value * 2) / 2;
-}
-
-function scoreWrittenAnswer(
-  answer: string,
-  acceptedAnswers: string[],
-  points: number,
-): number {
-  const normalizedAnswer =
-    normalizeText(answer);
-
-  if (!normalizedAnswer) {
-    return 0;
-  }
-
-  const similarity =
-    Math.max(
-      ...acceptedAnswers.map((accepted) => {
-        const normalizedAccepted =
-          normalizeText(accepted);
-        const maxLength =
-          Math.max(
-            normalizedAnswer.length,
-            normalizedAccepted.length,
-          );
-
-        if (maxLength === 0) {
-          return 1;
-        }
-
-        return (
-          1 -
-          levenshtein(
-            normalizedAnswer,
-            normalizedAccepted,
-          ) /
-            maxLength
-        );
-      }),
-    );
-
-  if (similarity === 1) {
-    return points;
-  }
-
-  if (similarity < 0.5) {
-    return 0;
-  }
-
-  return Math.min(
-    points - 0.5,
-    roundHalf(points * similarity),
-  );
-}
-
-function categoryLabel(
-  categoryId: TriviaCategory,
+function getDifficultyPillLabel(
+  difficulty: TriviaDifficulty,
   isSpanish: boolean,
-) {
-  const category =
-    TRIVIA_CATEGORIES.find(
-      (item) => item.id === categoryId,
-    );
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'FACIL' : 'EASY';
+  }
 
-  return isSpanish
-    ? category?.labelEs ?? categoryId
-    : category?.labelEn ?? categoryId;
+  if (difficulty === 'medium') {
+    return isSpanish ? 'MEDIO' : 'MEDIUM';
+  }
+
+  return isSpanish ? 'DIFICIL' : 'HARD';
 }
+
+const DOWNGRADE_TAP_COUNT = 6;
 
 export function TriviaMission({
   difficulty: initialDifficulty,
   categoryIds =
     DEFAULT_TRIVIA_CONFIG.categoryIds,
-  timeLimits =
-    DEFAULT_TRIVIA_CONFIG.timeLimits,
   targetScore =
     DEFAULT_TRIVIA_CONFIG.targetScore,
   alarmLabel,
@@ -210,10 +112,20 @@ export function TriviaMission({
     statusBarStyle,
   } = useAppTheme();
   const {
+    width,
+  } = useWindowDimensions();
+  const {
     language,
   } = useTranslation();
+  const {
+    user,
+    isAuthenticated,
+    isGuest,
+  } = useAuth();
   const isSpanish =
     language === 'es';
+  const alarmInfo =
+    useMemo(() => parseAlarmLabel(alarmLabel), [alarmLabel]);
   const [
     activeDifficulty,
     setActiveDifficulty,
@@ -224,33 +136,31 @@ export function TriviaMission({
     TRIVIA_DIFFICULTY_STYLES[activeDifficulty];
   const possibleQuestions =
     useMemo(() => {
-      const questions =
-        getTriviaQuestions(categoryIds);
-
-      return activeDifficulty === 'easy'
-        ? questions.filter(
-            (question) =>
-              question.correctOptionIndexes.length ===
-              1,
-          )
-        : questions;
+      return getPossibleTriviaQuestions(
+        categoryIds,
+        activeDifficulty,
+      );
     }, [
       activeDifficulty,
       categoryIds,
     ]);
 
   const [
-    remainingQuestions,
-    setRemainingQuestions,
-  ] = useState<TriviaQuestion[]>(() =>
-    shuffle(possibleQuestions),
-  );
-  const [
-    currentQuestion,
-    setCurrentQuestion,
-  ] = useState<TriviaQuestion | null>(
-    () => shuffle(possibleQuestions)[0] ?? null,
-  );
+    questionDeck,
+    setQuestionDeck,
+  ] = useState<{
+    currentQuestion: TriviaQuestion | null;
+    remainingQuestions: TriviaQuestion[];
+  }>(() => {
+    const deck = buildQuestionDeck(possibleQuestions);
+
+    return {
+      currentQuestion: deck[0] ?? null,
+      remainingQuestions: deck.slice(1),
+    };
+  });
+  const currentQuestion =
+    questionDeck.currentQuestion;
   const [
     selectedIndexes,
     setSelectedIndexes,
@@ -263,10 +173,6 @@ export function TriviaMission({
     score,
     setScore,
   ] = useState(0);
-  const [
-    timeLeft,
-    setTimeLeft,
-  ] = useState(timeLimits[activeDifficulty]);
   const [
     locked,
     setLocked,
@@ -287,64 +193,74 @@ export function TriviaMission({
     setFailedQuestionCount,
   ] = useState(0);
   const [
-    lowerLevelAvailable,
-    setLowerLevelAvailable,
-  ] = useState(false);
-  const [
     giveUpVisible,
     setGiveUpVisible,
   ] = useState(false);
+  const [
+    downgradeTapCount,
+    setDowngradeTapCount,
+  ] = useState(0);
 
   const lowerDifficulty =
     activeDifficulty === 'hard'
       ? 'medium'
       : 'easy';
 
+  const downgradeErrorLimit =
+    activeDifficulty === 'easy'
+      ? 0
+      : Math.max(
+          1,
+          Math.ceil(
+            targetScore /
+              TRIVIA_POINTS[activeDifficulty],
+          ) + 2,
+        );
+
   const nextQuestion =
     useCallback(() => {
-      setRemainingQuestions((current) => {
+      setQuestionDeck((current) => {
         let pool =
-          current.filter(
+          current.remainingQuestions.filter(
             (question) =>
               question.id !==
-              currentQuestion?.id,
+              current.currentQuestion?.id,
           );
 
         if (pool.length === 0) {
           pool =
-            shuffle(
+            buildQuestionDeck(
               possibleQuestions.filter(
                 (question) =>
                   question.id !==
-                  currentQuestion?.id,
+                  current.currentQuestion?.id,
               ),
             );
         }
 
         const next =
           pool[0] ??
-          possibleQuestions[0] ??
+          (possibleQuestions[0]
+            ? shuffleSingleQuestionOptions(possibleQuestions[0])
+            : null) ??
           null;
 
-        setCurrentQuestion(next);
-        return pool.slice(1);
+        return {
+          currentQuestion: next,
+          remainingQuestions: pool.slice(1),
+        };
       });
       setSelectedIndexes([]);
       setWrittenAnswer('');
       setFeedback(null);
       setLocked(false);
-      setTimeLeft(timeLimits[activeDifficulty]);
     }, [
-      activeDifficulty,
-      currentQuestion?.id,
       possibleQuestions,
-      timeLimits,
     ]);
 
   const submitScore =
     useCallback((
       earnedPoints: number,
-      timedOut = false,
     ) => {
       if (locked || !currentQuestion) {
         return;
@@ -357,6 +273,34 @@ export function TriviaMission({
           targetScore,
           roundHalf(score + roundedPoints),
         );
+      const success =
+        roundedPoints > 0;
+      const nextErrorCount =
+        !success && activeDifficulty !== 'easy'
+          ? failedQuestionCount + 1
+          : failedQuestionCount;
+      const localizedOptions =
+        isSpanish
+          ? currentQuestion.optionsEs
+          : currentQuestion.optionsEn;
+      const correctAnswer =
+        activeDifficulty === 'hard'
+          ? (
+              isSpanish
+                ? currentQuestion.acceptedAnswersEs
+                : currentQuestion.acceptedAnswersEn
+            )[0] ?? ''
+          : currentQuestion.correctOptionIndexes
+              .map((index) => localizedOptions[index])
+              .filter(Boolean)
+              .join(', ');
+      const userAnswer =
+        activeDifficulty === 'hard'
+          ? writtenAnswer.trim()
+          : selectedIndexes
+              .map((index) => localizedOptions[index])
+              .filter(Boolean)
+              .join(', ');
 
       setLocked(true);
       setScore(nextScore);
@@ -365,37 +309,51 @@ export function TriviaMission({
       }
 
       if (
+        isAuthenticated &&
+        !isGuest &&
+        user?.id
+      ) {
+        MissionHistoryLocalService.save({
+          userId: user.id,
+          missionType: 'trivia',
+          difficulty: activeDifficulty,
+          content: {
+            category: currentQuestion.category,
+            prompt: isSpanish
+              ? currentQuestion.promptEs
+              : currentQuestion.promptEn,
+            targetScore,
+            scoreBefore: score,
+            scoreAfter: nextScore,
+            earnedPoints: roundedPoints,
+            pointsPerQuestion:
+              TRIVIA_POINTS[activeDifficulty],
+          },
+          correctAnswer,
+          userAnswer: userAnswer || 'sin_respuesta',
+          success,
+          errorCount: nextErrorCount,
+          durationSeconds: null,
+        });
+
+        void syncMissionHistory(user.id);
+      }
+
+      if (
         roundedPoints === 0 &&
         activeDifficulty !== 'easy'
       ) {
         setFailedQuestionCount((current) => {
-          const nextCount = current + 1;
-
-          if (nextCount >= 3) {
-            setLowerLevelAvailable(true);
-          }
-
-          return nextCount;
+          return current + 1;
         });
       }
       setFeedback({
         earned: roundedPoints,
-        text: timedOut
-          ? isSpanish
-            ? 'Tiempo agotado'
-            : 'Time is up'
-          : roundedPoints === 0
-            ? isSpanish
-              ? 'Respuesta incorrecta'
-              : 'Incorrect answer'
-            : roundedPoints >=
-                TRIVIA_POINTS[activeDifficulty]
-              ? isSpanish
-                ? 'Respuesta correcta'
-                : 'Correct answer'
-              : isSpanish
-                ? 'Respuesta parcialmente correcta'
-                : 'Partially correct answer',
+        text: getTriviaFeedbackText(
+          roundedPoints,
+          activeDifficulty,
+          isSpanish,
+        ),
       });
 
       if (
@@ -411,43 +369,19 @@ export function TriviaMission({
     }, [
       currentQuestion,
       activeDifficulty,
+      failedQuestionCount,
+      isAuthenticated,
+      isGuest,
       isSpanish,
       locked,
       nextQuestion,
       onMistake,
       score,
+      selectedIndexes,
       targetScore,
+      user?.id,
+      writtenAnswer,
     ]);
-
-  useEffect(() => {
-    if (
-      completed ||
-      locked ||
-      !currentQuestion
-    ) {
-      return;
-    }
-
-    const interval =
-      setInterval(() => {
-        setTimeLeft((current) => {
-          if (current <= 1) {
-            clearInterval(interval);
-            submitScore(0, true);
-            return 0;
-          }
-
-          return current - 1;
-        });
-      }, 1000);
-
-    return () => clearInterval(interval);
-  }, [
-    completed,
-    currentQuestion,
-    locked,
-    submitScore,
-  ]);
 
   const handleOptionPress = (
     index: number,
@@ -493,45 +427,16 @@ export function TriviaMission({
     }
 
     if (activeDifficulty === 'easy') {
-      submitScore(
-        selectedIndexes[0] ===
-          currentQuestion.correctOptionIndexes[0]
-          ? TRIVIA_POINTS.easy
-          : 0,
-      );
+      submitScore(scoreEasyAnswer(selectedIndexes, currentQuestion));
       return;
     }
 
-    const correctIndexes =
-      currentQuestion.correctOptionIndexes;
-    const incorrectOptionCount =
-      Math.max(
-        1,
-        (isSpanish
-          ? currentQuestion.optionsEs
-          : currentQuestion.optionsEn
-        ).length -
-          correctIndexes.length,
-      );
-    const selectedCorrect =
-      selectedIndexes.filter(
-        (index) =>
-          correctIndexes.includes(index),
-      ).length;
-    const selectedIncorrect =
-      selectedIndexes.length -
-      selectedCorrect;
-    const ratio =
-      Math.max(
-        0,
-        selectedCorrect /
-          correctIndexes.length -
-          selectedIncorrect /
-            incorrectOptionCount,
-      );
-
     submitScore(
-      TRIVIA_POINTS.medium * ratio,
+      scoreMediumAnswer(
+        selectedIndexes,
+        currentQuestion,
+        options.length,
+      ),
     );
   };
 
@@ -548,30 +453,67 @@ export function TriviaMission({
 
   const downgradeLevel = () => {
     const nextQuestions =
-      getTriviaQuestions(categoryIds).filter(
-        (question) =>
-          lowerDifficulty !== 'easy' ||
-          question.correctOptionIndexes.length === 1,
+      getPossibleTriviaQuestions(
+        categoryIds,
+        lowerDifficulty,
       );
     const shuffledQuestions =
-      shuffle(nextQuestions);
+      buildQuestionDeck(nextQuestions);
 
     setGiveUpVisible(false);
     setActiveDifficulty(lowerDifficulty);
     setFailedQuestionCount(0);
-    setLowerLevelAvailable(false);
-    setRemainingQuestions(
-      shuffledQuestions.slice(1),
-    );
-    setCurrentQuestion(
-      shuffledQuestions[0] ?? null,
-    );
+    setDowngradeTapCount(0);
+    setQuestionDeck({
+      currentQuestion: shuffledQuestions[0] ?? null,
+      remainingQuestions: shuffledQuestions.slice(1),
+    });
     setSelectedIndexes([]);
     setWrittenAnswer('');
     setFeedback(null);
     setLocked(false);
-    setTimeLeft(timeLimits[lowerDifficulty]);
   };
+
+  useEffect(() => {
+    if (
+      activeDifficulty !== 'easy' &&
+      failedQuestionCount >= downgradeErrorLimit
+    ) {
+      downgradeLevel();
+    }
+  }, [
+    activeDifficulty,
+    downgradeErrorLimit,
+    failedQuestionCount,
+  ]);
+
+  const handleDifficultyBadgePress =
+    useCallback(() => {
+      if (
+        activeDifficulty === 'easy' ||
+        completed ||
+        failedQuestionCount === 0
+      ) {
+        setDowngradeTapCount(0);
+        return;
+      }
+
+      setDowngradeTapCount((count) => {
+        const nextCount =
+          count + 1;
+
+        if (nextCount >= DOWNGRADE_TAP_COUNT) {
+          setGiveUpVisible(true);
+          return 0;
+        }
+
+        return nextCount;
+      });
+    }, [
+      activeDifficulty,
+      completed,
+      failedQuestionCount,
+    ]);
 
   if (!currentQuestion) {
     return (
@@ -643,7 +585,7 @@ export function TriviaMission({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.topRow}>
-          <View
+          <TouchableOpacity
             style={[
               styles.badge,
               {
@@ -651,6 +593,19 @@ export function TriviaMission({
                   difficultyStyle.bgColor,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isSpanish
+                ? 'Nivel de cultura general'
+                : 'General knowledge level'
+            }
+            onPress={handleDifficultyBadgePress}
+            activeOpacity={
+              activeDifficulty !== 'easy' &&
+              failedQuestionCount > 0
+                ? 0.78
+                : 1
+            }
           >
             <Ionicons
               name="help-circle-outline"
@@ -667,50 +622,49 @@ export function TriviaMission({
               ]}
             >
               {isSpanish
-                ? 'CULTURA GENERAL'
-                : 'GENERAL KNOWLEDGE'}
+                ? `CULTURA GENERAL - ${getDifficultyPillLabel(
+                    activeDifficulty,
+                    true,
+                  )}`
+                : `GENERAL KNOWLEDGE - ${getDifficultyPillLabel(
+                    activeDifficulty,
+                    false,
+                  )}`}
             </Text>
-          </View>
-          <View
-            style={[
-              styles.timer,
-              {
-                borderColor:
-                  difficultyStyle.accentColor +
-                  '66',
-              },
-            ]}
-          >
-            <Ionicons
-              name="timer-outline"
-              size={17}
-              color={difficultyStyle.accentColor}
-            />
+          </TouchableOpacity>
+        </View>
+
+        {alarmInfo ? (
+          <View style={styles.timeBlock}>
             <Text
               style={[
-                styles.timerText,
+                styles.time,
                 {
-                  color:
-                    difficultyStyle.accentColor,
+                  color: colors.text,
+                  fontSize:
+                    width < 380 ? 44 : 52,
                 },
               ]}
             >
-              {timeLeft}s
+              {alarmInfo.time}
+            </Text>
+
+            <Text
+              style={[
+                styles.dateLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {alarmInfo.label ??
+                (
+                  isSpanish
+                    ? 'Hora de levantarse'
+                    : 'Time to wake up'
+                )}
             </Text>
           </View>
-        </View>
-
-        {alarmLabel ? (
-          <Text
-            style={[
-              styles.alarmLabel,
-              {
-                color: colors.textSecondary,
-              },
-            ]}
-          >
-            {alarmLabel}
-          </Text>
         ) : null}
 
         <View
@@ -768,7 +722,7 @@ export function TriviaMission({
               },
             ]}
           >
-            {categoryLabel(
+            {getTriviaCategoryLabel(
               currentQuestion.category,
               isSpanish,
             )}
@@ -910,9 +864,9 @@ export function TriviaMission({
           <MissionErrorCounter
             count={Math.min(
               failedQuestionCount,
-              3,
+              downgradeErrorLimit,
             )}
-            max={3}
+            max={downgradeErrorLimit}
             color={difficultyStyle.accentColor}
           />
         ) : null}
@@ -946,8 +900,9 @@ export function TriviaMission({
           </Text>
         </TouchableOpacity>
 
-        {activeDifficulty !== 'easy' &&
-          lowerLevelAvailable &&
+        {false &&
+          activeDifficulty !== 'easy' &&
+          false &&
           !locked &&
           !completed ? (
             <TouchableOpacity
@@ -989,7 +944,6 @@ export default function TriviaMissionScreen({
       <TriviaMission
         difficulty={route.params.difficulty}
         categoryIds={route.params.categoryIds}
-        timeLimits={route.params.timeLimits}
         targetScore={route.params.targetScore}
         onComplete={() =>
           navigation.navigate(
@@ -1026,7 +980,7 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
   },
@@ -1042,22 +996,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900',
   },
-  timer: {
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
+  timeBlock: {
     alignItems: 'center',
-    gap: 5,
+    paddingVertical: 6,
   },
-  timerText: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
+  time: {
+    fontWeight: '500',
+    letterSpacing: -1,
+    lineHeight: 56,
   },
-  alarmLabel: {
-    fontSize: 13,
+  dateLabel: {
+    fontSize: 12,
+    marginTop: 2,
     fontWeight: '700',
     textAlign: 'center',
   },

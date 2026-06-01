@@ -15,7 +15,7 @@ import { ColoredMissionConfigScreen } from '../../missions/ColoredFigures/screen
 import { ColorFindConfigScreen } from '../../missions/ColorFind/screens/ColorFindConfigScreen';
 import { ObjectRecognitionConfigScreen } from '../../missions/ObjectRecognition/screens/ObjectRecognitionConfigScreen';
 import { TriviaConfigScreen } from '../../missions/Trivia/screens/TriviaConfigScreen';
-import { TriviaCategory, TriviaTimeLimits } from '../../missions/Trivia/types/trivia.types';
+import { TriviaCategory } from '../../missions/Trivia/types/trivia.types';
 import { ParesMissionConfigScreen } from '../../missions/ParesMission/screens/ParesMissionConfigScreen';
 import { completeAlarmMissionConfigSession } from '../services/alarmMissionConfigSession';
 
@@ -64,7 +64,6 @@ export type AlarmStackParamList = {
   AlarmConfigTriviaMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     categoryIds?: TriviaCategory[];
-    timeLimits?: TriviaTimeLimits;
     targetScore?: number;
     alarmConfigSessionId: string;
   };

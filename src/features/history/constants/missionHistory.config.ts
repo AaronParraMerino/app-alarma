@@ -90,6 +90,39 @@ export const MISSION_CONFIG: Record<
     bgColor: '#0d2630',
     failedBg: '#10222c',
   },
+
+  memory_pairs: {
+    label: 'Pares',
+    labelEn: 'Pairs',
+    sublabel: 'Encontrar parejas de memoria',
+    sublabelEn: 'Find matching pairs',
+    iconName: 'albums-outline',
+    iconColor: '#fb923c',
+    bgColor: '#2e160d',
+    failedBg: '#2e100d',
+  },
+
+  trivia: {
+    label: 'Cultura general',
+    labelEn: 'Trivia',
+    sublabel: 'Responder preguntas por puntos',
+    sublabelEn: 'Answer questions for points',
+    iconName: 'help-circle-outline',
+    iconColor: '#38bdf8',
+    bgColor: '#0d2430',
+    failedBg: '#0d1b2e',
+  },
+
+  object_recognition: {
+    label: 'Objetos',
+    labelEn: 'Objects',
+    sublabel: 'Reconocer objetos con la camara',
+    sublabelEn: 'Recognize objects with the camera',
+    iconName: 'scan-outline',
+    iconColor: '#a3e635',
+    bgColor: '#1b2e0d',
+    failedBg: '#24300d',
+  },
 };
 
 export const DIFFICULTY_CONFIG: Record<
@@ -157,6 +190,24 @@ export const FILTER_OPTIONS: FilterVisualConfig[] = [
     label: 'Color diferente',
     labelEn: 'Different color',
   },
+
+  {
+    key: 'memory_pairs',
+    label: 'Pares',
+    labelEn: 'Pairs',
+  },
+
+  {
+    key: 'trivia',
+    label: 'Cultura general',
+    labelEn: 'Trivia',
+  },
+
+  {
+    key: 'object_recognition',
+    label: 'Objetos',
+    labelEn: 'Objects',
+  },
 ];
 
 export const MISSION_TYPES_ORDER: MissionType[] = [
@@ -165,6 +216,9 @@ export const MISSION_TYPES_ORDER: MissionType[] = [
   'movement',
   'colored_figures',
   'color_find',
+  'memory_pairs',
+  'trivia',
+  'object_recognition',
 ];
 
 export function getMissionLabel(
@@ -371,9 +425,73 @@ export function formatContenido(
       'movement',
       'action',
       'instruction',
+      'label',
+      'movementType',
     ]);
 
     return movement;
+  }
+
+  if (missionType === 'memory_pairs') {
+    const board = getStringValue(content, [
+      'board',
+    ]);
+
+    const matchedPairs = getStringValue(content, [
+      'matchedPairs',
+    ]);
+
+    if (board && matchedPairs) {
+      return language === 'es'
+        ? `Tablero ${board} - ${matchedPairs} pares`
+        : `Board ${board} - ${matchedPairs} pairs`;
+    }
+
+    return board;
+  }
+
+  if (missionType === 'trivia') {
+    const prompt = getStringValue(content, [
+      'prompt',
+      'question',
+    ]);
+
+    const earnedPoints = getStringValue(content, [
+      'earnedPoints',
+    ]);
+
+    if (prompt && earnedPoints) {
+      return language === 'es'
+        ? `${prompt} (+${earnedPoints})`
+        : `${prompt} (+${earnedPoints})`;
+    }
+
+    return prompt;
+  }
+
+  if (missionType === 'object_recognition') {
+    const targetName = getStringValue(content, [
+      'targetName',
+      'targetLabel',
+    ]);
+
+    const detectedLabel = getStringValue(content, [
+      'detectedLabel',
+    ]);
+
+    if (targetName && detectedLabel) {
+      return language === 'es'
+        ? `Objeto: ${targetName} - Detectado: ${detectedLabel}`
+        : `Object: ${targetName} - Detected: ${detectedLabel}`;
+    }
+
+    if (targetName) {
+      return language === 'es'
+        ? `Objeto: ${targetName}`
+        : `Object: ${targetName}`;
+    }
+
+    return '';
   }
 
   return '';

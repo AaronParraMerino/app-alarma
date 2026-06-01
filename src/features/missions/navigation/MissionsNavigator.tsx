@@ -36,7 +36,7 @@ import { PairsMissionProvider } from '../ParesMission/store/paresMissionStore';
 import { TriviaConfigScreen } from '../Trivia/screens/TriviaConfigScreen';
 import TriviaMissionScreen from '../Trivia/screens/TriviaMissionScreen';
 import { TriviaProvider } from '../Trivia/store/triviaStore';
-import { TriviaCategory, TriviaTimeLimits } from '../Trivia/types/trivia.types';
+import { TriviaCategory } from '../Trivia/types/trivia.types';
 import { PracticeExitButton } from '../../../shared/components/missions/PracticeExitButton';
 import { useTranslation } from '../../../shared/i18n/useTranslation';
 
@@ -170,7 +170,6 @@ export type MissionsStackParamList = {
   ConfigTriviaMission: {
     difficulty?: 'easy' | 'medium' | 'hard';
     categoryIds?: TriviaCategory[];
-    timeLimits?: TriviaTimeLimits;
     targetScore?: number;
     alarmConfigSessionId?: string;
     practice?: boolean;
@@ -179,7 +178,6 @@ export type MissionsStackParamList = {
   TriviaMissionScreen: {
     difficulty: 'easy' | 'medium' | 'hard';
     categoryIds?: TriviaCategory[];
-    timeLimits?: TriviaTimeLimits;
     targetScore?: number;
     alarmLabel?: string;
     practice?: boolean;

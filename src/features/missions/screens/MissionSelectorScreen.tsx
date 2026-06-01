@@ -230,8 +230,8 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Cultura general' : 'General knowledge'}
           summary={
             isSpanish
-              ? `${difficultyLabel(triviaConfig.difficulty, true)} - ${triviaConfig.targetScore} puntos - ${triviaConfig.timeLimits[triviaConfig.difficulty]} s`
-              : `${difficultyLabel(triviaConfig.difficulty, false)} - ${triviaConfig.targetScore} points - ${triviaConfig.timeLimits[triviaConfig.difficulty]} s`
+              ? `${difficultyLabel(triviaConfig.difficulty, true)} - ${triviaConfig.targetScore} puntos - ${triviaConfig.categoryIds.length} bancos`
+              : `${difficultyLabel(triviaConfig.difficulty, false)} - ${triviaConfig.targetScore} points - ${triviaConfig.categoryIds.length} banks`
           }
           icon="help-circle-outline"
           tint={triviaStyle.accentColor}

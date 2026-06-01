@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { supabase } from '../../../shared/db/supabaseClient';
 import {
+  MissionHistoryLocalService,
+  MissionHistoryRow,
+} from '../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../shared/services/storage/missionHistorySync.service';
+import {
   MissionHistoryRecord,
   HistorySummary,
   DifficultyStats,
@@ -62,6 +67,46 @@ function calcularDerivados(registros: MissionHistoryRecord[]) {
   };
 }
 
+function localRowToRecord(row: MissionHistoryRow): MissionHistoryRecord {
+  return {
+    id: `local-${row.sync_id}`,
+    sync_id: row.sync_id,
+    user_id: row.user_id,
+    mission_type: row.mission_type as MissionType,
+    difficulty: row.difficulty as MissionHistoryRecord['difficulty'],
+    content: JSON.parse(row.content),
+    correct_answer: row.correct_answer,
+    user_answer: row.user_answer,
+    success: Boolean(row.success),
+    error_count: row.error_count,
+    duration_seconds: row.duration_seconds,
+    created_at: new Date(row.created_at * 1000).toISOString(),
+  };
+}
+
+function mergeHistoryRecords(
+  cloudRecords: MissionHistoryRecord[],
+  localRows: MissionHistoryRow[],
+): MissionHistoryRecord[] {
+  const cloudSyncIds = new Set(
+    cloudRecords
+      .map((record) => record.sync_id)
+      .filter(Boolean),
+  );
+
+  const localRecords = localRows
+    .filter((row) => !cloudSyncIds.has(row.sync_id))
+    .map(localRowToRecord);
+
+  return [
+    ...cloudRecords,
+    ...localRecords,
+  ].sort((a, b) =>
+    new Date(b.created_at).getTime() -
+    new Date(a.created_at).getTime(),
+  );
+}
+
 const initialDerivedState = {
   resumen: {
     completadas: 0,
@@ -103,6 +148,15 @@ export const useMissionHistoryStore = create<MissionHistoryState>((set, get) => 
 
     try {
       const filtro = get().filtroActivo;
+      const localRows =
+        MissionHistoryLocalService.getPendingByUserAndType(
+          userId,
+          filtro === 'todas'
+            ? undefined
+            : filtro as MissionType,
+        );
+
+      await syncMissionHistory(userId);
 
       let query = supabase
         .from('missions_history')
@@ -117,14 +171,31 @@ export const useMissionHistoryStore = create<MissionHistoryState>((set, get) => 
       const { data, error } = await query;
 
       if (error) {
+        const registros = localRows.map(localRowToRecord);
+        const derivados = calcularDerivados(registros);
+
         set({
-          error: error.message,
+          registros,
+          error: registros.length > 0
+            ? null
+            : error.message,
           loading: false,
+          ...derivados,
         });
         return;
       }
 
-      const registros = (data ?? []) as MissionHistoryRecord[];
+      const pendingAfterSync =
+        MissionHistoryLocalService.getPendingByUserAndType(
+          userId,
+          filtro === 'todas'
+            ? undefined
+            : filtro as MissionType,
+        );
+      const registros = mergeHistoryRecords(
+        (data ?? []) as MissionHistoryRecord[],
+        pendingAfterSync,
+      );
       const derivados = calcularDerivados(registros);
 
       set({

@@ -25,11 +25,6 @@ export interface AlarmMission {
   triviaCategoryIds?: Array<
     'history' | 'music' | 'math' | 'science' | 'geography' | 'custom'
   >;
-  triviaTimeLimits?: {
-    easy: number;
-    medium: number;
-    hard: number;
-  };
   triviaTargetScore?: number;
 }
 

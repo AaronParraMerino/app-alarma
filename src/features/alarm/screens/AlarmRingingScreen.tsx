@@ -93,6 +93,17 @@ function toMissionDifficulty(
   return difficulty === 'normal' ? 'medium' : difficulty;
 }
 
+function getAlarmDisplayLabel(alarm: {
+  hour: number;
+  minute: number;
+  label?: string;
+}): string {
+  const time = formatTime(alarm.hour, alarm.minute);
+  const label = alarm.label?.trim();
+
+  return label ? `${time} - ${label}` : time;
+}
+
 export default function AlarmRingingScreen({
   route,
   navigation,
@@ -203,6 +214,9 @@ export default function AlarmRingingScreen({
   }, [alarm]);
 
   const activeMission = missionSequence[currentMissionIndex] ?? null;
+  const alarmDisplayLabel = alarm
+    ? getAlarmDisplayLabel(alarm)
+    : '';
 
   useEffect(() => {
     mountedRef.current = true;
@@ -803,7 +817,7 @@ export default function AlarmRingingScreen({
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
       />,
     );
   }
@@ -818,7 +832,7 @@ export default function AlarmRingingScreen({
         }}
         onSuccess={completeMission}
         onMistake={registerMissionMistake}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
       />,
     );
   }
@@ -831,7 +845,7 @@ export default function AlarmRingingScreen({
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
       />,
     );
   }
@@ -844,7 +858,7 @@ export default function AlarmRingingScreen({
         quantity={activeMission.quantity ?? 5}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
       />,
     );
   }
@@ -857,7 +871,7 @@ export default function AlarmRingingScreen({
         quantity={activeMission.quantity ?? 3}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
       />,
     );
   }
@@ -868,6 +882,7 @@ export default function AlarmRingingScreen({
         key={`object-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         targetObjectIds={activeMission.targetObjectIds}
+        alarmLabel={alarmDisplayLabel}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
       />,
@@ -880,9 +895,8 @@ export default function AlarmRingingScreen({
         key={`trivia-${currentMissionIndex}`}
         difficulty={toMissionDifficulty(activeMission.difficulty)}
         categoryIds={activeMission.triviaCategoryIds}
-        timeLimits={activeMission.triviaTimeLimits}
         targetScore={activeMission.triviaTargetScore}
-        alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+        alarmLabel={alarmDisplayLabel}
         onComplete={completeMission}
         onMistake={registerMissionMistake}
       />,
@@ -897,7 +911,7 @@ export default function AlarmRingingScreen({
       operationType={(activeMission.operationType ?? 'addition') as OperationType}
       onComplete={completeMission}
       onMistake={registerMissionMistake}
-      alarmLabel={alarm.label || formatTime(alarm.hour, alarm.minute)}
+      alarmLabel={alarmDisplayLabel}
     />,
   );
 }

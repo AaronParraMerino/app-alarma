@@ -111,11 +111,6 @@ const DEFAULT_TRIVIA_MISSION: AlarmMission = {
     'music',
     'math',
   ],
-  triviaTimeLimits: {
-    easy: 45,
-    medium: 60,
-    hard: 90,
-  },
   triviaTargetScore: 20,
 };
 
@@ -1021,8 +1016,6 @@ export default function AlarmForm({
           ),
           categoryIds:
             mission.triviaCategoryIds,
-          timeLimits:
-            mission.triviaTimeLimits,
           targetScore:
             mission.triviaTargetScore,
           alarmConfigSessionId: sessionId,

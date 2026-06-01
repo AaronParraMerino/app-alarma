@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { CameraCapturedPicture } from 'expo-camera/build/Camera.types';
@@ -30,6 +31,9 @@ import { Layout } from '../../../../shared/theme/layout';
 import { useAppTheme } from '../../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../../shared/i18n/useTranslation';
 import { MissionErrorCounter } from '../../../../shared/components/missions/MissionErrorCounter';
+import { useAuth } from '../../../auth/hooks/useAuth';
+import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
+import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ObjectBankService } from '../services/objectBank.service';
@@ -67,6 +71,9 @@ const ATTEMPTS_PER_OBJECT: Record<
   medium: 3,
   hard: 1,
 };
+
+const DOWNGRADE_FAILURE_LIMIT = 6;
+const DOWNGRADE_TAP_COUNT = 6;
 
 const DIFFICULTY_STYLES: Record<
   ObjectDifficulty,
@@ -203,8 +210,8 @@ function getDifficultyLabel(
 
   if (difficulty === 'medium') {
     return isSpanish
-      ? 'NORMAL'
-      : 'NORMAL';
+      ? 'MEDIO'
+      : 'MEDIUM';
   }
 
   return isSpanish
@@ -218,6 +225,19 @@ type DetectionBoxStyle = {
   width: number;
   height: number;
 };
+
+function parseAlarmLabel(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/^(\d{2}:\d{2})(?:\s-\s(.+))?$/);
+
+  return {
+    time: match?.[1] ?? value,
+    label: match?.[2],
+  };
+}
 
 function getDetectionBoxStyle(
   boundingBox: ObjectRecognitionResult['boundingBox'],
@@ -305,6 +325,7 @@ type ObjectRecognitionMissionContentProps = {
 export function ObjectRecognitionMissionContent({
   difficulty,
   targetObjectIds: routeTargetObjectIds,
+  alarmLabel,
   onBack,
   onComplete,
   onMistake,
@@ -313,13 +334,23 @@ export function ObjectRecognitionMissionContent({
     colors,
     statusBarStyle,
   } = useAppTheme();
+  const {
+    width,
+  } = useWindowDimensions();
 
   const {
     language,
   } = useTranslation();
+  const {
+    user,
+    isAuthenticated,
+    isGuest,
+  } = useAuth();
 
   const isSpanish =
     language === 'es';
+  const alarmInfo =
+    React.useMemo(() => parseAlarmLabel(alarmLabel), [alarmLabel]);
 
   const cameraRef =
     React.useRef<CameraView>(null);
@@ -386,7 +417,7 @@ export function ObjectRecognitionMissionContent({
   ] = useState(false);
 
   const [
-    ,
+    failedObjectIds,
     setFailedObjectIds,
   ] = useState<string[]>([]);
 
@@ -394,6 +425,11 @@ export function ObjectRecognitionMissionContent({
     lowerLevelAvailable,
     setLowerLevelAvailable,
   ] = useState(false);
+
+  const [
+    ,
+    setDowngradeTapCount,
+  ] = useState(0);
 
   const [
     giveUpVisible,
@@ -466,6 +502,21 @@ export function ObjectRecognitionMissionContent({
       ? 'medium'
       : 'easy';
 
+  const downgradeFailureGoal =
+    Math.max(
+      1,
+      Math.min(
+        DOWNGRADE_FAILURE_LIMIT,
+        targetObjects.length || DOWNGRADE_FAILURE_LIMIT,
+      ),
+    );
+
+  const downgradeFailureCount =
+    Math.min(
+      failedObjectIds.length,
+      downgradeFailureGoal,
+    );
+
   const remainingOnLowerLevel =
     Math.min(
       Math.max(
@@ -510,7 +561,7 @@ export function ObjectRecognitionMissionContent({
     setRoundExhausted(false);
     setFailedObjectIds([]);
     setLowerLevelAvailable(false);
-    setGiveUpVisible(false);
+    setDowngradeTapCount(0);
     setPhoto(null);
     setRecognitionResult(null);
   }, [
@@ -529,9 +580,6 @@ export function ObjectRecognitionMissionContent({
         targetObjects.length - 1
       ) {
         setRoundExhausted(true);
-        if (activeDifficulty === 'hard') {
-          setLowerLevelAvailable(true);
-        }
         return;
       }
 
@@ -547,7 +595,7 @@ export function ObjectRecognitionMissionContent({
   const registerFailedObject =
     useCallback(() => {
       if (
-        activeDifficulty !== 'medium' ||
+        activeDifficulty === 'easy' ||
         !targetObject
       ) {
         return;
@@ -563,15 +611,21 @@ export function ObjectRecognitionMissionContent({
           targetObject.id,
         ];
 
-        if (nextIds.length >= 3) {
-          setLowerLevelAvailable(true);
-        }
+        const downgradeThreshold =
+          Math.max(
+            1,
+            Math.min(
+              DOWNGRADE_FAILURE_LIMIT,
+              targetObjects.length || DOWNGRADE_FAILURE_LIMIT,
+            ),
+          );
 
         return nextIds;
       });
     }, [
       activeDifficulty,
       targetObject,
+      targetObjects.length,
     ]);
 
   const restartRound =
@@ -590,9 +644,12 @@ export function ObjectRecognitionMissionContent({
       setTargetObjects(shuffleObjects(roundPool));
       setCurrentTargetIndex(0);
       setFailedAttempts(0);
+      setFailedObjectIds([]);
       setRoundExhausted(false);
+      setLowerLevelAvailable(false);
       setPhoto(null);
       setRecognitionResult(null);
+      setDowngradeTapCount(0);
     }, [
       activeDifficulty,
       objectPool,
@@ -610,6 +667,7 @@ export function ObjectRecognitionMissionContent({
       setFailedObjectIds([]);
       setRoundExhausted(false);
       setLowerLevelAvailable(false);
+      setDowngradeTapCount(0);
       setPhoto(null);
       setRecognitionResult(null);
     }, [
@@ -639,6 +697,93 @@ export function ObjectRecognitionMissionContent({
     }, [
       objectPool,
       targetObject?.id,
+    ]);
+
+  const handleDifficultyBadgePress =
+    useCallback(() => {
+      if (
+        activeDifficulty === 'easy' ||
+        missionCompleted ||
+        (
+          failedAttempts === 0 &&
+          failedObjectIds.length === 0
+        )
+      ) {
+        setDowngradeTapCount(0);
+        return;
+      }
+
+      setDowngradeTapCount((count) => {
+        const nextCount =
+          count + 1;
+
+        if (nextCount >= DOWNGRADE_TAP_COUNT) {
+          setLowerLevelAvailable(true);
+          setGiveUpVisible(true);
+          return 0;
+        }
+
+        return nextCount;
+      });
+    }, [
+      activeDifficulty,
+      failedAttempts,
+      failedObjectIds.length,
+      missionCompleted,
+    ]);
+
+  const saveMissionHistory =
+    useCallback((
+      result: ObjectRecognitionResult,
+      nextFailedAttempts: number,
+    ) => {
+      if (
+        !isAuthenticated ||
+        isGuest ||
+        !user?.id ||
+        !targetObject
+      ) {
+        return;
+      }
+
+      MissionHistoryLocalService.save({
+        userId: user.id,
+        missionType: 'object_recognition',
+        difficulty: activeDifficulty,
+        content: {
+          targetId: targetObject.id,
+          targetName: targetObject.name,
+          targetLabel: targetObject.label,
+          detectedLabel:
+            result.detectedLabel ?? null,
+          confidence: result.confidence,
+          attempt: nextFailedAttempts,
+          requiredRecognitions,
+          recognizedBefore: recognizedCount,
+        },
+        correctAnswer: targetObject.label,
+        userAnswer:
+          result.detectedLabel ??
+          (result.matched
+            ? targetObject.label
+            : 'not_detected'),
+        success: result.matched,
+        errorCount: result.matched
+          ? failedObjectIds.length
+          : failedObjectIds.length + 1,
+        durationSeconds: null,
+      });
+
+      void syncMissionHistory(user.id);
+    }, [
+      activeDifficulty,
+      failedObjectIds.length,
+      isAuthenticated,
+      isGuest,
+      recognizedCount,
+      requiredRecognitions,
+      targetObject,
+      user?.id,
     ]);
 
   const validatePhoto = useCallback(
@@ -679,6 +824,12 @@ export function ObjectRecognitionMissionContent({
           const nextFailedAttempts =
             failedAttempts + 1;
 
+          onMistake?.();
+          saveMissionHistory(
+            result,
+            nextFailedAttempts,
+          );
+
           if (nextFailedAttempts >= maxAttempts) {
             setFailedAttempts(nextFailedAttempts);
             setRecognitionResult(result);
@@ -690,6 +841,8 @@ export function ObjectRecognitionMissionContent({
           );
         } else {
           setFailedAttempts(0);
+          setDowngradeTapCount(0);
+          saveMissionHistory(result, 0);
           setRecognizedObjectIds(
             (ids) =>
               ids.includes(targetObject.id)
@@ -709,15 +862,29 @@ export function ObjectRecognitionMissionContent({
       }
     },
     [
-      advanceTarget,
       detector,
       failedAttempts,
       maxAttempts,
-      registerFailedObject,
+      onMistake,
+      saveMissionHistory,
       targetObject,
       validating,
     ],
   );
+
+  useEffect(() => {
+    if (
+      activeDifficulty !== 'easy' &&
+      failedObjectIds.length >= downgradeFailureGoal
+    ) {
+      downgradeLevel();
+    }
+  }, [
+    activeDifficulty,
+    downgradeFailureGoal,
+    downgradeLevel,
+    failedObjectIds.length,
+  ]);
 
   useEffect(() => {
     if (
@@ -872,14 +1039,16 @@ export function ObjectRecognitionMissionContent({
             </Text>
           </TouchableOpacity>
 
-          <BackButton
-            label={
-              isSpanish
-                ? 'Volver'
-                : 'Back'
-            }
-            onPress={onBack ?? (() => {})}
-          />
+          {onBack ? (
+            <BackButton
+              label={
+                isSpanish
+                  ? 'Volver'
+                  : 'Back'
+              }
+              onPress={onBack}
+            />
+          ) : null}
         </View>
       </SafeAreaView>
     );
@@ -971,10 +1140,11 @@ export function ObjectRecognitionMissionContent({
               : `Preparing local AI ${Math.round(
                   detector.downloadProgress * 100,
                 )}%`
-            : failedAttempts > 0
+            : downgradeFailureCount > 0 &&
+              activeDifficulty !== 'easy'
               ? isSpanish
-                ? `Intentos fallidos ${failedAttempts}/${maxAttempts}. Toma otra foto.`
-                : `Failed attempts ${failedAttempts}/${maxAttempts}. Take another photo.`
+                ? `Fallos de nivel ${downgradeFailureCount}/${downgradeFailureGoal}. Toma otra foto.`
+                : `Level failures ${downgradeFailureCount}/${downgradeFailureGoal}. Take another photo.`
               : isSpanish
                 ? 'Toma una foto y valida el objeto antes de completar.'
                 : 'Take a photo and validate the object before completing.';
@@ -1202,14 +1372,96 @@ export function ObjectRecognitionMissionContent({
       />
 
       <View style={styles.content}>
-        <BackButton
-          label={
-            isSpanish
-              ? 'Volver'
-              : 'Back'
-          }
-          onPress={onBack ?? (() => {})}
-        />
+        {onBack ? (
+          <BackButton
+            label={
+              isSpanish
+                ? 'Volver'
+                : 'Back'
+            }
+            onPress={onBack}
+          />
+        ) : null}
+
+        <View style={styles.topRow}>
+          <TouchableOpacity
+            style={[
+              styles.badge,
+              {
+                backgroundColor:
+                  difficultyStyle.bgColor,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isSpanish
+                ? 'Nivel de detectar objetos'
+                : 'Object detection level'
+            }
+            onPress={handleDifficultyBadgePress}
+            activeOpacity={
+              lowerLevelAvailable ? 0.78 : 1
+            }
+          >
+            <Ionicons
+              name="scan-outline"
+              size={16}
+              color={difficultyStyle.accentColor}
+            />
+            <Text
+              style={[
+                styles.badgeText,
+                {
+                  color:
+                    difficultyStyle.accentColor,
+                },
+              ]}
+            >
+              {isSpanish
+                ? `DETECTAR OBJETOS - ${getDifficultyLabel(
+                    activeDifficulty,
+                    true,
+                  )}`
+                : `DETECT OBJECTS - ${getDifficultyLabel(
+                    activeDifficulty,
+                    false,
+                  )}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {alarmInfo ? (
+          <View style={styles.timeBlock}>
+            <Text
+              style={[
+                styles.time,
+                {
+                  color: colors.text,
+                  fontSize:
+                    width < 380 ? 44 : 52,
+                },
+              ]}
+            >
+              {alarmInfo.time}
+            </Text>
+
+            <Text
+              style={[
+                styles.dateLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {alarmInfo.label ??
+                (
+                  isSpanish
+                    ? 'Hora de levantarse'
+                    : 'Time to wake up'
+                )}
+            </Text>
+          </View>
+        ) : null}
 
         <View
           style={[
@@ -1556,8 +1808,8 @@ export function ObjectRecognitionMissionContent({
 
           {activeDifficulty !== 'easy' && !roundExhausted && (
             <MissionErrorCounter
-              count={failedAttempts}
-              max={maxAttempts}
+              count={downgradeFailureCount}
+              max={downgradeFailureGoal}
               color={difficultyStyle.accentColor}
             />
           )}
@@ -1592,7 +1844,8 @@ export function ObjectRecognitionMissionContent({
               </Text>
             </TouchableOpacity>
 
-            {activeDifficulty !== 'easy' &&
+            {false &&
+              activeDifficulty !== 'easy' &&
               lowerLevelAvailable && (
               <TouchableOpacity
                 style={styles.giveUpBtn}
@@ -1621,7 +1874,8 @@ export function ObjectRecognitionMissionContent({
           </View>
         ) : null}
 
-        {activeDifficulty !== 'easy' &&
+        {false &&
+          activeDifficulty !== 'easy' &&
           lowerLevelAvailable &&
           !roundExhausted &&
           !missionCompleted && (
@@ -1697,6 +1951,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     paddingVertical: 32,
     gap: 18,
+  },
+
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  badge: {
+    minHeight: 36,
+    borderRadius: 10,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+
+  timeBlock: {
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+
+  time: {
+    fontWeight: '500',
+    letterSpacing: -1,
+    lineHeight: 56,
+  },
+
+  dateLabel: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 
   cameraCard: {

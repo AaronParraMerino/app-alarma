@@ -48,11 +48,6 @@ export const DEFAULT_TRIVIA_CONFIG: TriviaConfig = {
   difficulty: 'easy',
   categoryIds: ['history', 'music', 'math'],
   targetScore: TRIVIA_TARGET_SCORE,
-  timeLimits: {
-    easy: 45,
-    medium: 60,
-    hard: 90,
-  },
 };
 
 export const TRIVIA_CATEGORIES: Array<{

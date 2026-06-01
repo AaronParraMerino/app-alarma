@@ -37,7 +37,6 @@ import { TriviaQuestionService } from '../services/triviaQuestion.service';
 import {
   TriviaCategory,
   TriviaDifficulty,
-  TriviaTimeLimits,
 } from '../types/trivia.types';
 
 type Props = NativeStackScreenProps<
@@ -124,14 +123,6 @@ export function TriviaConfigScreen({
         );
   });
   const [
-    timeLimits,
-    setTimeLimits,
-  ] = useState<TriviaTimeLimits>(
-    route.params?.timeLimits ??
-      config.timeLimits ??
-      DEFAULT_TRIVIA_CONFIG.timeLimits,
-  );
-  const [
     targetScore,
     setTargetScore,
   ] = useState(
@@ -140,8 +131,12 @@ export function TriviaConfigScreen({
       DEFAULT_TRIVIA_CONFIG.targetScore,
   );
   const [
-    timingModalVisible,
-    setTimingModalVisible,
+    targetScoreTapCount,
+    setTargetScoreTapCount,
+  ] = useState(0);
+  const [
+    targetScoreModalVisible,
+    setTargetScoreModalVisible,
   ] = useState(false);
   const [
     customFormVisible,
@@ -226,22 +221,6 @@ export function TriviaConfigScreen({
     );
   };
 
-  const changeTime = (
-    level: TriviaDifficulty,
-    delta: number,
-  ) => {
-    setTimeLimits((current) => ({
-      ...current,
-      [level]: Math.min(
-        180,
-        Math.max(
-          15,
-          current[level] + delta,
-        ),
-      ),
-    }));
-  };
-
   const changeTargetScore = (delta: number) => {
     setTargetScore((current) =>
       Math.min(
@@ -249,6 +228,19 @@ export function TriviaConfigScreen({
         Math.max(5, current + delta),
       ),
     );
+  };
+
+  const handleTargetScoreTap = () => {
+    setTargetScoreTapCount((current) => {
+      const nextCount = current + 1;
+
+      if (nextCount >= 5) {
+        setTargetScoreModalVisible(true);
+        return 0;
+      }
+
+      return nextCount;
+    });
   };
 
   const updateCustomOption = (
@@ -354,7 +346,6 @@ export function TriviaConfigScreen({
     const nextConfig = {
       difficulty,
       categoryIds,
-      timeLimits,
       targetScore,
     };
 
@@ -375,7 +366,6 @@ export function TriviaConfigScreen({
         difficulty:
           toAlarmDifficulty(difficulty),
         triviaCategoryIds: categoryIds,
-        triviaTimeLimits: timeLimits,
         triviaTargetScore: targetScore,
       },
     );
@@ -448,45 +438,27 @@ export function TriviaConfigScreen({
           ]}
         >
           <TouchableOpacity
-            style={[
-              styles.timingButton,
-              {
-                borderColor:
-                  difficultyStyle.accentColor +
-                  '66',
-                backgroundColor:
-                  colors.bgElevated,
-              },
-            ]}
-            onPress={() =>
-              setTimingModalVisible(true)
-            }
-            activeOpacity={0.84}
+            onPress={handleTargetScoreTap}
+            activeOpacity={0.85}
+            accessibilityRole="button"
             accessibilityLabel={
               isSpanish
-                ? 'Configurar tiempo y puntos'
-                : 'Configure time and points'
+                ? 'Puntos para completar'
+                : 'Points to complete'
             }
           >
-            <Ionicons
-              name="timer-outline"
-              size={23}
-              color={
-                difficultyStyle.accentColor
-              }
-            />
+            <Text
+              style={[
+                styles.previewScore,
+                {
+                  color:
+                    difficultyStyle.accentColor,
+                },
+              ]}
+            >
+              {targetScore}
+            </Text>
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.previewScore,
-              {
-                color:
-                  difficultyStyle.accentColor,
-              },
-            ]}
-          >
-            {targetScore}
-          </Text>
           <Text style={styles.previewLabel}>
             {isSpanish
               ? 'puntos para completar'
@@ -494,8 +466,8 @@ export function TriviaConfigScreen({
           </Text>
           <Text style={styles.previewNote}>
             {isSpanish
-              ? `${TRIVIA_POINTS[difficulty]} puntos por pregunta - ${timeLimits[difficulty]} s`
-              : `${TRIVIA_POINTS[difficulty]} points per question - ${timeLimits[difficulty]} s`}
+              ? `${TRIVIA_POINTS[difficulty]} puntos por pregunta`
+              : `${TRIVIA_POINTS[difficulty]} points per question`}
           </Text>
         </View>
 
@@ -778,27 +750,27 @@ export function TriviaConfigScreen({
         </Text>
 
         <Modal
-          visible={timingModalVisible}
+          visible={targetScoreModalVisible}
           transparent
           animationType="fade"
           statusBarTranslucent
           onRequestClose={() =>
-            setTimingModalVisible(false)
+            setTargetScoreModalVisible(false)
           }
         >
           <Pressable
             style={styles.modalOverlay}
             onPress={() =>
-              setTimingModalVisible(false)
+              setTargetScoreModalVisible(false)
             }
           >
             <Pressable
               style={[
-                styles.modalCard,
+                styles.pointsModalCard,
                 {
-                  borderColor: colors.border,
                   backgroundColor:
                     colors.bgCard,
+                  borderColor: colors.border,
                 },
               ]}
               onPress={(event) =>
@@ -808,7 +780,7 @@ export function TriviaConfigScreen({
               <View style={styles.modalHeader}>
                 <View style={styles.modalHeading}>
                   <Ionicons
-                    name="timer-outline"
+                    name="trophy-outline"
                     size={22}
                     color={
                       difficultyStyle.accentColor
@@ -823,14 +795,17 @@ export function TriviaConfigScreen({
                     ]}
                   >
                     {isSpanish
-                      ? 'Tiempo y puntos'
-                      : 'Time and points'}
+                      ? 'Configurar puntos'
+                      : 'Configure points'}
                   </Text>
                 </View>
+
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() =>
-                    setTimingModalVisible(false)
+                    setTargetScoreModalVisible(
+                      false,
+                    )
                   }
                 >
                   <Ionicons
@@ -865,6 +840,7 @@ export function TriviaConfigScreen({
                     ? 'Puntos para completar'
                     : 'Points to complete'}
                 </Text>
+
                 <View style={styles.stepper}>
                   <TouchableOpacity
                     style={[
@@ -883,6 +859,7 @@ export function TriviaConfigScreen({
                       color={colors.text}
                     />
                   </TouchableOpacity>
+
                   <Text
                     style={[
                       styles.targetValue,
@@ -894,6 +871,7 @@ export function TriviaConfigScreen({
                   >
                     {targetScore}
                   </Text>
+
                   <TouchableOpacity
                     style={[
                       styles.stepButton,
@@ -914,103 +892,6 @@ export function TriviaConfigScreen({
                 </View>
               </View>
 
-              <Text
-                style={[
-                  styles.modalSectionLabel,
-                  {
-                    color: colors.textSecondary,
-                  },
-                ]}
-              >
-                {isSpanish
-                  ? 'Tiempo por pregunta'
-                  : 'Time per question'}
-              </Text>
-              <View style={styles.timeList}>
-                {LEVELS.map((level) => {
-                  const levelStyle =
-                    TRIVIA_DIFFICULTY_STYLES[level];
-
-                  return (
-                    <View
-                      key={level}
-                      style={[
-                        styles.timeRow,
-                        {
-                          borderColor:
-                            colors.border,
-                          backgroundColor:
-                            colors.bgElevated,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.timeLabel,
-                          {
-                            color:
-                              levelStyle.accentColor,
-                          },
-                        ]}
-                      >
-                        {levelLabel(
-                          level,
-                          isSpanish,
-                        )}
-                      </Text>
-                      <View style={styles.stepper}>
-                        <TouchableOpacity
-                          style={[
-                            styles.stepButton,
-                            {
-                              borderColor:
-                                colors.border,
-                            },
-                          ]}
-                          onPress={() =>
-                            changeTime(level, -5)
-                          }
-                        >
-                          <Ionicons
-                            name="remove"
-                            size={18}
-                            color={colors.text}
-                          />
-                        </TouchableOpacity>
-                        <Text
-                          style={[
-                            styles.timeValue,
-                            {
-                              color: colors.text,
-                            },
-                          ]}
-                        >
-                          {timeLimits[level]} s
-                        </Text>
-                        <TouchableOpacity
-                          style={[
-                            styles.stepButton,
-                            {
-                              borderColor:
-                                colors.border,
-                            },
-                          ]}
-                          onPress={() =>
-                            changeTime(level, 5)
-                          }
-                        >
-                          <Ionicons
-                            name="add"
-                            size={18}
-                            color={colors.text}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-
               <TouchableOpacity
                 style={[
                   styles.modalDoneButton,
@@ -1020,8 +901,9 @@ export function TriviaConfigScreen({
                   },
                 ]}
                 onPress={() =>
-                  setTimingModalVisible(false)
+                  setTargetScoreModalVisible(false)
                 }
+                activeOpacity={0.85}
               >
                 <Text
                   style={[
@@ -1347,17 +1229,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  timingButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1,
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   previewScore: {
     fontSize: 40,
     fontWeight: '900',
@@ -1422,41 +1293,6 @@ const styles = StyleSheet.create({
   labelText: {
     fontSize: 13,
   },
-  timeList: {
-    gap: 8,
-  },
-  timeRow: {
-    minHeight: 54,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timeLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  stepButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timeValue: {
-    minWidth: 48,
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.64)',
@@ -1464,14 +1300,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 32,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 390,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    gap: 14,
   },
   modalHeader: {
     minHeight: 34,
@@ -1481,6 +1309,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   modalHeading: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1495,6 +1324,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pointsModalCard: {
+    width: '100%',
+    maxWidth: 390,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
   },
   targetRow: {
     minHeight: 66,
@@ -1511,15 +1348,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  stepButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   targetValue: {
     minWidth: 34,
     fontSize: 20,
     fontWeight: '900',
     textAlign: 'center',
-  },
-  modalSectionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
   },
   modalDoneButton: {
     minHeight: 47,

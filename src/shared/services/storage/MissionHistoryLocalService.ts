@@ -6,7 +6,9 @@ export type MissionType =
   | 'math_exercises'
   | 'colored_figures'
   | 'memory_pairs'
-  | 'color_find';
+  | 'color_find'
+  | 'trivia'
+  | 'object_recognition';
 
 export interface SaveMissionHistoryDTO {
   userId: string;
@@ -84,6 +86,39 @@ export class MissionHistoryLocalService {
       WHERE user_id = ?
         AND synced = 0
       ORDER BY created_at ASC
+      `,
+      [userId],
+    );
+  }
+
+  static getPendingByUserAndType(
+    userId: string,
+    missionType?: MissionType,
+  ): MissionHistoryRow[] {
+    if (missionType) {
+      return db.getAllSync<MissionHistoryRow>(
+        `
+        SELECT *
+        FROM missions_history
+        WHERE user_id = ?
+          AND mission_type = ?
+          AND synced = 0
+        ORDER BY created_at DESC
+        `,
+        [
+          userId,
+          missionType,
+        ],
+      );
+    }
+
+    return db.getAllSync<MissionHistoryRow>(
+      `
+      SELECT *
+      FROM missions_history
+      WHERE user_id = ?
+        AND synced = 0
+      ORDER BY created_at DESC
       `,
       [userId],
     );

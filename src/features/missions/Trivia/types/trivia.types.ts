@@ -8,12 +8,9 @@ export type TriviaCategory =
   | 'geography'
   | 'custom';
 
-export type TriviaTimeLimits = Record<TriviaDifficulty, number>;
-
 export interface TriviaConfig {
   difficulty: TriviaDifficulty;
   categoryIds: TriviaCategory[];
-  timeLimits: TriviaTimeLimits;
   targetScore: number;
 }
 
