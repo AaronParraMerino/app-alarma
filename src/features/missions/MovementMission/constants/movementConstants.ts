@@ -97,4 +97,4 @@ export const MOVEMENT_EXAMPLES: Record<MovementDifficulty, MovementType[]> = {
 };
 
 export const MIN_QUANTITY = 1;
-export const MAX_QUANTITY = 5;
+export const MAX_QUANTITY = 9;
