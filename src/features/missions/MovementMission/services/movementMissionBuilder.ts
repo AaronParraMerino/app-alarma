@@ -10,6 +10,8 @@ import {
   EASY_STEP_POOL,
   HARD_STEP_POOL,
   MEDIUM_STEP_POOL,
+  MAX_QUANTITY,
+  MIN_QUANTITY,
 } from '../constants/movementConstants';
 
 const HARD_DURATION_MULTIPLIER = 2;
@@ -59,7 +61,7 @@ function buildStep(
       ? 'Camina con el telefono en la mano por mas tiempo.'
       : base.instruction,
     detail: isHard && type === 'walk'
-      ? 'Da aproximadamente 10 pasos reales. Estar quieto no llena el progreso.'
+      ? 'Da aproximadamente 12 pasos reales. Estar quieto no llena el progreso.'
       : base.detail,
     requiredRatio: isHard && type !== 'walk'
       ? Math.min(base.requiredRatio + HARD_REQUIRED_RATIO_BONUS, 1)
@@ -74,7 +76,7 @@ export function buildMovementMissionConfig(
   userConfig: MovementMissionUserConfig,
 ): MovementMissionConfig {
   const { difficulty } = userConfig;
-  const quantity = Math.max(1, Math.min(5, userConfig.quantity));
+  const quantity = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, userConfig.quantity));
 
   let steps: MovementStep[] = [];
   let requiresContinuity = false;
