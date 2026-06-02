@@ -1,3 +1,5 @@
+import { TriviaCategory } from '../../missions/Trivia/types/trivia.types';
+
 export type MissionType =
   | 'random'
   | 'math'
@@ -22,9 +24,7 @@ export interface AlarmMission {
   quantity?: number;
   operationType?: 'addition' | 'subtraction' | 'multiplication' | 'division';
   targetObjectIds?: string[];
-  triviaCategoryIds?: Array<
-    'history' | 'music' | 'math' | 'science' | 'geography' | 'custom'
-  >;
+  triviaCategoryIds?: TriviaCategory[];
   triviaTargetScore?: number;
 }
 

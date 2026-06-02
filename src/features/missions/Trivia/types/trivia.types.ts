@@ -6,6 +6,7 @@ export type TriviaCategory =
   | 'math'
   | 'science'
   | 'geography'
+  | 'sports'
   | 'custom';
 
 export interface TriviaConfig {

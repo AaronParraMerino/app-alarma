@@ -3,6 +3,7 @@ import { HISTORY_QUESTIONS } from '../banks/history.questions';
 import { MATH_QUESTIONS } from '../banks/math.questions';
 import { MUSIC_QUESTIONS } from '../banks/music.questions';
 import { SCIENCE_QUESTIONS } from '../banks/science.questions';
+import { SPORTS_QUESTIONS } from '../banks/sports.questions';
 import { TriviaQuestionService } from '../services/triviaQuestion.service';
 import {
   TriviaCategory,
@@ -60,6 +61,7 @@ export const TRIVIA_CATEGORIES: Array<{
     | 'calculator-outline'
     | 'flask-outline'
     | 'earth-outline'
+    | 'trophy-outline'
     | 'create-outline';
 }> = [
   {
@@ -93,6 +95,12 @@ export const TRIVIA_CATEGORIES: Array<{
     icon: 'earth-outline',
   },
   {
+    id: 'sports',
+    labelEs: 'Deportes',
+    labelEn: 'Sports',
+    icon: 'trophy-outline',
+  },
+  {
     id: 'custom',
     labelEs: 'Personalizada',
     labelEn: 'Custom',
@@ -106,6 +114,7 @@ export const BUILT_IN_TRIVIA_QUESTION_BANK: TriviaQuestion[] = [
   ...MATH_QUESTIONS,
   ...SCIENCE_QUESTIONS,
   ...GEOGRAPHY_QUESTIONS,
+  ...SPORTS_QUESTIONS,
 ];
 
 export function getTriviaQuestions(
