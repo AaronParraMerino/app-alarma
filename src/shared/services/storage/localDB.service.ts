@@ -33,6 +33,9 @@ const mapRowToAlarm = (row: any): Alarm => {
     missions: parseJson<AlarmMission[]>(row.missions, []),
     randomMissions: Number(row.random_missions) === 1,
     soundUri: row.sound_uri ?? null,
+    vibrationEnabled: row.vibration_enabled === undefined
+      ? true
+      : Number(row.vibration_enabled) === 1,
     createdAt: normalizeTimestamp(Number(row.created_at)),
     updatedAt: normalizeTimestamp(Number(row.updated_at)),
   };
@@ -48,6 +51,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
       missions: alarm.missions ?? [],
       randomMissions: Boolean(alarm.randomMissions),
       soundUri: alarm.soundUri ?? null,
+      vibrationEnabled: alarm.vibrationEnabled ?? true,
       createdAt: alarm.createdAt ?? Date.now(),
       updatedAt: alarm.updatedAt ?? Date.now(),
     };
@@ -65,6 +69,9 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
     randomMissions:
       Number(alarm.random_missions) === 1 || Boolean(alarm.randomMissions),
     soundUri: alarm.sound_uri ?? alarm.soundUri ?? null,
+    vibrationEnabled: alarm.vibration_enabled === undefined
+      ? alarm.vibrationEnabled ?? true
+      : Number(alarm.vibration_enabled) === 1,
     createdAt: normalizeTimestamp(Number(alarm.created_at ?? Date.now())),
     updatedAt: normalizeTimestamp(Number(alarm.updated_at ?? Date.now())),
   };
@@ -87,8 +94,8 @@ export const insertAlarmLocal = (
   db.runSync(
     `INSERT OR REPLACE INTO alarms (
       id, time, label, active, repeat_days, missions, random_missions,
-      sound_uri, synced, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sound_uri, vibration_enabled, synced, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       alarm.id,
       time,
@@ -98,6 +105,7 @@ export const insertAlarmLocal = (
       JSON.stringify(alarm.missions),
       alarm.randomMissions ? 1 : 0,
       alarm.soundUri,
+      alarm.vibrationEnabled ? 1 : 0,
       options.synced ? 1 : 0,
       alarm.createdAt,
       alarm.updatedAt,

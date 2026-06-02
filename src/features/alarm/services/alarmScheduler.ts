@@ -33,6 +33,7 @@ type NativeAlarmScheduleOptions = {
   repeatIntervalMillis: number;
   label: string;
   soundUri: string | null;
+  vibrationEnabled: boolean;
   scheme: string;
 };
 
@@ -96,9 +97,16 @@ function getSoundResourceName(soundUri: string | null): string | null {
   return normalizedSoundUri.replace(/\.[^/.]+$/, '');
 }
 
-function getAlarmChannelId(soundUri: string | null): string {
+function isAlarmVibrationEnabled(alarm: Pick<Alarm, 'vibrationEnabled'>): boolean {
+  return alarm.vibrationEnabled !== false;
+}
+
+function getAlarmChannelId(soundUri: string | null, vibrationEnabled: boolean): string {
   const soundResourceName = getSoundResourceName(soundUri);
-  return soundResourceName ? `alarms-v2-${soundResourceName}` : SILENT_CHANNEL_ID;
+  const vibrationSuffix = vibrationEnabled ? 'vibrate' : 'quiet';
+  return soundResourceName
+    ? `alarms-v2-${soundResourceName}-${vibrationSuffix}`
+    : `${SILENT_CHANNEL_ID}-${vibrationSuffix}`;
 }
 
 function getNotificationSound(soundUri: string | null, useCustomSound: boolean): string | false {
@@ -346,12 +354,14 @@ function buildAlarmContent(
   alarm: Alarm,
   useCustomSound: boolean,
 ): ExpoNotifications.NotificationContentInput {
+  const vibrationEnabled = isAlarmVibrationEnabled(alarm);
+
   return {
     title: alarm.label || 'Alarma',
     body: 'Toca para resolver la mision y apagar',
     sound: getNotificationSound(alarm.soundUri, useCustomSound),
     priority: Notifications.AndroidNotificationPriority.MAX,
-    vibrate: ALARM_VIBRATION_PATTERN,
+    ...(vibrationEnabled ? { vibrate: ALARM_VIBRATION_PATTERN } : {}),
     data: alarmData(alarm.id),
     autoDismiss: false,
     sticky: true,
@@ -363,8 +373,11 @@ async function ensureAlarmChannelAsync(
   Notifications: typeof ExpoNotifications,
   soundUri: string | null,
   useCustomSound: boolean,
+  vibrationEnabled: boolean,
 ): Promise<string> {
-  const channelId = useCustomSound ? getAlarmChannelId(soundUri) : ALARM_CHANNEL_ID;
+  const channelId = useCustomSound
+    ? getAlarmChannelId(soundUri, vibrationEnabled)
+    : `${ALARM_CHANNEL_ID}-${vibrationEnabled ? 'vibrate' : 'quiet'}`;
   const soundResourceName = useCustomSound ? getSoundResourceName(soundUri) : undefined;
 
   if (Platform.OS !== 'android') return channelId;
@@ -374,8 +387,8 @@ async function ensureAlarmChannelAsync(
     description: 'Alarmas programadas de Neuro Wake',
     importance: Notifications.AndroidImportance.MAX,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    vibrationPattern: ALARM_VIBRATION_PATTERN,
-    enableVibrate: true,
+    ...(vibrationEnabled ? { vibrationPattern: ALARM_VIBRATION_PATTERN } : {}),
+    enableVibrate: vibrationEnabled,
     showBadge: false,
     ...(soundUri && soundResourceName ? { sound: soundResourceName } : {}),
     ...(!soundUri ? { sound: null } : {}),
@@ -430,6 +443,7 @@ async function scheduleNativeAlarmTrigger(
     repeatIntervalMillis,
     label: alarm.label || 'Alarma',
     soundUri: normalizeSoundUri(alarm.soundUri),
+    vibrationEnabled: isAlarmVibrationEnabled(alarm),
     scheme: getAppScheme(),
   });
 }
@@ -485,7 +499,12 @@ async function scheduleOneTimeAlarm(alarm: Alarm): Promise<void> {
   if (!Notifications) return;
 
   const useCustomSound = isNativeAndroidAlarmAvailable();
-  const channelId = await ensureAlarmChannelAsync(Notifications, alarm.soundUri, useCustomSound);
+  const channelId = await ensureAlarmChannelAsync(
+    Notifications,
+    alarm.soundUri,
+    useCustomSound,
+    isAlarmVibrationEnabled(alarm),
+  );
   const triggerDate = nextDate(alarm.hour, alarm.minute);
   const identifier = await Notifications.scheduleNotificationAsync({
     identifier: `alarm-${alarm.id}-once`,
@@ -510,7 +529,12 @@ async function scheduleRepeatAlarm(alarm: Alarm, repeatDays: RepeatDay[]): Promi
   if (normalizedRepeatDays.length === 0) return;
 
   const useCustomSound = isNativeAndroidAlarmAvailable();
-  const channelId = await ensureAlarmChannelAsync(Notifications, alarm.soundUri, useCustomSound);
+  const channelId = await ensureAlarmChannelAsync(
+    Notifications,
+    alarm.soundUri,
+    useCustomSound,
+    isAlarmVibrationEnabled(alarm),
+  );
 
   for (const day of normalizedRepeatDays) {
     const identifier = await Notifications.scheduleNotificationAsync({

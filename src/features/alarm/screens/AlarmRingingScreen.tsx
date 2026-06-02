@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Vibration,
   View,
   StatusBar,
 } from 'react-native';
@@ -69,6 +70,14 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
 ];
 
 const EMERGENCY_ERROR_LIMIT = 15;
+const ALARM_VIBRATION_PATTERN = [
+  0,
+  500,
+  350,
+  500,
+  350,
+  900,
+];
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
   const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
@@ -279,6 +288,25 @@ export default function AlarmRingingScreen({
     alarm,
     alarmSoundAsset,
     player,
+    shouldUseJsAudio,
+  ]);
+
+  useEffect(() => {
+    if (
+      !alarm ||
+      !shouldUseJsAudio ||
+      alarm.vibrationEnabled === false
+    ) {
+      return;
+    }
+
+    Vibration.vibrate(ALARM_VIBRATION_PATTERN, true);
+
+    return () => {
+      Vibration.cancel();
+    };
+  }, [
+    alarm,
     shouldUseJsAudio,
   ]);
 

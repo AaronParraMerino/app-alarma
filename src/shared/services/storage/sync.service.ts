@@ -2,6 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { Alarm } from '../../../features/alarm/types/alarm.types';
 import {
   clearPendingAlarmDeleteLocal,
+  getAlarmsLocal,
   getPendingAlarmDeletes,
   getUnsyncedAlarms,
   markAsSynced,
@@ -72,8 +73,23 @@ export const syncAlarms = async (userId: string): Promise<void> => {
     const cloudData = (await getAlarmsCloud(userId)) as Alarm[];
     if (cloudData.length > 0) {
       console.log(`[Sync] Descargando ${cloudData.length} alarmas de la nube...`);
+      const localAlarms = getAlarmsLocal();
       for (const alarm of cloudData) {
-        insertAlarmLocal({ ...alarm, enabled: !!alarm.enabled }, { synced: true });
+        const localAlarm = localAlarms.find(item => item.id === alarm.id);
+        const cloudHasVibration =
+          (alarm as any).vibrationEnabled !== undefined ||
+          (alarm as any).vibration_enabled !== undefined;
+
+        insertAlarmLocal(
+          {
+            ...alarm,
+            enabled: !!alarm.enabled,
+            vibrationEnabled: cloudHasVibration
+              ? alarm.vibrationEnabled ?? Boolean((alarm as any).vibration_enabled)
+              : localAlarm?.vibrationEnabled ?? true,
+          },
+          { synced: true },
+        );
       }
     }
 

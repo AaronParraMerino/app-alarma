@@ -12,6 +12,7 @@ CREATE TABLE public.alarms (
   missions text DEFAULT '[]'::text,
   random_missions integer DEFAULT 0,
   sound_uri text,
+  vibration_enabled integer DEFAULT 1,
   synced integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),

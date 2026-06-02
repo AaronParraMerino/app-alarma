@@ -13,6 +13,7 @@ export const insertAlarmCloud = async (alarm: any): Promise<void> => {
       missions:        JSON.stringify(alarm.missions ?? []),
       random_missions: alarm.randomMissions ? 1 : 0,
       sound_uri:       alarm.soundUri ?? null,
+      vibration_enabled: alarm.vibrationEnabled === false ? 0 : 1,
     }]);
 
   if (error) throw error;

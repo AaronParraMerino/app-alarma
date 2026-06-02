@@ -155,6 +155,7 @@ type AlarmFormDraft = {
   randomMissions: boolean;
   configuredMissions: AlarmMission[];
   soundUri: string | null;
+  vibrationEnabled: boolean;
 };
 
 const alarmFormDrafts = new Map<string, AlarmFormDraft>();
@@ -561,6 +562,13 @@ export default function AlarmForm({
         ),
     );
 
+  const [vibrationEnabled, setVibrationEnabled] =
+    useState<boolean>(
+      initialDraft?.vibrationEnabled ??
+        initialData?.vibrationEnabled ??
+        true,
+    );
+
   const draftClosedRef = useRef(false);
 
   const draftRef = useRef<AlarmFormDraft>({
@@ -572,6 +580,7 @@ export default function AlarmForm({
     randomMissions,
     configuredMissions,
     soundUri,
+    vibrationEnabled,
   });
 
   useEffect(() => {
@@ -588,6 +597,7 @@ export default function AlarmForm({
       randomMissions,
       configuredMissions,
       soundUri,
+      vibrationEnabled,
     };
 
     alarmFormDrafts.set(
@@ -604,6 +614,7 @@ export default function AlarmForm({
     randomMissions,
     repeatDays,
     soundUri,
+    vibrationEnabled,
   ]);
 
   useEffect(() => {
@@ -1213,6 +1224,7 @@ export default function AlarmForm({
         : [],
       randomMissions: false,
       soundUri,
+      vibrationEnabled,
     });
   };
 
@@ -1581,8 +1593,35 @@ export default function AlarmForm({
               },
             ]}
           >
-            {isSpanish ? 'Sonido' : 'Sound'}
+            {isSpanish ? 'Alerta' : 'Alert'}
           </Text>
+
+          <View style={styles.alertHeaderRow}>
+            <View style={styles.alertHeaderText}>
+              <Text
+                style={[
+                  styles.alertLabel,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {isSpanish ? 'Sonido' : 'Sound'}
+              </Text>
+              <Text
+                style={[
+                  styles.alertHint,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Elige el audio que sonara cuando se active.'
+                  : 'Choose the audio that plays when it rings.'}
+              </Text>
+            </View>
+          </View>
 
           <View style={styles.soundWrap}>
             {ALARM_SOUND_OPTIONS.map((sound) => {
@@ -1625,6 +1664,87 @@ export default function AlarmForm({
               );
             })}
           </View>
+
+          <TouchableOpacity
+            style={[
+              styles.vibrationToggle,
+              {
+                backgroundColor: vibrationEnabled
+                  ? colors.primary + '18'
+                  : colors.bgElevated,
+                borderColor: vibrationEnabled
+                  ? colors.primary
+                  : colors.border,
+              },
+            ]}
+            onPress={() => setVibrationEnabled((current) => !current)}
+            activeOpacity={0.86}
+          >
+            <View
+              style={[
+                styles.vibrationIconWrap,
+                {
+                  backgroundColor: vibrationEnabled
+                    ? colors.primary + '24'
+                    : colors.bg,
+                  borderColor: vibrationEnabled
+                    ? colors.primary + '66'
+                    : colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="phone-portrait-outline"
+                size={20}
+                color={
+                  vibrationEnabled
+                    ? colors.primary
+                    : colors.textSecondary
+                }
+              />
+            </View>
+
+            <View style={styles.vibrationTextWrap}>
+              <Text
+                style={[
+                  styles.vibrationTitle,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Vibracion de alarma'
+                  : 'Alarm vibration'}
+              </Text>
+              <Text
+                style={[
+                  styles.vibrationDescription,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Vibra en bucle mientras la alarma esta activa.'
+                  : 'Vibrates in a loop while the alarm is active.'}
+              </Text>
+            </View>
+
+            <Ionicons
+              name={
+                vibrationEnabled
+                  ? 'toggle'
+                  : 'toggle-outline'
+              }
+              size={34}
+              color={
+                vibrationEnabled
+                  ? colors.primary
+                  : colors.textMuted
+              }
+            />
+          </TouchableOpacity>
         </View>
 
         <AlarmChooseMission
@@ -1911,6 +2031,29 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
+  alertHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  alertHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+
+  alertLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+
+  alertHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+
   soundBtn: {
     borderRadius: 10,
     borderWidth: 1,
@@ -1928,6 +2071,42 @@ const styles = StyleSheet.create({
   soundText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  vibrationToggle: {
+    minHeight: 66,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  vibrationIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  vibrationTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+
+  vibrationTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  vibrationDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
   },
 
   saveBtn: {

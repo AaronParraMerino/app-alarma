@@ -37,6 +37,14 @@ function removeManifestItem(items, androidName) {
   }
 }
 
+function upsertUsesPermission(manifest, permissionName) {
+  upsertManifestItem(ensureArray(manifest, 'uses-permission'), {
+    $: {
+      'android:name': permissionName,
+    },
+  });
+}
+
 function addNativePackage(contents, packageName) {
   const importLine = `import ${packageName}.alarm.NeuroWakeAlarmPackage`;
   let nextContents = contents;
@@ -142,13 +150,14 @@ function javaSources(packageName) {
 final class AlarmConstants {
   static final String MODULE_NAME = "NeuroWakeAlarmScheduler";
   static final String PREFS_NAME = "neuro_wake_alarm_scheduler";
-  static final String CHANNEL_ID = "neuro_wake_native_alarm_v3";
+  static final String CHANNEL_ID = "neuro_wake_native_alarm_v4";
   static final String ACTION_TRIGGER = "${appPackage}.alarm.ACTION_TRIGGER";
   static final String ACTION_STOP = "${appPackage}.alarm.ACTION_STOP";
   static final String EXTRA_ALARM_ID = "alarmId";
   static final String EXTRA_SCHEDULE_ID = "scheduleId";
   static final String EXTRA_LABEL = "label";
   static final String EXTRA_SOUND_URI = "soundUri";
+  static final String EXTRA_VIBRATION_ENABLED = "vibrationEnabled";
   static final String EXTRA_SCHEME = "scheme";
   static final String EXTRA_TRIGGER_AT = "triggerAtMillis";
   static final String EXTRA_REPEAT_INTERVAL = "repeatIntervalMillis";
@@ -185,6 +194,7 @@ final class AlarmScheduler {
     long repeatIntervalMillis,
     String label,
     String soundUri,
+    boolean vibrationEnabled,
     String scheme
   ) {
     long safeTriggerAtMillis = Math.max(triggerAtMillis, System.currentTimeMillis() + MIN_SCHEDULE_DELAY_MS);
@@ -197,6 +207,7 @@ final class AlarmScheduler {
       repeatIntervalMillis,
       label,
       soundUri,
+      vibrationEnabled,
       scheme
     );
 
@@ -267,6 +278,7 @@ final class AlarmScheduler {
       repeatIntervalMillis,
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_LABEL),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI),
+      sourceIntent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SCHEME)
     );
   }
@@ -340,6 +352,7 @@ final class AlarmScheduler {
     long repeatIntervalMillis,
     String label,
     String soundUri,
+    boolean vibrationEnabled,
     String scheme
   ) {
     Intent intent = new Intent(context, AlarmReceiver.class);
@@ -350,6 +363,7 @@ final class AlarmScheduler {
     intent.putExtra(AlarmConstants.EXTRA_REPEAT_INTERVAL, repeatIntervalMillis);
     intent.putExtra(AlarmConstants.EXTRA_LABEL, label);
     intent.putExtra(AlarmConstants.EXTRA_SOUND_URI, soundUri);
+    intent.putExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, vibrationEnabled);
     intent.putExtra(AlarmConstants.EXTRA_SCHEME, scheme);
 
     return PendingIntent.getBroadcast(
@@ -518,8 +532,12 @@ import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -527,10 +545,17 @@ import androidx.core.app.NotificationCompat;
 import java.util.Locale;
 
 public class AlarmRingingService extends Service {
+  private static final long VOLUME_GUARD_INTERVAL_MS = 500L;
+
   private MediaPlayer mediaPlayer;
   private PowerManager.WakeLock wakeLock;
   private AudioManager audioManager;
   private AudioFocusRequest audioFocusRequest;
+  private Handler volumeGuardHandler;
+  private Runnable volumeGuardRunnable;
+  private Vibrator vibrator;
+  private int previousAlarmVolume = -1;
+  private boolean shouldRestoreAlarmVolume = false;
   private String currentAlarmId;
   private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener =
     new AudioManager.OnAudioFocusChangeListener() {
@@ -576,13 +601,14 @@ public class AlarmRingingService extends Service {
     String alarmId = intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID);
     String label = intent.getStringExtra(AlarmConstants.EXTRA_LABEL);
     String soundUri = intent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI);
+    boolean vibrationEnabled = intent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true);
     String scheme = intent.getStringExtra(AlarmConstants.EXTRA_SCHEME);
 
     currentAlarmId = alarmId;
     saveActiveAlarmId(alarmId);
     boolean shouldOpenAlarmScreen = shouldOpenAlarmScreen();
     wakeScreen();
-    Notification notification = buildNotification(alarmId, label, soundUri, scheme);
+    Notification notification = buildNotification(alarmId, label, soundUri, vibrationEnabled, scheme);
     int notificationId = AlarmScheduler.notificationId(alarmId == null ? "active" : alarmId);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -592,6 +618,7 @@ public class AlarmRingingService extends Service {
     }
 
     startSound(soundUri);
+    startVibration(vibrationEnabled);
     if (shouldOpenAlarmScreen) {
       openAlarmScreen(alarmId, label, soundUri, scheme);
     }
@@ -611,7 +638,13 @@ public class AlarmRingingService extends Service {
     super.onDestroy();
   }
 
-  private Notification buildNotification(String alarmId, String label, String soundUri, String scheme) {
+  private Notification buildNotification(
+    String alarmId,
+    String label,
+    String soundUri,
+    boolean vibrationEnabled,
+    String scheme
+  ) {
     Intent fullScreenIntent = AlarmScheduler.createFullScreenIntent(this, alarmId, label, soundUri, scheme);
     PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
       this,
@@ -631,7 +664,7 @@ public class AlarmRingingService extends Service {
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setOngoing(true)
       .setAutoCancel(false)
-      .setVibrate(new long[] { 0, 500, 350, 500, 350, 900 })
+      .setVibrate(vibrationEnabled ? new long[] { 0, 500, 350, 500, 350, 900 } : null)
       .setSound(null)
       .setContentIntent(fullScreenPendingIntent)
       .setFullScreenIntent(fullScreenPendingIntent, true)
@@ -729,6 +762,7 @@ public class AlarmRingingService extends Service {
 
     try {
       requestAlarmAudioFocus();
+      startVolumeGuard();
 
       int rawResourceId = resolveRawSound(soundUri);
       if (rawResourceId != 0) {
@@ -763,6 +797,9 @@ public class AlarmRingingService extends Service {
   }
 
   private void stopSound() {
+    stopVibration();
+    stopVolumeGuard();
+
     if (mediaPlayer == null) {
       abandonAlarmAudioFocus();
       return;
@@ -782,6 +819,93 @@ public class AlarmRingingService extends Service {
 
     mediaPlayer = null;
     abandonAlarmAudioFocus();
+  }
+
+  private void startVolumeGuard() {
+    try {
+      if (audioManager == null) {
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+      }
+
+      if (audioManager == null) {
+        return;
+      }
+
+      if (!shouldRestoreAlarmVolume) {
+        previousAlarmVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM);
+        shouldRestoreAlarmVolume = true;
+      }
+
+      forceAlarmVolumeMax();
+
+      if (volumeGuardHandler == null) {
+        volumeGuardHandler = new Handler(Looper.getMainLooper());
+      }
+
+      if (volumeGuardRunnable != null) {
+        volumeGuardHandler.removeCallbacks(volumeGuardRunnable);
+      }
+
+      volumeGuardRunnable = new Runnable() {
+        @Override
+        public void run() {
+          if (mediaPlayer == null) {
+            return;
+          }
+
+          forceAlarmVolumeMax();
+
+          if (volumeGuardHandler != null) {
+            volumeGuardHandler.postDelayed(this, VOLUME_GUARD_INTERVAL_MS);
+          }
+        }
+      };
+
+      volumeGuardHandler.postDelayed(volumeGuardRunnable, VOLUME_GUARD_INTERVAL_MS);
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void stopVolumeGuard() {
+    try {
+      if (volumeGuardHandler != null && volumeGuardRunnable != null) {
+        volumeGuardHandler.removeCallbacks(volumeGuardRunnable);
+      }
+
+      if (
+        audioManager != null
+          && shouldRestoreAlarmVolume
+          && previousAlarmVolume >= 0
+      ) {
+        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+        int restoredVolume = Math.max(0, Math.min(previousAlarmVolume, maxVolume));
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, restoredVolume, 0);
+      }
+    } catch (Exception ignored) {
+    }
+
+    volumeGuardRunnable = null;
+    previousAlarmVolume = -1;
+    shouldRestoreAlarmVolume = false;
+  }
+
+  private void forceAlarmVolumeMax() {
+    try {
+      if (audioManager == null) {
+        return;
+      }
+
+      int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+      if (maxVolume <= 0) {
+        return;
+      }
+
+      int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM);
+      if (currentVolume < maxVolume) {
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
+      }
+    } catch (Exception ignored) {
+    }
   }
 
   private void requestAlarmAudioFocus() {
@@ -807,6 +931,45 @@ public class AlarmRingingService extends Service {
       );
     } catch (Exception ignored) {
     }
+  }
+
+  private void startVibration(boolean vibrationEnabled) {
+    stopVibration();
+
+    if (!vibrationEnabled) {
+      return;
+    }
+
+    try {
+      vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+      if (vibrator == null || !vibrator.hasVibrator()) {
+        return;
+      }
+
+      long[] pattern = new long[] { 0, 500, 350, 500, 350, 900 };
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        vibrator.vibrate(
+          VibrationEffect.createWaveform(pattern, 0)
+        );
+      } else {
+        vibrator.vibrate(pattern, 0);
+      }
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void stopVibration() {
+    if (vibrator == null) {
+      return;
+    }
+
+    try {
+      vibrator.cancel();
+    } catch (Exception ignored) {
+    }
+
+    vibrator = null;
   }
 
   private void abandonAlarmAudioFocus() {
@@ -866,7 +1029,7 @@ public class AlarmRingingService extends Service {
     );
     channel.setDescription("Alarma en ejecucion");
     channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-    channel.enableVibration(true);
+    channel.enableVibration(false);
     channel.setSound(null, null);
     manager.createNotificationChannel(channel);
   }
@@ -998,6 +1161,9 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
       String soundUri = options.hasKey("soundUri") && !options.isNull("soundUri")
         ? options.getString("soundUri")
         : null;
+      boolean vibrationEnabled = !options.hasKey("vibrationEnabled")
+        || options.isNull("vibrationEnabled")
+        || options.getBoolean("vibrationEnabled");
       String scheme = options.hasKey("scheme") && !options.isNull("scheme")
         ? options.getString("scheme")
         : "neurowake";
@@ -1011,6 +1177,7 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
         repeatIntervalMillis,
         label,
         soundUri,
+        vibrationEnabled,
         scheme
       );
       promise.resolve(null);
@@ -1261,6 +1428,8 @@ module.exports = function withAndroidAlarmFullScreen(config) {
 
   config = withAndroidManifest(config, config => {
     const manifest = config.modResults.manifest;
+    upsertUsesPermission(manifest, 'android.permission.MODIFY_AUDIO_SETTINGS');
+
     const application = manifest.application?.[0];
     if (!application) return config;
 
