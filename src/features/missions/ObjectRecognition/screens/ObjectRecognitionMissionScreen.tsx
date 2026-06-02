@@ -226,6 +226,21 @@ type DetectionBoxStyle = {
   height: number;
 };
 
+function getMissionDifficultyLabel(
+  difficulty: ObjectDifficulty,
+  isSpanish: boolean,
+): string {
+  if (difficulty === 'easy') {
+    return isSpanish ? 'FACIL' : 'EASY';
+  }
+
+  if (difficulty === 'medium') {
+    return isSpanish ? 'MEDIO' : 'MEDIUM';
+  }
+
+  return isSpanish ? 'DIFICIL' : 'HARD';
+}
+
 function parseAlarmLabel(value?: string) {
   if (!value) {
     return null;
@@ -1390,6 +1405,9 @@ export function ObjectRecognitionMissionContent({
               {
                 backgroundColor:
                   difficultyStyle.bgColor,
+                borderColor:
+                  difficultyStyle.accentColor +
+                  '40',
               },
             ]}
             accessibilityRole="button"
@@ -1403,11 +1421,6 @@ export function ObjectRecognitionMissionContent({
               lowerLevelAvailable ? 0.78 : 1
             }
           >
-            <Ionicons
-              name="scan-outline"
-              size={16}
-              color={difficultyStyle.accentColor}
-            />
             <Text
               style={[
                 styles.badgeText,
@@ -1417,15 +1430,10 @@ export function ObjectRecognitionMissionContent({
                 },
               ]}
             >
-              {isSpanish
-                ? `DETECTAR OBJETOS - ${getDifficultyLabel(
-                    activeDifficulty,
-                    true,
-                  )}`
-                : `DETECT OBJECTS - ${getDifficultyLabel(
-                    activeDifficulty,
-                    false,
-                  )}`}
+              {getMissionDifficultyLabel(
+                activeDifficulty,
+                isSpanish,
+              )}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1779,14 +1787,8 @@ export function ObjectRecognitionMissionContent({
           >
             {targetObjects.length > 0
               ? isSpanish
-                ? `${recognizedCount}/${requiredRecognitions} reconocidos - ${getDifficultyLabel(
-                    activeDifficulty,
-                    true,
-                  )}`
-                : `${recognizedCount}/${requiredRecognitions} recognized - ${getDifficultyLabel(
-                    activeDifficulty,
-                    false,
-                  )}`
+                ? `${recognizedCount}/${requiredRecognitions} reconocidos`
+                : `${recognizedCount}/${requiredRecognitions} recognized`
               : isSpanish
                 ? 'Sin objetos'
                 : 'No objects'}
@@ -1963,6 +1965,7 @@ const styles = StyleSheet.create({
   badge: {
     minHeight: 36,
     borderRadius: 10,
+    borderWidth: 1,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1971,7 +1974,8 @@ const styles = StyleSheet.create({
 
   badgeText: {
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 
   timeBlock: {

@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +80,12 @@ export function TriviaConfigScreen({
   route,
 }: Props) {
   const {
+    width,
+    height,
+  } = useWindowDimensions();
+  const {
     colors,
+    isDark,
     statusBarStyle,
   } = useAppTheme();
   const {
@@ -170,6 +176,20 @@ export function TriviaConfigScreen({
 
   const difficultyStyle =
     TRIVIA_DIFFICULTY_STYLES[difficulty];
+  const previewBgColor = isDark
+    ? colors.white
+    : Colors.bgCard;
+  const previewMainTextColor = isDark
+    ? Colors.bg
+    : Colors.text;
+  const previewSecondaryTextColor = isDark
+    ? Colors.bgElevated
+    : Colors.textSecondary;
+  const isSmall = width < 360;
+  const isShort = height < 680;
+  const fontBase = isSmall ? 12 : 14;
+  const pillPadV = isShort ? 7 : 10;
+  const sectionGap = isShort ? 10 : 16;
   const availableQuestionCount =
     getTriviaQuestions(categoryIds).length;
   const canSave =
@@ -388,10 +408,16 @@ export function TriviaConfigScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingHorizontal: isSmall ? 14 : 20,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <BackButton
+          style={styles.backButton}
           label={isSpanish ? 'Volver' : 'Back'}
           onPress={() => navigation.goBack()}
         />
@@ -402,6 +428,8 @@ export function TriviaConfigScreen({
             {
               backgroundColor:
                 difficultyStyle.accentColor,
+              paddingVertical: pillPadV,
+              marginBottom: sectionGap,
             },
           ]}
         >
@@ -416,6 +444,7 @@ export function TriviaConfigScreen({
               {
                 color:
                   difficultyStyle.textColor,
+                fontSize: isSmall ? 12 : 14,
               },
             ]}
           >
@@ -432,8 +461,7 @@ export function TriviaConfigScreen({
               borderColor:
                 difficultyStyle.accentColor +
                 '55',
-              backgroundColor:
-                difficultyStyle.bgColor,
+              backgroundColor: previewBgColor,
             },
           ]}
         >
@@ -459,12 +487,26 @@ export function TriviaConfigScreen({
               {targetScore}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.previewLabel}>
+          <Text
+            style={[
+              styles.previewLabel,
+              {
+                color: previewMainTextColor,
+              },
+            ]}
+          >
             {isSpanish
               ? 'puntos para completar'
               : 'points to complete'}
           </Text>
-          <Text style={styles.previewNote}>
+          <Text
+            style={[
+              styles.previewNote,
+              {
+                color: previewSecondaryTextColor,
+              },
+            ]}
+          >
             {isSpanish
               ? `${TRIVIA_POINTS[difficulty]} puntos por pregunta`
               : `${TRIVIA_POINTS[difficulty]} points per question`}
@@ -476,6 +518,8 @@ export function TriviaConfigScreen({
             styles.sectionLabel,
             {
               color: colors.text,
+              fontSize: fontBase,
+              marginBottom: 6,
             },
           ]}
         >
@@ -589,6 +633,8 @@ export function TriviaConfigScreen({
             styles.sectionLabel,
             {
               color: colors.text,
+              fontSize: fontBase,
+              marginBottom: 6,
             },
           ]}
         >
@@ -667,7 +713,9 @@ export function TriviaConfigScreen({
                       {
                         color: isLockedCustom
                           ? colors.textMuted
-                          : colors.text,
+                          : active
+                            ? colors.white
+                            : colors.text,
                       },
                     ]}
                   >
@@ -682,10 +730,14 @@ export function TriviaConfigScreen({
                         styles.customToggle,
                         {
                           borderColor:
-                            difficultyStyle.accentColor,
+                            active
+                              ? colors.white + '88'
+                              : difficultyStyle.accentColor,
                           backgroundColor:
                             customFormVisible
-                              ? difficultyStyle.bgColor
+                              ? active
+                                ? colors.white + '22'
+                                : colors.bgCardActive
                               : colors.bgElevated,
                         },
                       ]}
@@ -706,7 +758,9 @@ export function TriviaConfigScreen({
                         }
                         size={16}
                         color={
-                          difficultyStyle.accentColor
+                          active
+                            ? colors.white
+                            : difficultyStyle.accentColor
                         }
                       />
                       <Text
@@ -714,7 +768,9 @@ export function TriviaConfigScreen({
                           styles.customToggleText,
                           {
                             color:
-                              difficultyStyle.accentColor,
+                              active
+                                ? colors.white
+                                : difficultyStyle.accentColor,
                           },
                         ]}
                       >
@@ -824,7 +880,7 @@ export function TriviaConfigScreen({
                       difficultyStyle.accentColor +
                       '55',
                     backgroundColor:
-                      difficultyStyle.bgColor,
+                      colors.bgElevated,
                   },
                 ]}
               >
@@ -1207,18 +1263,23 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 14,
   },
+  backButton: {
+    marginBottom: 2,
+  },
   headerPill: {
     minHeight: 64,
-    borderRadius: 14,
+    borderRadius: 24,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   headerText: {
     fontSize: 14,
     fontWeight: '900',
     lineHeight: 18,
+    textAlign: 'center',
   },
   previewBox: {
     minHeight: 118,

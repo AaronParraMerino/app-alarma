@@ -18,26 +18,20 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Layout } from '../../../shared/theme/layout';
 import { Typography } from '../../../shared/theme/typography';
+import { Colors } from '../../../shared/theme/colors';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { MissionsStackParamList } from '../navigation/MissionsNavigator';
 import { useWordCompletionStore } from '../wordCompletion/store/wordCompletionStore';
-import { DIFFICULTY_STYLES as WORD_DIFFICULTY_STYLES } from '../wordCompletion/constants/wordCompletion.config';
 import { useMathExercisesStore } from '../Math Exercises/store/mathExercisesStore';
-import { DIFFICULTY_STYLES as MATH_DIFFICULTY_STYLES } from '../Math Exercises/constants/mathExercises.config';
 import { useMovementMissionStore } from '../MovementMission/store/movementMissionStore';
-import { DIFFICULTY_STYLES as MOVEMENT_DIFFICULTY_STYLES } from '../MovementMission/constants/movementConstants';
 import { useColoredFiguresStore } from '../ColoredFigures/store/ColoredFiguresStore';
-import { DIFFICULTY_STYLES as COLOR_DIFFICULTY_STYLES } from '../ColoredFigures/constants/ColoredFigure.config';
 import { useColorFindStore } from '../ColorFind/store/colorFindStore';
-import { DIFFICULTY_STYLES as COLOR_FIND_DIFFICULTY_STYLES } from '../ColorFind/constants/colorFind.config';
 import { usePairsMissionStore } from '../ParesMission/store/paresMissionStore';
-import { DIFFICULTY_STYLES as PAIRS_DIFFICULTY_STYLES } from '../ParesMission/constants/paresMission.config';
 import { ObjectBankService } from '../ObjectRecognition/services/objectBank.service';
 import { useObjectRecognitionStore } from '../ObjectRecognition/store/objectRecognitionStore';
 import { RecognizableObject } from '../ObjectRecognition/types/objectRecognition.types';
 import { useTriviaStore } from '../Trivia/store/triviaStore';
-import { TRIVIA_DIFFICULTY_STYLES } from '../Trivia/constants/trivia.config';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 type NavigationProp = NativeStackNavigationProp<MissionsStackParamList, 'MissionSelector'>;
@@ -47,12 +41,6 @@ const OBJECT_DIFFICULTY_QUANTITY: Record<Difficulty, number> = {
   easy: 1,
   medium: 2,
   hard: 3,
-};
-
-const OBJECT_DIFFICULTY_COLORS: Record<Difficulty, string> = {
-  easy: '#4ADE80',
-  medium: '#FBBF24',
-  hard: '#F87171',
 };
 
 function difficultyLabel(difficulty: Difficulty, isSpanish: boolean) {
@@ -149,13 +137,7 @@ export default function MissionSelectorScreen() {
 
   const objectPoolCount = selectedObjects.length || objectBank.length;
 
-  const wordStyle = WORD_DIFFICULTY_STYLES[wordConfig.difficulty];
-  const mathStyle = MATH_DIFFICULTY_STYLES[mathConfig.difficulty];
-  const movementStyle = MOVEMENT_DIFFICULTY_STYLES[movementConfig.difficulty];
-  const colorStyle = COLOR_DIFFICULTY_STYLES[colorConfig.difficulty];
-  const colorFindStyle = COLOR_FIND_DIFFICULTY_STYLES[colorFindConfig.difficulty];
-  const pairsStyle = PAIRS_DIFFICULTY_STYLES[pairsConfig.difficulty];
-  const triviaStyle = TRIVIA_DIFFICULTY_STYLES[triviaConfig.difficulty];
+  const missionColors = Colors.missionColors;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -177,7 +159,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Completar palabras' : 'Complete words'}
           summary={`${difficultyLabel(wordConfig.difficulty, isSpanish)} - ${formatQuantity(wordConfig.quantity, isSpanish)}`}
           icon="text-outline"
-          tint={wordStyle.accentColor}
+          tint={missionColors.wordCompletion}
           onPress={() => navigation.navigate('ConfigWordCompletionMission', { practice: true })}
         />
 
@@ -185,7 +167,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Matematicas' : 'Math'}
           summary={`${difficultyLabel(mathConfig.difficulty, isSpanish)} - ${formatQuantity(mathConfig.quantity, isSpanish)}`}
           icon="calculator-outline"
-          tint={mathStyle.accentColor}
+          tint={missionColors.math}
           onPress={() => navigation.navigate('ConfigMathMission', { practice: true })}
         />
 
@@ -193,7 +175,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Movimiento' : 'Movement'}
           summary={`${difficultyLabel(movementConfig.difficulty, isSpanish)} - ${formatQuantity(movementConfig.quantity, isSpanish)}`}
           icon="footsteps-outline"
-          tint={movementStyle.accentColor}
+          tint={missionColors.physical}
           onPress={() => navigation.navigate('ConfigMovementMission', { practice: true })}
         />
 
@@ -201,7 +183,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Figuras y colores' : 'Shapes and colors'}
           summary={`${difficultyLabel(colorConfig.difficulty, isSpanish)} - ${formatQuantity(colorConfig.quantity, isSpanish)}`}
           icon="color-palette-outline"
-          tint={colorStyle.accentColor}
+          tint={missionColors.color}
           onPress={() => navigation.navigate('ConfigColoredFiguresMission', { practice: true })}
         />
 
@@ -209,7 +191,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Color diferente' : 'Different color'}
           summary={`${difficultyLabel(colorFindConfig.difficulty, isSpanish)} - ${formatQuantity(colorFindConfig.quantity, isSpanish)}`}
           icon="grid-outline"
-          tint={colorFindStyle.accentColor}
+          tint={missionColors.colorFind}
           onPress={() => navigation.navigate('ConfigColorFindMission', { practice: true })}
         />
 
@@ -221,7 +203,7 @@ export default function MissionSelectorScreen() {
               : `${difficultyLabel(objectConfig.difficulty, false)} - recognize ${OBJECT_DIFFICULTY_QUANTITY[objectConfig.difficulty]} of ${objectPoolCount}`
           }
           icon="scan-outline"
-          tint={OBJECT_DIFFICULTY_COLORS[objectConfig.difficulty]}
+          tint={missionColors.photo}
           disabled={objectPoolCount === 0}
           onPress={() => navigation.navigate('ConfigObjectRecognitionMission', { practice: true })}
         />
@@ -234,7 +216,7 @@ export default function MissionSelectorScreen() {
               : `${difficultyLabel(triviaConfig.difficulty, false)} - ${triviaConfig.targetScore} points - ${triviaConfig.categoryIds.length} banks`
           }
           icon="help-circle-outline"
-          tint={triviaStyle.accentColor}
+          tint={missionColors.trivia}
           onPress={() => navigation.navigate('ConfigTriviaMission', { practice: true })}
         />
 
@@ -242,7 +224,7 @@ export default function MissionSelectorScreen() {
           title={isSpanish ? 'Encontrar pares' : 'Find pairs'}
           summary={`${difficultyLabel(pairsConfig.difficulty, isSpanish)} - ${formatQuantity(pairsConfig.quantity, isSpanish)}`}
           icon="albums-outline"
-          tint={pairsStyle.accentColor}
+          tint={missionColors.memory}
           onPress={() => navigation.navigate('ConfigParesMission', { practice: true })}
         />
       </ScrollView>

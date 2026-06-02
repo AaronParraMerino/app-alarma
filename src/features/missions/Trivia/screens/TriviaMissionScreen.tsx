@@ -591,6 +591,9 @@ export function TriviaMission({
               {
                 backgroundColor:
                   difficultyStyle.bgColor,
+                borderColor:
+                  difficultyStyle.accentColor +
+                  '40',
               },
             ]}
             accessibilityRole="button"
@@ -607,11 +610,6 @@ export function TriviaMission({
                 : 1
             }
           >
-            <Ionicons
-              name="help-circle-outline"
-              size={16}
-              color={difficultyStyle.accentColor}
-            />
             <Text
               style={[
                 styles.badgeText,
@@ -621,15 +619,10 @@ export function TriviaMission({
                 },
               ]}
             >
-              {isSpanish
-                ? `CULTURA GENERAL - ${getDifficultyPillLabel(
-                    activeDifficulty,
-                    true,
-                  )}`
-                : `GENERAL KNOWLEDGE - ${getDifficultyPillLabel(
-                    activeDifficulty,
-                    false,
-                  )}`}
+              {getDifficultyPillLabel(
+                activeDifficulty,
+                isSpanish,
+              )}
             </Text>
           </TouchableOpacity>
         </View>
@@ -987,6 +980,7 @@ const styles = StyleSheet.create({
   badge: {
     minHeight: 36,
     borderRadius: 10,
+    borderWidth: 1,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
@@ -994,7 +988,8 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   timeBlock: {
     alignItems: 'center',
