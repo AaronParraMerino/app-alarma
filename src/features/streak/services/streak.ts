@@ -1,4 +1,5 @@
 // src/features/streak/services/streak.ts
+
 import db from '../../../shared/db/localDB';
 import { supabase } from '../../../shared/db/supabaseClient';
 
@@ -13,18 +14,51 @@ const ONE_DAY_MS = 86_400_000;
 const PROTECTION_UNLOCK_STREAK = 30;
 const MAX_PROTECTIONS = 3;
 
-function getTodayDateKey(): string {
-  const now = new Date();
-
+function getDateKey(date: Date): string {
   return [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
   ].join('-');
 }
 
+function getTodayDateKey(): string {
+  return getDateKey(new Date());
+}
+
+function getYesterdayDateKey(): string {
+  const yesterday = new Date();
+
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return getDateKey(yesterday);
+}
+
+function getDateFromKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split('-').map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const date = getDateFromKey(dateKey);
+
+  date.setDate(date.getDate() + days);
+
+  return getDateKey(date);
+}
+
+function isSameOrBeforeDateKey(
+  dateKey: string,
+  compareDateKey: string,
+): boolean {
+  return dateKey.localeCompare(compareDateKey) <= 0;
+}
+
 function normalizeTimestamp(raw: unknown): number {
-  if (!raw) return Date.now();
+  if (!raw) {
+    return Date.now();
+  }
 
   if (typeof raw === 'number') {
     return raw < 1_000_000_000_000 ? raw * 1000 : raw;
@@ -174,7 +208,9 @@ export function getUnsyncedAlarmStreakEventsLocal(
           AND user_id = ?
         ORDER BY created_at ASC
         `,
-        [userId],
+        [
+          userId,
+        ],
       )
     : db.getAllSync(
         `
@@ -195,7 +231,9 @@ export function markAlarmStreakEventAsSyncedLocal(id: string): void {
     SET synced = 1
     WHERE id = ?
     `,
-    [id],
+    [
+      id,
+    ],
   );
 }
 
@@ -247,11 +285,9 @@ export async function getAlarmStreakEventsCloud(
   return (data ?? []).map(mapRowToAlarmStreakEvent);
 }
 
-export async function recordAlarmStreakEvent(
-  input: CreateAlarmStreakEventInput,
+async function saveAlarmStreakEvent(
+  event: AlarmStreakEvent,
 ): Promise<void> {
-  const event = buildAlarmStreakEvent(input);
-
   insertAlarmStreakEventLocal(event);
 
   try {
@@ -263,6 +299,14 @@ export async function recordAlarmStreakEvent(
       error,
     );
   }
+}
+
+export async function recordAlarmStreakEvent(
+  input: CreateAlarmStreakEventInput,
+): Promise<void> {
+  const event = buildAlarmStreakEvent(input);
+
+  await saveAlarmStreakEvent(event);
 }
 
 function mergeEvents(
@@ -288,12 +332,6 @@ function mergeEvents(
   });
 }
 
-function getDateFromKey(dateKey: string): Date {
-  const [year, month, day] = dateKey.split('-').map(Number);
-
-  return new Date(year, month - 1, day);
-}
-
 function getDayStatusMap(
   events: AlarmStreakEvent[],
 ): Map<string, StreakEventType> {
@@ -306,7 +344,10 @@ function getDayStatusMap(
       return;
     }
 
-    if (current === 'frozen' && event.eventType === 'missed') {
+    if (
+      current === 'frozen' &&
+      event.eventType === 'missed'
+    ) {
       return;
     }
 
@@ -316,85 +357,87 @@ function getDayStatusMap(
   return byDay;
 }
 
-function calculateCurrentStreak(events: AlarmStreakEvent[]): number {
+function getEffectiveDayStatus(
+  events: AlarmStreakEvent[],
+  dateKey: string,
+): StreakEventType | null {
+  return getDayStatusMap(events).get(dateKey) ?? null;
+}
+
+function calculateCurrentStreak(
+  events: AlarmStreakEvent[],
+): number {
   if (events.length === 0) {
     return 0;
   }
 
   const byDay = getDayStatusMap(events);
+  const allDates = Array.from(byDay.keys()).sort();
 
-  const latestEvent = [...events].sort((a, b) => {
-    if (a.eventDate === b.eventDate) {
-      return b.createdAt - a.createdAt;
-    }
-
-    return b.eventDate.localeCompare(a.eventDate);
-  })[0];
-
-  if (!latestEvent) {
+  if (allDates.length === 0) {
     return 0;
   }
 
+  let cursorDateKey = allDates[allDates.length - 1];
   let streak = 0;
-  let cursor = getDateFromKey(latestEvent.eventDate);
+  let foundCompletedDay = false;
 
   while (true) {
-    const dateKey = [
-      cursor.getFullYear(),
-      String(cursor.getMonth() + 1).padStart(2, '0'),
-      String(cursor.getDate()).padStart(2, '0'),
-    ].join('-');
+    const status = byDay.get(cursorDateKey);
 
-    const status = byDay.get(dateKey);
-
-    if (status === 'completed' || status === 'frozen') {
-      streak += 1;
-      cursor = new Date(cursor.getTime() - ONE_DAY_MS);
-      continue;
+    if (status === 'missed') {
+      return foundCompletedDay ? streak : 0;
     }
 
-    break;
-  }
+    if (status === 'completed') {
+      streak += 1;
+      foundCompletedDay = true;
+    }
 
-  return streak;
+    if (!status) {
+      return foundCompletedDay ? streak : 0;
+    }
+
+    const previousDateKey = addDaysToDateKey(cursorDateKey, -1);
+
+    if (!byDay.has(previousDateKey)) {
+      return foundCompletedDay ? streak : 0;
+    }
+
+    cursorDateKey = previousDateKey;
+  }
 }
 
-function calculateBestStreak(events: AlarmStreakEvent[]): number {
-  const validDays = Array.from(
-    new Set(
-      events
-        .filter(
-          event =>
-            event.eventType === 'completed' ||
-            event.eventType === 'frozen',
-        )
-        .map(event => event.eventDate),
-    ),
-  ).sort();
-
-  if (validDays.length === 0) {
+function calculateBestStreak(
+  events: AlarmStreakEvent[],
+): number {
+  if (events.length === 0) {
     return 0;
   }
 
-  let best = 1;
-  let current = 1;
+  const byDay = getDayStatusMap(events);
+  const allDates = Array.from(byDay.keys()).sort();
 
-  for (let i = 1; i < validDays.length; i += 1) {
-    const previous = getDateFromKey(validDays[i - 1]);
-    const actual = getDateFromKey(validDays[i]);
+  let best = 0;
+  let current = 0;
 
-    const diffDays = Math.round(
-      (actual.getTime() - previous.getTime()) / ONE_DAY_MS,
-    );
+  allDates.forEach(dateKey => {
+    const status = byDay.get(dateKey);
 
-    if (diffDays === 1) {
+    if (status === 'completed') {
       current += 1;
-    } else {
-      current = 1;
+      best = Math.max(best, current);
+      return;
     }
 
-    best = Math.max(best, current);
-  }
+    if (status === 'frozen') {
+      return;
+    }
+
+    if (status === 'missed') {
+      current = 0;
+    }
+  });
 
   return best;
 }
@@ -410,6 +453,65 @@ function getProtectionsAvailable(events: AlarmStreakEvent[]): number {
     .sort((a, b) => b.createdAt - a.createdAt)[0];
 
   return lastProtectionEvent?.protectionsAfter ?? 0;
+}
+
+async function reconcileMissingStreakDays(
+  userId: string,
+  events: AlarmStreakEvent[],
+): Promise<AlarmStreakEvent[]> {
+  if (events.length === 0) {
+    return events;
+  }
+
+  const sortedEvents = [...events].sort((a, b) => {
+    if (a.eventDate === b.eventDate) {
+      return b.createdAt - a.createdAt;
+    }
+
+    return b.eventDate.localeCompare(a.eventDate);
+  });
+
+  const latestEvent = sortedEvents[0];
+
+  if (!latestEvent) {
+    return events;
+  }
+
+  const yesterdayKey = getYesterdayDateKey();
+  let cursorDateKey = addDaysToDateKey(latestEvent.eventDate, 1);
+
+  if (!isSameOrBeforeDateKey(cursorDateKey, yesterdayKey)) {
+    return events;
+  }
+
+  const generatedEvents: AlarmStreakEvent[] = [];
+
+  while (isSameOrBeforeDateKey(cursorDateKey, yesterdayKey)) {
+    const alreadyHasEvent = events.some(
+      event => event.eventDate === cursorDateKey,
+    );
+
+    if (!alreadyHasEvent) {
+      const generatedEvent = buildAlarmStreakEvent({
+        userId,
+        alarmId: null,
+        alarmTime: null,
+        eventType: 'frozen',
+        eventDate: cursorDateKey,
+        usedProtection: false,
+        protectionsBefore: 0,
+        protectionsAfter: 0,
+      });
+
+      await saveAlarmStreakEvent(generatedEvent);
+
+      generatedEvents.push(generatedEvent);
+    }
+
+    cursorDateKey = addDaysToDateKey(cursorDateKey, 1);
+  }
+
+  return mergeEvents(events, generatedEvents);
 }
 
 export async function getStreakSummary(
@@ -431,14 +533,17 @@ export async function getStreakSummary(
     console.log('[Streak] No se pudo sincronizar resumen:', error);
   }
 
+  events = await reconcileMissingStreakDays(userId, events);
+
   const todayKey = getTodayDateKey();
   const todayEvent = events.find(event => event.eventDate === todayKey);
 
   return {
     currentStreak: calculateCurrentStreak(events),
     bestStreak: calculateBestStreak(events),
-    successfulAlarms: events.filter(event => event.eventType === 'completed')
-      .length,
+    successfulAlarms: events.filter(
+      event => event.eventType === 'completed',
+    ).length,
     protectionsAvailable: getProtectionsAvailable(events),
     protectionsUsed: events.filter(event => event.usedProtection).length,
     todayStatus: todayEvent?.eventType ?? null,
@@ -452,6 +557,12 @@ export async function recordCompletedAlarmStreak(input: {
   alarmTime?: string | null;
 }): Promise<void> {
   const summary = await getStreakSummary(input.userId);
+  const todayKey = getTodayDateKey();
+  const todayStatus = getEffectiveDayStatus(summary.events, todayKey);
+
+  if (todayStatus === 'completed') {
+    return;
+  }
 
   const currentProtections = summary.protectionsAvailable;
 
@@ -460,6 +571,7 @@ export async function recordCompletedAlarmStreak(input: {
     alarmId: input.alarmId ?? null,
     alarmTime: input.alarmTime ?? null,
     eventType: 'completed',
+    eventDate: todayKey,
     protectionsBefore: currentProtections,
     protectionsAfter: currentProtections,
   });
@@ -480,6 +592,7 @@ export async function recordCompletedAlarmStreak(input: {
     alarmId: input.alarmId ?? null,
     alarmTime: input.alarmTime ?? null,
     eventType: 'completed',
+    eventDate: todayKey,
     protectionsBefore: currentProtections,
     protectionsAfter: shouldUnlockProtections
       ? MAX_PROTECTIONS
@@ -493,21 +606,27 @@ export async function recordMissedOrFrozenAlarm(input: {
   alarmTime?: string | null;
 }): Promise<StreakEventType> {
   const summary = await getStreakSummary(input.userId);
+  const todayKey = getTodayDateKey();
+  const todayStatus = getEffectiveDayStatus(summary.events, todayKey);
 
-  const protectionsBefore = summary.protectionsAvailable;
-  const hasProtection = protectionsBefore > 0;
+  if (todayStatus === 'completed') {
+    return todayStatus;
+  }
 
-  const eventType: StreakEventType = hasProtection ? 'frozen' : 'missed';
+  if (todayStatus === 'missed') {
+    return todayStatus;
+  }
 
   await recordAlarmStreakEvent({
     userId: input.userId,
     alarmId: input.alarmId ?? null,
     alarmTime: input.alarmTime ?? null,
-    eventType,
-    usedProtection: hasProtection,
-    protectionsBefore,
-    protectionsAfter: hasProtection ? protectionsBefore - 1 : 0,
+    eventType: 'missed',
+    eventDate: todayKey,
+    usedProtection: false,
+    protectionsBefore: 0,
+    protectionsAfter: 0,
   });
 
-  return eventType;
+  return 'missed';
 }

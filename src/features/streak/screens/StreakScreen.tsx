@@ -1,27 +1,26 @@
 // src/features/streak/screens/StreakScreen.tsx
-import React, {
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+
+import React, { useCallback, useMemo, useState } from 'react';
+
 import {
-  View,
-  Text,
-  StyleSheet,
-  StatusBar,
-  ScrollView,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '../../../shared/components/ui/BackButton';
+import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { useTranslation } from '../../../shared/i18n/useTranslation';
-import { BackButton } from '../../../shared/components/ui/BackButton';
 
 import { getStreakSummary } from '../services/streak';
 
@@ -62,133 +61,77 @@ function getDateKey(date: Date): string {
 
 function getDateFromKey(dateKey: string): Date {
   const [year, month, day] = dateKey.split('-').map(Number);
-
   return new Date(year, month - 1, day);
 }
 
-function formatEventDate(
-  dateKey: string,
-  isSpanish: boolean,
-): string {
+function formatEventDate(dateKey: string, isSpanish: boolean): string {
   const date = getDateFromKey(dateKey);
-
-  return date.toLocaleDateString(
-    isSpanish ? 'es-ES' : 'en-US',
-    {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-    },
-  );
+  return date.toLocaleDateString(isSpanish ? 'es-ES' : 'en-US', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  });
 }
 
-function formatShortDay(
-  date: Date,
-  isSpanish: boolean,
-): string {
-  const label = date.toLocaleDateString(
-    isSpanish ? 'es-ES' : 'en-US',
-    {
-      weekday: 'short',
-    },
-  );
-
+function formatShortDay(date: Date, isSpanish: boolean): string {
+  const label = date.toLocaleDateString(isSpanish ? 'es-ES' : 'en-US', {
+    weekday: 'short',
+  });
   return label
     .replace('.', '')
     .slice(0, 3)
     .replace(/^./, value => value.toUpperCase());
 }
 
-function formatShortDate(
-  date: Date,
-  isSpanish: boolean,
-): string {
+function formatShortDate(date: Date, isSpanish: boolean): string {
   return date
-    .toLocaleDateString(
-      isSpanish ? 'es-ES' : 'en-US',
-      {
-        day: '2-digit',
-        month: 'short',
-      },
-    )
+    .toLocaleDateString(isSpanish ? 'es-ES' : 'en-US', {
+      day: '2-digit',
+      month: 'short',
+    })
     .replace('.', '');
 }
 
-function getEventStatusLabel(
-  event: AlarmStreakEvent,
-  isSpanish: boolean,
-): string {
+function getEventStatusLabel(event: AlarmStreakEvent, isSpanish: boolean): string {
   if (event.eventType === 'completed') {
     return isSpanish ? 'Alarma completada' : 'Alarm completed';
   }
-
   if (event.eventType === 'frozen') {
     return isSpanish ? 'Racha congelada' : 'Streak frozen';
   }
-
   return isSpanish ? 'Alarma incompleta' : 'Alarm missed';
 }
 
-function getEventIconName(
-  event: AlarmStreakEvent,
-): React.ComponentProps<typeof Ionicons>['name'] {
-  if (event.eventType === 'completed') {
-    return 'checkmark-circle-outline';
-  }
-
-  if (event.eventType === 'frozen') {
-    return 'snow-outline';
-  }
-
+function getEventIconName(event: AlarmStreakEvent): React.ComponentProps<typeof Ionicons>['name'] {
+  if (event.eventType === 'completed') return 'checkmark-circle-outline';
+  if (event.eventType === 'frozen') return 'snow-outline';
   return 'close-circle-outline';
 }
 
-function buildDayStatusMap(
-  events: AlarmStreakEvent[],
-): Map<string, StreakEventType> {
+function buildDayStatusMap(events: AlarmStreakEvent[]): Map<string, StreakEventType> {
   const map = new Map<string, StreakEventType>();
-
   events.forEach(event => {
     const current = map.get(event.eventDate);
-
-    if (current === 'completed') {
-      return;
-    }
-
-    if (current === 'frozen' && event.eventType === 'missed') {
-      return;
-    }
-
+    if (current === 'completed') return;
+    if (current === 'frozen' && event.eventType === 'missed') return;
     map.set(event.eventDate, event.eventType);
   });
-
   return map;
 }
 
-function buildWeekDays(
-  events: AlarmStreakEvent[],
-  isSpanish: boolean,
-): WeekDayItem[] {
+function buildWeekDays(events: AlarmStreakEvent[], isSpanish: boolean): WeekDayItem[] {
   const statusMap = buildDayStatusMap(events);
   const today = new Date();
-
-  return Array.from({
-    length: 7,
-  }).map((_, index) => {
+  return Array.from({ length: 7 }).map((_, index) => {
     const diff = 6 - index;
     const date = new Date(today);
-
     date.setDate(today.getDate() - diff);
-
     const key = getDateKey(date);
-
     return {
       key,
       dayLabel:
         diff === 0
-          ? isSpanish
-            ? 'Hoy'
-            : 'Today'
+          ? isSpanish ? 'Hoy' : 'Today'
           : formatShortDay(date, isSpanish),
       dateLabel: formatShortDate(date, isSpanish),
       status: statusMap.get(key) ?? null,
@@ -197,38 +140,17 @@ function buildWeekDays(
   });
 }
 
-function buildMonthDays(
-  events: AlarmStreakEvent[],
-  isSpanish: boolean,
-): WeekDayItem[] {
+function buildMonthDays(events: AlarmStreakEvent[], isSpanish: boolean): WeekDayItem[] {
   const statusMap = buildDayStatusMap(events);
   const today = new Date();
-
-  const year = today.getFullYear();
-  const month = today.getMonth();
-
-  const daysInMonth = new Date(
-    year,
-    month + 1,
-    0,
-  ).getDate();
-
-  return Array.from({
-    length: daysInMonth,
-  }).map((_, index) => {
-    const dayNumber = index + 1;
-
-    const date = new Date(
-      year,
-      month,
-      dayNumber,
-    );
-
+  return Array.from({ length: 31 }).map((_, index) => {
+    const diff = 30 - index;
+    const date = new Date(today);
+    date.setDate(today.getDate() - diff);
     const key = getDateKey(date);
-
     return {
       key,
-      dayLabel: String(dayNumber),
+      dayLabel: String(date.getDate()),
       dateLabel: formatShortDay(date, isSpanish),
       status: statusMap.get(key) ?? null,
       isToday: key === getDateKey(today),
@@ -236,10 +158,7 @@ function buildMonthDays(
   });
 }
 
-function getDayVisual(
-  status: StreakEventType | null,
-  colors: any,
-): {
+function getDayVisual(status: StreakEventType | null, colors: any): {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
   background: string;
@@ -253,7 +172,6 @@ function getDayVisual(
       border: colors.warning,
     };
   }
-
   if (status === 'frozen') {
     return {
       icon: 'snow-outline',
@@ -262,7 +180,6 @@ function getDayVisual(
       border: FROZEN_COLOR,
     };
   }
-
   if (status === 'missed') {
     return {
       icon: 'close-outline',
@@ -271,7 +188,6 @@ function getDayVisual(
       border: colors.danger,
     };
   }
-
   return {
     icon: 'ellipse-outline',
     color: colors.textMuted,
@@ -280,18 +196,9 @@ function getDayVisual(
   };
 }
 
-export default function StreakScreen({
-  navigation,
-  route,
-}: Props) {
-  const {
-    colors,
-    statusBarStyle,
-  } = useAppTheme();
-
-  const {
-    language,
-  } = useTranslation();
+export default function StreakScreen({ navigation, route }: Props) {
+  const { colors, statusBarStyle } = useAppTheme();
+  const { language } = useTranslation();
 
   const isSpanish = language === 'es';
   const userId = route.params?.userId;
@@ -308,13 +215,11 @@ export default function StreakScreen({
         setLoading(false);
         return;
       }
-
       if (showRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
-
       try {
         const data = await getStreakSummary(userId);
         setSummary(data);
@@ -338,18 +243,12 @@ export default function StreakScreen({
 
   const weekDays = useMemo(
     () => buildWeekDays(summary?.events ?? [], isSpanish),
-    [
-      summary?.events,
-      isSpanish,
-    ],
+    [summary?.events, isSpanish],
   );
 
   const monthDays = useMemo(
     () => buildMonthDays(summary?.events ?? [], isSpanish),
-    [
-      summary?.events,
-      isSpanish,
-    ],
+    [summary?.events, isSpanish],
   );
 
   const currentStreak = summary?.currentStreak ?? 0;
@@ -371,46 +270,21 @@ export default function StreakScreen({
 
   return (
     <SafeAreaView
-      style={[
-        styles.safe,
-        {
-          backgroundColor: colors.bg,
-        },
-      ]}
-      edges={[
-        'top',
-        'left',
-        'right',
-      ]}
+      style={[styles.safe, { backgroundColor: colors.bg }]}
+      edges={['top', 'left', 'right']}
     >
-      <StatusBar
-        backgroundColor={colors.bg}
-        barStyle={statusBarStyle}
-      />
+      <StatusBar backgroundColor={colors.bg} barStyle={statusBarStyle} />
 
       <View style={styles.topBar}>
         <BackButton
           label={isSpanish ? 'Volver' : 'Back'}
           onPress={() => navigation.goBack()}
         />
-
-        <Text
-          style={[
-            styles.title,
-            {
-              color: colors.text,
-            },
-          ]}
-        >
+        <Text style={[styles.title, { color: colors.text }]}>
           {isSpanish ? 'Racha' : 'Streak'}
         </Text>
-
         <View style={styles.rightIcon}>
-          <Ionicons
-            name="flame-outline"
-            size={25}
-            color={colors.textMuted}
-          />
+          <Ionicons name="flame-outline" size={25} color={colors.textMuted} />
         </View>
       </View>
 
@@ -421,28 +295,15 @@ export default function StreakScreen({
           <RefreshControl
             refreshing={refreshing}
             tintColor={colors.warning}
-            colors={[
-              colors.warning,
-            ]}
+            colors={[colors.warning]}
             onRefresh={() => void loadSummary(true)}
           />
         }
       >
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator
-              size="small"
-              color={colors.warning}
-            />
-
-            <Text
-              style={[
-                styles.loadingText,
-                {
-                  color: colors.textMuted,
-                },
-              ]}
-            >
+            <ActivityIndicator size="small" color={colors.warning} />
+            <Text style={[styles.loadingText, { color: colors.textMuted }]}>
               {isSpanish ? 'Cargando racha...' : 'Loading streak...'}
             </Text>
           </View>
@@ -453,92 +314,33 @@ export default function StreakScreen({
             <View
               style={[
                 styles.heroCard,
-                {
-                  backgroundColor: colors.bgCard,
-                  borderColor: colors.warning + '66',
-                },
+                { backgroundColor: colors.bgCard, borderColor: colors.warning + '66' },
               ]}
             >
-              <View
-                style={[
-                  styles.heroFlameWrap,
-                  {
-                    backgroundColor: colors.warning + '18',
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="flame"
-                  size={88}
-                  color={colors.warning}
-                />
+              <View style={[styles.heroFlameWrap, { backgroundColor: colors.warning + '18' }]}>
+                <Ionicons name="flame" size={88} color={colors.warning} />
               </View>
 
               <View style={styles.heroTextWrap}>
                 <View style={styles.heroNumberRow}>
-                  <Text
-                    style={[
-                      styles.heroNumber,
-                      {
-                        color: colors.warning,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.heroNumber, { color: colors.warning }]}>
                     {currentStreak}
                   </Text>
-
-                  <Text
-                    style={[
-                      styles.heroDays,
-                      {
-                        color: colors.warning,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.heroDays, { color: colors.warning }]}>
                     {isSpanish ? 'días' : 'days'}
                   </Text>
                 </View>
 
-                <Text
-                  style={[
-                    styles.heroMessage,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.heroMessage, { color: colors.textSecondary }]}>
                   {heroMessage}
                 </Text>
 
-                <View
-                  style={[
-                    styles.heroBadge,
-                    {
-                      backgroundColor: colors.warning + '1E',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="flame"
-                    size={15}
-                    color={colors.warning}
-                  />
-
-                  <Text
-                    style={[
-                      styles.heroBadgeText,
-                      {
-                        color: colors.warning,
-                      },
-                    ]}
-                  >
+                <View style={[styles.heroBadge, { backgroundColor: colors.warning + '1E' }]}>
+                  <Ionicons name="flame" size={15} color={colors.warning} />
+                  <Text style={[styles.heroBadgeText, { color: colors.warning }]}>
                     {currentStreak > 0
-                      ? isSpanish
-                        ? '¡Sigue encendido!'
-                        : 'Keep it burning!'
-                      : isSpanish
-                        ? 'Empieza hoy'
-                        : 'Start today'}
+                      ? isSpanish ? '¡Sigue encendido!' : 'Keep it burning!'
+                      : isSpanish ? 'Empieza hoy' : 'Start today'}
                   </Text>
                 </View>
               </View>
@@ -547,205 +349,74 @@ export default function StreakScreen({
             <View
               style={[
                 styles.statsPanel,
-                {
-                  backgroundColor: colors.bgCard,
-                  borderColor: colors.border,
-                },
+                { backgroundColor: colors.bgCard, borderColor: colors.border },
               ]}
             >
               <View style={styles.statBox}>
-                <View
-                  style={[
-                    styles.statIconWrap,
-                    {
-                      backgroundColor: colors.primary + '20',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="time-outline"
-                    size={22}
-                    color={colors.primary}
-                  />
+                <View style={[styles.statIconWrap, { backgroundColor: colors.primary + '20' }]}>
+                  <Ionicons name="time-outline" size={22} color={colors.primary} />
                 </View>
-
-                <Text
-                  style={[
-                    styles.statLabel,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                   {isSpanish ? 'Racha actual' : 'Current streak'}
                 </Text>
-
-                <Text
-                  style={[
-                    styles.statValue,
-                    {
-                      color: colors.primary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statValue, { color: colors.primary }]}>
                   {currentStreak}
-                  <Text style={styles.statSuffix}>
-                    {' '}
-                    {isSpanish ? 'días' : 'days'}
-                  </Text>
+                  <Text style={styles.statSuffix}> {isSpanish ? 'días' : 'days'}</Text>
                 </Text>
               </View>
 
-              <View
-                style={[
-                  styles.verticalDivider,
-                  {
-                    backgroundColor: colors.border,
-                  },
-                ]}
-              />
+              <View style={[styles.verticalDivider, { backgroundColor: colors.border }]} />
 
               <View style={styles.statBox}>
-                <View
-                  style={[
-                    styles.statIconWrap,
-                    {
-                      backgroundColor: colors.warning + '20',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="trophy-outline"
-                    size={22}
-                    color={colors.warning}
-                  />
+                <View style={[styles.statIconWrap, { backgroundColor: colors.warning + '20' }]}>
+                  <Ionicons name="trophy-outline" size={22} color={colors.warning} />
                 </View>
-
-                <Text
-                  style={[
-                    styles.statLabel,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                   {isSpanish ? 'Mejor racha' : 'Best streak'}
                 </Text>
-
-                <Text
-                  style={[
-                    styles.statValue,
-                    {
-                      color: colors.warning,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statValue, { color: colors.warning }]}>
                   {bestStreak}
-                  <Text style={styles.statSuffix}>
-                    {' '}
-                    {isSpanish ? 'días' : 'days'}
-                  </Text>
+                  <Text style={styles.statSuffix}> {isSpanish ? 'días' : 'days'}</Text>
                 </Text>
               </View>
 
-              <View
-                style={[
-                  styles.verticalDivider,
-                  {
-                    backgroundColor: colors.border,
-                  },
-                ]}
-              />
+              <View style={[styles.verticalDivider, { backgroundColor: colors.border }]} />
 
               <View style={styles.statBox}>
-                <View
-                  style={[
-                    styles.statIconWrap,
-                    {
-                      backgroundColor: colors.success + '20',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={22}
-                    color={colors.success}
-                  />
+                <View style={[styles.statIconWrap, { backgroundColor: colors.success + '20' }]}>
+                  <Ionicons name="checkmark-circle-outline" size={22} color={colors.success} />
                 </View>
-
-                <Text
-                  style={[
-                    styles.statLabel,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                   {isSpanish ? 'Alarmas exitosas' : 'Successful alarms'}
                 </Text>
-
-                <Text
-                  style={[
-                    styles.statValue,
-                    {
-                      color: colors.success,
-                    },
-                  ]}
-                >
+                <Text style={[styles.statValue, { color: colors.success }]}>
                   {successfulAlarms}
-                  <Text style={styles.statSuffix}>
-                    {' '}
-                    {isSpanish ? 'veces' : 'times'}
-                  </Text>
+                  <Text style={styles.statSuffix}> {isSpanish ? 'veces' : 'times'}</Text>
                 </Text>
               </View>
             </View>
 
             <View style={styles.progressHeader}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  {
-                    color: colors.text,
-                  },
-                ]}
-              >
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 {isSpanish ? 'Tu progreso' : 'Your progress'}
               </Text>
 
-              <View
-                style={[
-                  styles.segmented,
-                  {
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <View style={[styles.segmented, { borderColor: colors.border }]}>
                 <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setProgressMode('week')}
                   style={[
                     styles.segmentButton,
                     progressMode === 'week' && [
                       styles.segmentActive,
-                      {
-                        backgroundColor: colors.primary + '22',
-                        borderColor: colors.primary,
-                      },
+                      { backgroundColor: colors.primary + '22', borderColor: colors.primary },
                     ],
                   ]}
-                  activeOpacity={0.8}
-                  onPress={() => setProgressMode('week')}
                 >
                   <Text
                     style={[
-                      progressMode === 'week'
-                        ? styles.segmentTextActive
-                        : styles.segmentText,
-                      {
-                        color:
-                          progressMode === 'week'
-                            ? colors.primary
-                            : colors.textMuted,
-                      },
+                      progressMode === 'week' ? styles.segmentTextActive : styles.segmentText,
+                      { color: progressMode === 'week' ? colors.primary : colors.textMuted },
                     ]}
                   >
                     {isSpanish ? 'Semana' : 'Week'}
@@ -753,30 +424,20 @@ export default function StreakScreen({
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setProgressMode('month')}
                   style={[
                     styles.segmentButton,
                     progressMode === 'month' && [
                       styles.segmentActive,
-                      {
-                        backgroundColor: colors.primary + '22',
-                        borderColor: colors.primary,
-                      },
+                      { backgroundColor: colors.primary + '22', borderColor: colors.primary },
                     ],
                   ]}
-                  activeOpacity={0.8}
-                  onPress={() => setProgressMode('month')}
                 >
                   <Text
                     style={[
-                      progressMode === 'month'
-                        ? styles.segmentTextActive
-                        : styles.segmentText,
-                      {
-                        color:
-                          progressMode === 'month'
-                            ? colors.primary
-                            : colors.textMuted,
-                      },
+                      progressMode === 'month' ? styles.segmentTextActive : styles.segmentText,
+                      { color: progressMode === 'month' ? colors.primary : colors.textMuted },
                     ]}
                   >
                     {isSpanish ? 'Mes' : 'Month'}
@@ -789,91 +450,32 @@ export default function StreakScreen({
               <View style={styles.weekRow}>
                 {weekDays.map((day, index) => {
                   const visual = getDayVisual(day.status, colors);
-
                   return (
-                    <View
-                      key={day.key}
-                      style={styles.weekItem}
-                    >
-                      <Text
-                        style={[
-                          styles.weekDayLabel,
-                          {
-                            color: day.isToday
-                              ? colors.text
-                              : colors.textMuted,
-                          },
-                        ]}
-                      >
+                    <View key={day.key} style={styles.weekItem}>
+                      <Text style={[styles.weekDayLabel, { color: day.isToday ? colors.text : colors.textMuted }]}>
                         {day.dayLabel}
                       </Text>
 
                       <View style={styles.circleLineWrap}>
                         {index > 0 ? (
-                          <View
-                            style={[
-                              styles.leftLine,
-                              {
-                                backgroundColor: day.status
-                                  ? visual.border
-                                  : colors.border,
-                              },
-                            ]}
-                          />
+                          <View style={[styles.leftLine, { backgroundColor: day.status ? visual.border : colors.border }]} />
                         ) : null}
 
-                        <View
-                          style={[
-                            styles.weekCircle,
-                            {
-                              backgroundColor: visual.background,
-                              borderColor: visual.border,
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name={visual.icon}
-                            size={25}
-                            color={visual.color}
-                          />
+                        <View style={[styles.weekCircle, { backgroundColor: visual.background, borderColor: visual.border }]}>
+                          <Ionicons name={visual.icon} size={25} color={visual.color} />
                         </View>
 
                         {index < weekDays.length - 1 ? (
-                          <View
-                            style={[
-                              styles.rightLine,
-                              {
-                                backgroundColor: day.status
-                                  ? visual.border
-                                  : colors.border,
-                              },
-                            ]}
-                          />
+                          <View style={[styles.rightLine, { backgroundColor: day.status ? visual.border : colors.border }]} />
                         ) : null}
                       </View>
 
-                      <Text
-                        style={[
-                          styles.weekDateLabel,
-                          {
-                            color: day.isToday
-                              ? colors.warning
-                              : colors.textMuted,
-                          },
-                        ]}
-                      >
+                      <Text style={[styles.weekDateLabel, { color: day.isToday ? colors.warning : colors.textMuted }]}>
                         {day.dateLabel}
                       </Text>
 
                       {day.status === 'frozen' ? (
-                        <Text
-                          style={[
-                            styles.weekStatusLabel,
-                            {
-                              color: FROZEN_COLOR,
-                            },
-                          ]}
-                        >
+                        <Text style={[styles.weekStatusLabel, { color: FROZEN_COLOR }]}>
                           {isSpanish ? 'Congelada' : 'Frozen'}
                         </Text>
                       ) : null}
@@ -882,142 +484,46 @@ export default function StreakScreen({
                 })}
               </View>
             ) : (
-              <View
-                style={[
-                  styles.monthGrid,
-                  {
-                    backgroundColor: colors.bgCard,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <View style={[styles.monthGrid, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                 {monthDays.map(day => {
                   const visual = getDayVisual(day.status, colors);
-
                   return (
-                    <View
-                      key={day.key}
-                      style={styles.monthDayItem}
-                    >
-                      <Text
-                        style={[
-                          styles.monthDayNumber,
-                          {
-                            color: day.isToday
-                              ? colors.warning
-                              : colors.textSecondary,
-                          },
-                        ]}
-                      >
+                    <View key={day.key} style={styles.monthDayItem}>
+                      <Text style={[styles.monthDayNumber, { color: day.isToday ? colors.warning : colors.textSecondary }]}>
                         {day.dayLabel}
                       </Text>
-
-                      <View
-                        style={[
-                          styles.monthCircle,
-                          {
-                            backgroundColor: visual.background,
-                            borderColor: visual.border,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name={visual.icon}
-                          size={17}
-                          color={visual.color}
-                        />
+                      <View style={[styles.monthCircle, { backgroundColor: visual.background, borderColor: visual.border }]}>
+                        <Ionicons name={visual.icon} size={17} color={visual.color} />
                       </View>
                     </View>
                   );
                 })}
 
                 <View style={styles.monthLegend}>
-                  <Text
-                    style={[
-                      styles.monthLegendText,
-                      {
-                        color: colors.warning,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.monthLegendText, { color: colors.warning }]}>
                     🔥 {isSpanish ? 'Completada' : 'Completed'}
                   </Text>
-
-                  <Text
-                    style={[
-                      styles.monthLegendText,
-                      {
-                        color: FROZEN_COLOR,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.monthLegendText, { color: FROZEN_COLOR }]}>
                     ❄️ {isSpanish ? 'Congelada' : 'Frozen'}
                   </Text>
-
-                  <Text
-                    style={[
-                      styles.monthLegendText,
-                      {
-                        color: colors.danger,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.monthLegendText, { color: colors.danger }]}>
                     ✕ {isSpanish ? 'Incompleta' : 'Missed'}
                   </Text>
                 </View>
               </View>
             )}
 
-            <View
-              style={[
-                styles.messageCard,
-                {
-                  backgroundColor: colors.bgCard,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.messageIcon,
-                  {
-                    backgroundColor: colors.primary + '18',
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={23}
-                  color={colors.primary}
-                />
+            <View style={[styles.messageCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+              <View style={[styles.messageIcon, { backgroundColor: colors.primary + '18' }]}>
+                <Ionicons name="calendar-outline" size={23} color={colors.primary} />
               </View>
-
               <View style={styles.messageContent}>
-                <Text
-                  style={[
-                    styles.messageTitle,
-                    {
-                      color: colors.text,
-                    },
-                  ]}
-                >
+                <Text style={[styles.messageTitle, { color: colors.text }]}>
                   {currentStreak > 0
-                    ? isSpanish
-                      ? '¡Excelente! Mantén tu racha encendida.'
-                      : 'Great! Keep your streak alive.'
-                    : isSpanish
-                      ? 'Empieza tu racha completando una alarma.'
-                      : 'Start your streak by completing an alarm.'}
+                    ? isSpanish ? '¡Excelente! Mantén tu racha encendida.' : 'Great! Keep your streak alive.'
+                    : isSpanish ? 'Empieza tu racha completando una alarma.' : 'Start your streak by completing an alarm.'}
                 </Text>
-
-                <Text
-                  style={[
-                    styles.messageText,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.messageText, { color: colors.textSecondary }]}>
                   {isSpanish
                     ? 'Completa tus alarmas cada día para seguir creciendo.'
                     : 'Complete your alarms every day to keep growing.'}
@@ -1025,138 +531,47 @@ export default function StreakScreen({
               </View>
             </View>
 
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               {isSpanish ? 'Actividad reciente' : 'Recent activity'}
             </Text>
 
             {recentEvents.length === 0 ? (
-              <View
-                style={[
-                  styles.emptyCard,
-                  {
-                    backgroundColor: colors.bgCard,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="flame-outline"
-                  size={36}
-                  color={colors.warning}
-                />
-
-                <Text
-                  style={[
-                    styles.emptyTitle,
-                    {
-                      color: colors.text,
-                    },
-                  ]}
-                >
-                  {isSpanish
-                    ? 'Todavía no hay racha'
-                    : 'No streak yet'}
+              <View style={[styles.emptyCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                <Ionicons name="flame-outline" size={36} color={colors.warning} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                  {isSpanish ? 'Todavía no hay racha' : 'No streak yet'}
                 </Text>
-
-                <Text
-                  style={[
-                    styles.emptyText,
-                    {
-                      color: colors.textMuted,
-                    },
-                  ]}
-                >
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
                   {isSpanish
                     ? 'Cuando completes una alarma correctamente, aparecerá aquí.'
                     : 'When you complete an alarm successfully, it will appear here.'}
                 </Text>
               </View>
             ) : (
-              <View
-                style={[
-                  styles.activityCard,
-                  {
-                    backgroundColor: colors.bgCard,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <View style={[styles.activityCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                 {recentEvents.map((event, index) => {
                   const isCompleted = event.eventType === 'completed';
                   const isFrozen = event.eventType === 'frozen';
-
-                  const eventColor = isCompleted
-                    ? colors.success
-                    : isFrozen
-                      ? FROZEN_COLOR
-                      : colors.danger;
+                  const eventColor = isCompleted ? colors.success : isFrozen ? FROZEN_COLOR : colors.danger;
 
                   return (
                     <View key={event.id}>
                       <View style={styles.activityRow}>
-                        <Ionicons
-                          name={getEventIconName(event)}
-                          size={25}
-                          color={eventColor}
-                        />
-
-                        <Text
-                          style={[
-                            styles.activityDate,
-                            {
-                              color: colors.text,
-                            },
-                          ]}
-                        >
+                        <Ionicons name={getEventIconName(event)} size={25} color={eventColor} />
+                        <Text style={[styles.activityDate, { color: colors.text }]}>
                           {formatEventDate(event.eventDate, isSpanish)}
                         </Text>
-
-                        <Text
-                          style={[
-                            styles.activityTime,
-                            {
-                              color: colors.textMuted,
-                            },
-                          ]}
-                        >
+                        <Text style={[styles.activityTime, { color: colors.textMuted }]}>
                           {event.alarmTime ?? '--:--'}
                         </Text>
-
-                        <Text
-                          style={[
-                            styles.activityStatus,
-                            {
-                              color: eventColor,
-                            },
-                          ]}
-                          numberOfLines={1}
-                        >
+                        <Text numberOfLines={1} style={[styles.activityStatus, { color: eventColor }]}>
                           {getEventStatusLabel(event, isSpanish)}
                         </Text>
-
-                        <Ionicons
-                          name="chevron-forward"
-                          size={18}
-                          color={colors.textMuted}
-                        />
+                        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                       </View>
 
                       {index < recentEvents.length - 1 ? (
-                        <View
-                          style={[
-                            styles.activityDivider,
-                            {
-                              backgroundColor: colors.border,
-                            },
-                          ]}
-                        />
+                        <View style={[styles.activityDivider, { backgroundColor: colors.border }]} />
                       ) : null}
                     </View>
                   );
@@ -1164,60 +579,21 @@ export default function StreakScreen({
               </View>
             )}
 
-            <View
-              style={[
-                styles.bottomMotivationCard,
-                {
-                  backgroundColor: colors.primary + '12',
-                  borderColor: colors.primary,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.mascotBubble,
-                  {
-                    backgroundColor: colors.primary + '25',
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="happy-outline"
-                  size={42}
-                  color={colors.primary}
-                />
+            <View style={[styles.bottomMotivationCard, { backgroundColor: colors.primary + '12', borderColor: colors.primary }]}>
+              <View style={[styles.mascotBubble, { backgroundColor: colors.primary + '25' }]}>
+                <Ionicons name="happy-outline" size={42} color={colors.primary} />
               </View>
 
               <View style={styles.bottomMotivationText}>
-                <Text
-                  style={[
-                    styles.bottomMotivationTitle,
-                    {
-                      color: colors.text,
-                    },
-                  ]}
-                >
+                <Text style={[styles.bottomMotivationTitle, { color: colors.text }]}>
                   {protectionsAvailable > 0
-                    ? isSpanish
-                      ? `Te quedan ${protectionsAvailable} protecciones`
-                      : `${protectionsAvailable} protections left`
+                    ? isSpanish ? `Te quedan ${protectionsAvailable} protecciones` : `${protectionsAvailable} protections left`
                     : daysToBest > 0
-                      ? isSpanish
-                        ? '¡Sigue así!'
-                        : 'Keep going!'
-                      : isSpanish
-                        ? '¡Vas muy bien!'
-                        : 'You are doing great!'}
+                      ? isSpanish ? '¡Sigue así!' : 'Keep going!'
+                      : isSpanish ? '¡Vas muy bien!' : 'You are doing great!'}
                 </Text>
 
-                <Text
-                  style={[
-                    styles.bottomMotivationDescription,
-                    {
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
+                <Text style={[styles.bottomMotivationDescription, { color: colors.textSecondary }]}>
                   {protectionsAvailable > 0
                     ? isSpanish
                       ? 'Si fallas una alarma, una protección puede congelar tu racha.'
@@ -1232,27 +608,14 @@ export default function StreakScreen({
                 </Text>
 
                 {protectionsUsed > 0 ? (
-                  <Text
-                    style={[
-                      styles.protectionUsedText,
-                      {
-                        color: FROZEN_COLOR,
-                      },
-                    ]}
-                  >
-                    {isSpanish
-                      ? `Protecciones usadas: ${protectionsUsed}`
-                      : `Protections used: ${protectionsUsed}`}
+                  <Text style={[styles.protectionUsedText, { color: FROZEN_COLOR }]}>
+                    {isSpanish ? `Protecciones usadas: ${protectionsUsed}` : `Protections used: ${protectionsUsed}`}
                   </Text>
                 ) : null}
               </View>
 
               <View style={styles.trophyWrap}>
-                <Ionicons
-                  name="trophy"
-                  size={34}
-                  color={colors.warning}
-                />
+                <Ionicons name="trophy" size={34} color={colors.warning} />
               </View>
             </View>
           </>
@@ -1265,10 +628,7 @@ export default function StreakScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-
+  safe: { flex: 1 },
   topBar: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -1279,17 +639,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  rightIcon: {
-    width: 76,
-    alignItems: 'flex-end',
-  },
-
+  title: { fontSize: 18, fontWeight: '800' },
+  rightIcon: { width: 76, alignItems: 'flex-end' },
   scroll: {
     width: '100%',
     maxWidth: Layout.maxWideContentWidth,
@@ -1297,412 +648,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.screenPadding,
     paddingBottom: 24,
   },
-
-  loadingWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 44,
-  },
-
-  loadingText: {
-    fontSize: 12,
-    marginTop: 10,
-  },
-
-  heroCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 16,
-  },
-
-  heroFlameWrap: {
-    width: 116,
-    height: 116,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 18,
-  },
-
-  heroTextWrap: {
-    flex: 1,
-  },
-
-  heroNumberRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 6,
-  },
-
-  heroNumber: {
-    fontSize: 58,
-    fontWeight: '900',
-    lineHeight: 64,
-    letterSpacing: -1,
-  },
-
-  heroDays: {
-    fontSize: 28,
-    fontWeight: '900',
-    marginLeft: 8,
-    marginBottom: 8,
-  },
-
-  heroMessage: {
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 12,
-  },
-
-  heroBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  heroBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    marginLeft: 6,
-  },
-
-  statsPanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-
-  statIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 9,
-  },
-
-  statLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-
-  statValue: {
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-  },
-
-  statSuffix: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  verticalDivider: {
-    width: 1,
-    height: 84,
-  },
-
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 12,
-  },
-
-  segmented: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-
-  segmentButton: {
-    borderRadius: 999,
-  },
-
-  segmentActive: {
-    borderWidth: 1,
-    borderRadius: 999,
-  },
-
-  segmentTextActive: {
-    fontSize: 13,
-    fontWeight: '900',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-  },
-
-  segmentText: {
-    fontSize: 13,
-    fontWeight: '700',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-  },
-
-  weekRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 18,
-  },
-
-  weekItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-
-  weekDayLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-
-  circleLineWrap: {
-    width: '100%',
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  leftLine: {
-    position: 'absolute',
-    left: 0,
-    right: '50%',
-    height: 3,
-  },
-
-  rightLine: {
-    position: 'absolute',
-    left: '50%',
-    right: 0,
-    height: 3,
-  },
-
-  weekCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-
-  weekDateLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 7,
-  },
-
-  weekStatusLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-
-  monthGrid: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 18,
-  },
-
-  monthDayItem: {
-    width: '14.28%',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-
-  monthDayNumber: {
-    fontSize: 11,
-    fontWeight: '800',
-    marginBottom: 5,
-  },
-
-  monthCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  monthLegend: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 8,
-  },
-
-  monthLegendText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  messageCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 22,
-  },
-
-  messageIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-
-  messageContent: {
-    flex: 1,
-  },
-
-  messageTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 3,
-  },
-
-  messageText: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-
-  emptyCard: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 22,
-    alignItems: 'center',
-  },
-
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 12,
-    marginBottom: 6,
-  },
-
-  emptyText: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-
-  activityCard: {
-    borderWidth: 1,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 18,
-  },
-
-  activityRow: {
-    minHeight: 62,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  activityDate: {
-    width: 86,
-    fontSize: 13,
-    fontWeight: '900',
-    marginLeft: 12,
-  },
-
-  activityTime: {
-    width: 56,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  activityStatus: {
-    flex: 1,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '800',
-    marginRight: 8,
-  },
-
-  activityDivider: {
-    height: 1,
-    marginLeft: 52,
-  },
-
-  bottomMotivationCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  mascotBubble: {
-    width: 74,
-    height: 74,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
-  bottomMotivationText: {
-    flex: 1,
-  },
-
-  bottomMotivationTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 6,
-  },
-
-  bottomMotivationDescription: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-
-  protectionUsedText: {
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 6,
-  },
-
-  trophyWrap: {
-    width: 38,
-    alignItems: 'center',
-  },
-
-  bottomSpace: {
-    height: 40,
-  },
+  loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 44 },
+  loadingText: { fontSize: 12, marginTop: 10 },
+  heroCard: { borderWidth: 1, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 16 },
+  heroFlameWrap: { width: 116, height: 116, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginRight: 18 },
+  heroTextWrap: { flex: 1 },
+  heroNumberRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6 },
+  heroNumber: { fontSize: 58, fontWeight: '900', lineHeight: 64, letterSpacing: -1 },
+  heroDays: { fontSize: 28, fontWeight: '900', marginLeft: 8, marginBottom: 8 },
+  heroMessage: { fontSize: 14, lineHeight: 21, marginBottom: 12 },
+  heroBadge: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  heroBadgeText: { fontSize: 12, fontWeight: '800', marginLeft: 6 },
+  statsPanel: { borderWidth: 1, borderRadius: 20, paddingVertical: 16, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  statBox: { flex: 1, alignItems: 'center' },
+  statIconWrap: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
+  statLabel: { fontSize: 12, textAlign: 'center', marginBottom: 6, fontWeight: '600' },
+  statValue: { fontSize: 30, fontWeight: '900', letterSpacing: -0.8 },
+  statSuffix: { fontSize: 13, fontWeight: '800' },
+  verticalDivider: { width: 1, height: 84 },
+  progressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', marginBottom: 12 },
+  segmented: { flexDirection: 'row', borderWidth: 1, borderRadius: 999, overflow: 'hidden', alignItems: 'center' },
+  segmentButton: { borderRadius: 999 },
+  segmentActive: { borderWidth: 1, borderRadius: 999 },
+  segmentTextActive: { fontSize: 13, fontWeight: '900', paddingHorizontal: 18, paddingVertical: 8 },
+  segmentText: { fontSize: 13, fontWeight: '700', paddingHorizontal: 18, paddingVertical: 8 },
+  weekRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 18 },
+  weekItem: { flex: 1, alignItems: 'center' },
+  weekDayLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8 },
+  circleLineWrap: { width: '100%', height: 42, alignItems: 'center', justifyContent: 'center' },
+  leftLine: { position: 'absolute', left: 0, right: '50%', height: 3 },
+  rightLine: { position: 'absolute', left: '50%', right: 0, height: 3 },
+  weekCircle: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  weekDateLabel: { fontSize: 11, fontWeight: '700', marginTop: 7 },
+  weekStatusLabel: { fontSize: 10, fontWeight: '800', marginTop: 2 },
+  monthGrid: { borderWidth: 1, borderRadius: 20, padding: 14, flexDirection: 'row', flexWrap: 'wrap', marginBottom: 18 },
+  monthDayItem: { width: '14.28%', alignItems: 'center', marginBottom: 14 },
+  monthDayNumber: { fontSize: 11, fontWeight: '800', marginBottom: 5 },
+  monthCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  monthLegend: { width: '100%', flexDirection: 'row', justifyContent: 'space-around', paddingTop: 8 },
+  monthLegendText: { fontSize: 11, fontWeight: '800' },
+  messageCard: { borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 22 },
+  messageIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  messageContent: { flex: 1 },
+  messageTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
+  messageText: { fontSize: 12, lineHeight: 17 },
+  emptyCard: { borderWidth: 1, borderRadius: 20, padding: 22, alignItems: 'center' },
+  emptyTitle: { fontSize: 16, fontWeight: '800', marginTop: 12, marginBottom: 6 },
+  emptyText: { fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  activityCard: { borderWidth: 1, borderRadius: 20, overflow: 'hidden', marginBottom: 18 },
+  activityRow: { minHeight: 62, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
+  activityDate: { width: 86, fontSize: 13, fontWeight: '900', marginLeft: 12 },
+  activityTime: { width: 56, fontSize: 13, fontWeight: '600' },
+  activityStatus: { flex: 1, textAlign: 'right', fontSize: 12, fontWeight: '800', marginRight: 8 },
+  activityDivider: { height: 1, marginLeft: 52 },
+  bottomMotivationCard: { borderWidth: 1, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center' },
+  mascotBubble: { width: 74, height: 74, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  bottomMotivationText: { flex: 1 },
+  bottomMotivationTitle: { fontSize: 18, fontWeight: '900', marginBottom: 6 },
+  bottomMotivationDescription: { fontSize: 13, lineHeight: 19 },
+  protectionUsedText: { fontSize: 12, fontWeight: '800', marginTop: 6 },
+  trophyWrap: { width: 38, alignItems: 'center' },
+  bottomSpace: { height: 40 },
 });
