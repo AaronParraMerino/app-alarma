@@ -47,6 +47,7 @@ import {
   shouldOpenRingingAlarmId,
 } from '../services/alarmScheduler';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
+import { getAlarmVibrationPattern } from '../services/alarmVibration';
 import { useAlarmStore } from '../store/alarmStore';
 import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import {
@@ -70,14 +71,6 @@ const RANDOM_MISSION_TYPES: MissionType[] = [
 ];
 
 const EMERGENCY_ERROR_LIMIT = 15;
-const ALARM_VIBRATION_PATTERN = [
-  0,
-  500,
-  350,
-  500,
-  350,
-  900,
-];
 
 function resolveRandomMission(config: AlarmMission): AlarmMission {
   const index = Math.floor(Math.random() * RANDOM_MISSION_TYPES.length);
@@ -300,7 +293,10 @@ export default function AlarmRingingScreen({
       return;
     }
 
-    Vibration.vibrate(ALARM_VIBRATION_PATTERN, true);
+    Vibration.vibrate(
+      getAlarmVibrationPattern(alarm.vibrationPattern),
+      true,
+    );
 
     return () => {
       Vibration.cancel();

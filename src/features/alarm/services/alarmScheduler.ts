@@ -2,8 +2,13 @@ import Constants from 'expo-constants';
 import type * as ExpoNotifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
-import { Alarm, RepeatDay } from '../types/alarm.types';
+import { Alarm, AlarmVibrationPattern, RepeatDay } from '../types/alarm.types';
 import { DEFAULT_ALARM_SOUND_URI } from './alarmService';
+import {
+  DEFAULT_ALARM_VIBRATION_PATTERN,
+  getAlarmVibrationPattern,
+  normalizeAlarmVibrationPattern,
+} from './alarmVibration';
 import { normalizeRepeatDays } from '../utils/repeatSchedule';
 
 type NotificationLike = {
@@ -23,7 +28,6 @@ type NotificationLike = {
 
 const ALARM_CHANNEL_ID = 'alarms-v2-default';
 const SILENT_CHANNEL_ID = 'alarms-v2-silent';
-const ALARM_VIBRATION_PATTERN = [0, 500, 350, 500, 350, 900];
 const WEEK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type NativeAlarmScheduleOptions = {
@@ -34,6 +38,7 @@ type NativeAlarmScheduleOptions = {
   label: string;
   soundUri: string | null;
   vibrationEnabled: boolean;
+  vibrationPattern: AlarmVibrationPattern;
   scheme: string;
 };
 
@@ -101,9 +106,21 @@ function isAlarmVibrationEnabled(alarm: Pick<Alarm, 'vibrationEnabled'>): boolea
   return alarm.vibrationEnabled !== false;
 }
 
-function getAlarmChannelId(soundUri: string | null, vibrationEnabled: boolean): string {
+function getAlarmVibrationPatternId(
+  alarm: Pick<Alarm, 'vibrationPattern'>,
+): AlarmVibrationPattern {
+  return normalizeAlarmVibrationPattern(alarm.vibrationPattern);
+}
+
+function getAlarmChannelId(
+  soundUri: string | null,
+  vibrationEnabled: boolean,
+  vibrationPattern: AlarmVibrationPattern,
+): string {
   const soundResourceName = getSoundResourceName(soundUri);
-  const vibrationSuffix = vibrationEnabled ? 'vibrate' : 'quiet';
+  const vibrationSuffix = vibrationEnabled
+    ? `vibrate-${vibrationPattern}`
+    : 'quiet';
   return soundResourceName
     ? `alarms-v2-${soundResourceName}-${vibrationSuffix}`
     : `${SILENT_CHANNEL_ID}-${vibrationSuffix}`;
@@ -355,13 +372,14 @@ function buildAlarmContent(
   useCustomSound: boolean,
 ): ExpoNotifications.NotificationContentInput {
   const vibrationEnabled = isAlarmVibrationEnabled(alarm);
+  const vibrationPattern = getAlarmVibrationPatternId(alarm);
 
   return {
     title: alarm.label || 'Alarma',
     body: 'Toca para resolver la mision y apagar',
     sound: getNotificationSound(alarm.soundUri, useCustomSound),
     priority: Notifications.AndroidNotificationPriority.MAX,
-    ...(vibrationEnabled ? { vibrate: ALARM_VIBRATION_PATTERN } : {}),
+    ...(vibrationEnabled ? { vibrate: getAlarmVibrationPattern(vibrationPattern) } : {}),
     data: alarmData(alarm.id),
     autoDismiss: false,
     sticky: true,
@@ -374,10 +392,13 @@ async function ensureAlarmChannelAsync(
   soundUri: string | null,
   useCustomSound: boolean,
   vibrationEnabled: boolean,
+  vibrationPattern: AlarmVibrationPattern,
 ): Promise<string> {
   const channelId = useCustomSound
-    ? getAlarmChannelId(soundUri, vibrationEnabled)
-    : `${ALARM_CHANNEL_ID}-${vibrationEnabled ? 'vibrate' : 'quiet'}`;
+    ? getAlarmChannelId(soundUri, vibrationEnabled, vibrationPattern)
+    : `${ALARM_CHANNEL_ID}-${
+        vibrationEnabled ? `vibrate-${vibrationPattern}` : 'quiet'
+      }`;
   const soundResourceName = useCustomSound ? getSoundResourceName(soundUri) : undefined;
 
   if (Platform.OS !== 'android') return channelId;
@@ -387,7 +408,7 @@ async function ensureAlarmChannelAsync(
     description: 'Alarmas programadas de Neuro Wake',
     importance: Notifications.AndroidImportance.MAX,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    ...(vibrationEnabled ? { vibrationPattern: ALARM_VIBRATION_PATTERN } : {}),
+    ...(vibrationEnabled ? { vibrationPattern: getAlarmVibrationPattern(vibrationPattern) } : {}),
     enableVibrate: vibrationEnabled,
     showBadge: false,
     ...(soundUri && soundResourceName ? { sound: soundResourceName } : {}),
@@ -444,6 +465,7 @@ async function scheduleNativeAlarmTrigger(
     label: alarm.label || 'Alarma',
     soundUri: normalizeSoundUri(alarm.soundUri),
     vibrationEnabled: isAlarmVibrationEnabled(alarm),
+    vibrationPattern: getAlarmVibrationPatternId(alarm),
     scheme: getAppScheme(),
   });
 }
@@ -504,6 +526,7 @@ async function scheduleOneTimeAlarm(alarm: Alarm): Promise<void> {
     alarm.soundUri,
     useCustomSound,
     isAlarmVibrationEnabled(alarm),
+    getAlarmVibrationPatternId(alarm),
   );
   const triggerDate = nextDate(alarm.hour, alarm.minute);
   const identifier = await Notifications.scheduleNotificationAsync({
@@ -534,6 +557,7 @@ async function scheduleRepeatAlarm(alarm: Alarm, repeatDays: RepeatDay[]): Promi
     alarm.soundUri,
     useCustomSound,
     isAlarmVibrationEnabled(alarm),
+    getAlarmVibrationPatternId(alarm),
   );
 
   for (const day of normalizedRepeatDays) {
@@ -595,7 +619,7 @@ export async function setupAlarmNotificationsAsync(): Promise<void> {
         description: 'Canal principal para alarmas programadas',
         importance: Notifications.AndroidImportance.MAX,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-        vibrationPattern: ALARM_VIBRATION_PATTERN,
+        vibrationPattern: getAlarmVibrationPattern(DEFAULT_ALARM_VIBRATION_PATTERN),
         enableVibrate: true,
         showBadge: false,
         ...(useCustomSound ? { sound: DEFAULT_ALARM_SOUND_URI } : {}),

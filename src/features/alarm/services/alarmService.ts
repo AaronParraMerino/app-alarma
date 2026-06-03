@@ -8,7 +8,6 @@ export interface AlarmSoundOption {
 export const DEFAULT_ALARM_SOUND_URI = 'freesound_community_alarm_26718.mp3';
 
 export const ALARM_SOUND_OPTIONS: AlarmSoundOption[] = [
-  { id: 'silent', label: 'Silencio', uri: null, emoji: 'X' },
   {
     id: 'classic',
     label: 'Alarma clasica',
@@ -81,6 +80,7 @@ export const ALARM_SOUND_OPTIONS: AlarmSoundOption[] = [
     uri: 'jeremayjimenez_saudi_arabia_eas_alarm_1924_526917.mp3',
     emoji: 'S',
   },
+  { id: 'silent', label: 'Silencio', uri: null, emoji: 'X' },
 ];
 
 export function getAlarmSoundLabel(soundUri: string | null): string {

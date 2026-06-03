@@ -10,8 +10,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Vibration,
   View,
 } from 'react-native';
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+} from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,6 +36,14 @@ import {
   ALARM_SOUND_OPTIONS,
   DEFAULT_ALARM_SOUND_URI,
 } from '../services/alarmService';
+import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
+import {
+  ALARM_VIBRATION_OPTIONS,
+  DEFAULT_ALARM_VIBRATION_PATTERN,
+  AlarmVibrationOptionId,
+  getAlarmVibrationPattern,
+  normalizeAlarmVibrationPattern,
+} from '../services/alarmVibration';
 import AlarmChooseMission from './AlarmChooseMission';
 import AlarmSelectMission, {
   AlarmMissionSelection,
@@ -39,6 +52,7 @@ import { AlarmStackParamList } from '../navigation/AlarmNavigator';
 import {
   AlarmCreate,
   AlarmMission,
+  AlarmVibrationPattern,
   Difficulty,
   RepeatDay,
 } from '../types/alarm.types';
@@ -59,6 +73,7 @@ interface AlarmFormProps {
 
 type MissionStep = 'form' | 'select' | 'config';
 type RuntimeDifficulty = 'easy' | 'medium' | 'hard';
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DEFAULT_MATH_MISSION: AlarmMission = {
   type: 'math',
@@ -156,6 +171,7 @@ type AlarmFormDraft = {
   configuredMissions: AlarmMission[];
   soundUri: string | null;
   vibrationEnabled: boolean;
+  vibrationPattern: AlarmVibrationPattern;
 };
 
 const alarmFormDrafts = new Map<string, AlarmFormDraft>();
@@ -260,6 +276,31 @@ function getTranslatedSubmitLabel(
   }
 
   return submitLabel;
+}
+
+function getSoundIconName(soundId: string): IoniconName {
+  switch (soundId) {
+    case 'silent':
+      return 'volume-mute-outline';
+    case 'classic':
+    case 'alarm_no3':
+      return 'alarm-outline';
+    case 'cyber':
+      return 'flash-outline';
+    case 'biohazard':
+    case 'meltdown':
+      return 'warning-outline';
+    case 'alien':
+      return 'radio-outline';
+    case 'facility_siren':
+    case 'imminent':
+    case 'tornado':
+      return 'megaphone-outline';
+    case 'thunder':
+      return 'thunderstorm-outline';
+    default:
+      return 'musical-notes-outline';
+  }
 }
 
 type TimeWheelProps = {
@@ -438,14 +479,18 @@ export default function AlarmForm({
     );
 
   const initialDraft = initialDraftRef.current;
+  const isEditingAlarm = Boolean(initialData);
 
-  const initialMissionEnabled = Boolean(
+  const initialMissionEnabled =
     initialDraft?.missionEnabled ??
-      (
-        initialData?.randomMissions ||
-        (initialData?.missions?.length ?? 0) > 0
-      ),
-  );
+    (
+      isEditingAlarm
+        ? Boolean(
+            initialData?.randomMissions ||
+            (initialData?.missions?.length ?? 0) > 0,
+          )
+        : true
+    );
 
   const initialMissionList = initialDraft
     ?.configuredMissions
@@ -459,9 +504,7 @@ export default function AlarmForm({
           0,
           MAX_MISSIONS,
         )
-      : [
-          DEFAULT_RANDOM_CONFIG,
-        ];
+      : [];
 
   const initialMissions = initialMissionEnabled
     ? initialMissionList.map((mission) =>
@@ -552,6 +595,37 @@ export default function AlarmForm({
     setDeleteConfirmVisible,
   ] = useState(false);
 
+  const [
+    missionRequiredVisible,
+    setMissionRequiredVisible,
+  ] = useState(false);
+
+  const [soundPickerOpen, setSoundPickerOpen] =
+    useState(false);
+
+  const [vibrationPickerOpen, setVibrationPickerOpen] =
+    useState(false);
+
+  const [
+    previewSoundUri,
+    setPreviewSoundUri,
+  ] = useState<string | null>(null);
+
+  const [
+    previewRequestId,
+    setPreviewRequestId,
+  ] = useState(0);
+
+  const [
+    previewingSoundUri,
+    setPreviewingSoundUri,
+  ] = useState<string | null>(null);
+
+  const [
+    previewingVibrationId,
+    setPreviewingVibrationId,
+  ] = useState<AlarmVibrationOptionId | null>(null);
+
   const [soundUri, setSoundUri] =
     useState<string | null>(
       initialDraft?.soundUri ??
@@ -569,6 +643,38 @@ export default function AlarmForm({
         true,
     );
 
+  const [vibrationPattern, setVibrationPattern] =
+    useState<AlarmVibrationPattern>(
+      normalizeAlarmVibrationPattern(
+        initialDraft?.vibrationPattern ??
+          initialData?.vibrationPattern ??
+          DEFAULT_ALARM_VIBRATION_PATTERN,
+      ),
+    );
+
+  const selectedSound =
+    ALARM_SOUND_OPTIONS.find(
+      (sound) => sound.uri === soundUri,
+    ) ?? ALARM_SOUND_OPTIONS[0];
+
+  const selectedVibrationId: AlarmVibrationOptionId =
+    vibrationEnabled ? vibrationPattern : 'none';
+
+  const selectedVibration =
+    ALARM_VIBRATION_OPTIONS.find(
+      (option) => option.id === selectedVibrationId,
+    ) ?? ALARM_VIBRATION_OPTIONS[0];
+
+  const previewSoundAsset =
+    getAlarmSoundAsset(previewSoundUri);
+
+  const previewPlayer = useAudioPlayer(
+    previewSoundAsset,
+    {
+      keepAudioSessionActive: false,
+    },
+  );
+
   const draftClosedRef = useRef(false);
 
   const draftRef = useRef<AlarmFormDraft>({
@@ -581,7 +687,11 @@ export default function AlarmForm({
     configuredMissions,
     soundUri,
     vibrationEnabled,
+    vibrationPattern,
   });
+
+  const vibrationPreviewTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (draftClosedRef.current) {
@@ -598,6 +708,7 @@ export default function AlarmForm({
       configuredMissions,
       soundUri,
       vibrationEnabled,
+      vibrationPattern,
     };
 
     alarmFormDrafts.set(
@@ -615,6 +726,7 @@ export default function AlarmForm({
     repeatDays,
     soundUri,
     vibrationEnabled,
+    vibrationPattern,
   ]);
 
   useEffect(() => {
@@ -627,6 +739,152 @@ export default function AlarmForm({
     setMinuteText(padTime(minute));
   }, [
     minute,
+  ]);
+
+  const stopSoundPreview = React.useCallback(() => {
+    try {
+      previewPlayer.pause();
+      void previewPlayer.seekTo(0);
+    } catch (error) {
+      console.log(
+        '[AlarmForm] No se pudo detener la preescucha:',
+        error,
+      );
+    }
+
+    setPreviewingSoundUri(null);
+  }, [
+    previewPlayer,
+  ]);
+
+  const playSoundPreview = React.useCallback((
+    uri: string | null,
+  ) => {
+    if (!uri) {
+      stopSoundPreview();
+      return;
+    }
+
+    if (previewingSoundUri === uri) {
+      stopSoundPreview();
+      return;
+    }
+
+    setPreviewSoundUri(uri);
+    setPreviewRequestId((current) => current + 1);
+  }, [
+    previewingSoundUri,
+    stopSoundPreview,
+  ]);
+
+  useEffect(() => {
+    if (!previewRequestId || !previewSoundUri || !previewSoundAsset) {
+      return undefined;
+    }
+
+    let mounted = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const startPreview = async () => {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'doNotMix',
+        });
+
+        if (!mounted) {
+          return;
+        }
+
+        previewPlayer.pause();
+        await previewPlayer.seekTo(0);
+        previewPlayer.volume = 0.85;
+        setPreviewingSoundUri(previewSoundUri);
+        previewPlayer.play();
+
+        timer = setTimeout(() => {
+          if (!mounted) {
+            return;
+          }
+
+          stopSoundPreview();
+        }, 3500);
+      } catch (error) {
+        setPreviewingSoundUri(null);
+        console.log(
+          '[AlarmForm] No se pudo reproducir la preescucha:',
+          error,
+        );
+      }
+    };
+
+    void startPreview();
+
+    return () => {
+      mounted = false;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [
+    previewPlayer,
+    previewRequestId,
+    previewSoundAsset,
+    previewSoundUri,
+    stopSoundPreview,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      stopSoundPreview();
+    };
+  }, [
+    stopSoundPreview,
+  ]);
+
+  const stopVibrationPreview = React.useCallback(() => {
+    if (vibrationPreviewTimerRef.current) {
+      clearTimeout(vibrationPreviewTimerRef.current);
+      vibrationPreviewTimerRef.current = null;
+    }
+
+    Vibration.cancel();
+    setPreviewingVibrationId(null);
+  }, []);
+
+  const playVibrationPreview = React.useCallback((
+    optionId: AlarmVibrationOptionId,
+  ) => {
+    if (optionId === 'none') {
+      stopVibrationPreview();
+      return;
+    }
+
+    if (previewingVibrationId === optionId) {
+      stopVibrationPreview();
+      return;
+    }
+
+    stopVibrationPreview();
+    setPreviewingVibrationId(optionId);
+    Vibration.vibrate(getAlarmVibrationPattern(optionId), false);
+
+    vibrationPreviewTimerRef.current = setTimeout(() => {
+      stopVibrationPreview();
+    }, 2600);
+  }, [
+    previewingVibrationId,
+    stopVibrationPreview,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      stopVibrationPreview();
+    };
+  }, [
+    stopVibrationPreview,
   ]);
 
   const persistDraft = (
@@ -1208,6 +1466,11 @@ export default function AlarmForm({
       missionEnabled &&
       configuredMissions.length > 0;
 
+    if (missionEnabled && !hasConfiguredMissions) {
+      setMissionRequiredVisible(true);
+      return;
+    }
+
     const normalizedRepeatDays =
       normalizeRepeatDays(repeatDays);
 
@@ -1225,6 +1488,7 @@ export default function AlarmForm({
       randomMissions: false,
       soundUri,
       vibrationEnabled,
+      vibrationPattern,
     });
   };
 
@@ -1596,155 +1860,472 @@ export default function AlarmForm({
             {isSpanish ? 'Alerta' : 'Alert'}
           </Text>
 
-          <View style={styles.alertHeaderRow}>
-            <View style={styles.alertHeaderText}>
-              <Text
-                style={[
-                  styles.alertLabel,
-                  {
-                    color: colors.text,
-                  },
-                ]}
-              >
-                {isSpanish ? 'Sonido' : 'Sound'}
-              </Text>
-              <Text
-                style={[
-                  styles.alertHint,
-                  {
-                    color: colors.textSecondary,
-                  },
-                ]}
-              >
-                {isSpanish
-                  ? 'Elige el audio que sonara cuando se active.'
-                  : 'Choose the audio that plays when it rings.'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.soundWrap}>
-            {ALARM_SOUND_OPTIONS.map((sound) => {
-              const active = soundUri === sound.uri;
-
-              return (
-                <TouchableOpacity
-                  key={sound.id}
-                  style={[
-                    styles.soundBtn,
-                    {
-                      backgroundColor: active
-                        ? colors.primary + '22'
-                        : colors.bgElevated,
-                      borderColor: active
-                        ? colors.primary
-                        : colors.border,
-                    },
-                  ]}
-                  onPress={() => setSoundUri(sound.uri)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.soundEmoji}>
-                    {sound.emoji}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.soundText,
-                      {
-                        color: active
-                          ? colors.text
-                          : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    {sound.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
           <TouchableOpacity
             style={[
-              styles.vibrationToggle,
+              styles.alertSummary,
               {
-                backgroundColor: vibrationEnabled
-                  ? colors.primary + '18'
-                  : colors.bgElevated,
-                borderColor: vibrationEnabled
-                  ? colors.primary
-                  : colors.border,
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
               },
             ]}
-            onPress={() => setVibrationEnabled((current) => !current)}
+            onPress={() => setSoundPickerOpen((current) => !current)}
             activeOpacity={0.86}
           >
             <View
               style={[
-                styles.vibrationIconWrap,
+                styles.alertSummaryIcon,
                 {
-                  backgroundColor: vibrationEnabled
-                    ? colors.primary + '24'
-                    : colors.bg,
-                  borderColor: vibrationEnabled
-                    ? colors.primary + '66'
-                    : colors.border,
+                  backgroundColor: colors.primary + '18',
+                  borderColor: colors.primary + '44',
                 },
               ]}
             >
               <Ionicons
-                name="phone-portrait-outline"
-                size={20}
-                color={
-                  vibrationEnabled
-                    ? colors.primary
-                    : colors.textSecondary
-                }
+                name="notifications-outline"
+                size={22}
+                color={colors.primary}
               />
             </View>
 
-            <View style={styles.vibrationTextWrap}>
+            <View style={styles.alertSummaryText}>
               <Text
                 style={[
-                  styles.vibrationTitle,
+                  styles.alertSummaryTitle,
                   {
                     color: colors.text,
                   },
                 ]}
               >
                 {isSpanish
-                  ? 'Vibracion de alarma'
-                  : 'Alarm vibration'}
+                  ? 'Seleccionar sonido'
+                  : 'Select sound'}
               </Text>
               <Text
                 style={[
-                  styles.vibrationDescription,
+                  styles.alertSummarySubtitle,
                   {
                     color: colors.textSecondary,
                   },
                 ]}
               >
-                {isSpanish
-                  ? 'Vibra en bucle mientras la alarma esta activa.'
-                  : 'Vibrates in a loop while the alarm is active.'}
+                {selectedSound?.label ??
+                  (isSpanish
+                    ? 'Sonido personalizado'
+                    : 'Custom sound')}
               </Text>
             </View>
 
             <Ionicons
               name={
-                vibrationEnabled
-                  ? 'toggle'
-                  : 'toggle-outline'
+                soundPickerOpen
+                  ? 'chevron-up'
+                  : 'chevron-down'
               }
-              size={34}
-              color={
-                vibrationEnabled
-                  ? colors.primary
-                  : colors.textMuted
-              }
+              size={22}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
+
+          <Text
+            style={[
+              styles.selectedSoundText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? `Sonido escogido: ${selectedSound?.label ?? 'Personalizado'}`
+              : `Selected sound: ${selectedSound?.label ?? 'Custom'}`}
+          </Text>
+
+          {soundPickerOpen ? (
+            <View
+              style={[
+                styles.soundList,
+                {
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              {ALARM_SOUND_OPTIONS.map((sound, index) => {
+                const active = soundUri === sound.uri;
+
+                return (
+                  <TouchableOpacity
+                    key={sound.id}
+                    style={[
+                      styles.soundRow,
+                      {
+                        backgroundColor: active
+                          ? colors.primary + '16'
+                          : colors.bgCard,
+                        borderBottomColor: colors.border,
+                        borderBottomWidth:
+                          index === ALARM_SOUND_OPTIONS.length - 1
+                            ? 0
+                            : StyleSheet.hairlineWidth,
+                      },
+                    ]}
+                    onPress={() => {
+                      setSoundUri(sound.uri);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <View
+                      style={[
+                        styles.soundIconWrap,
+                        {
+                          backgroundColor: active
+                            ? colors.primary + '22'
+                            : colors.bgElevated,
+                          borderColor: active
+                            ? colors.primary + '55'
+                            : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getSoundIconName(sound.id)}
+                        size={18}
+                        color={
+                          active
+                            ? colors.primary
+                            : colors.textSecondary
+                        }
+                      />
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.soundText,
+                        {
+                          color: active
+                            ? colors.text
+                            : colors.textSecondary,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {sound.label}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.soundPreviewButton,
+                        {
+                          backgroundColor:
+                            previewingSoundUri === sound.uri
+                              ? colors.primary + '20'
+                              : colors.bgElevated,
+                          borderColor:
+                            previewingSoundUri === sound.uri
+                              ? colors.primary + '66'
+                              : colors.border,
+                        },
+                        !sound.uri && styles.soundPreviewButtonDisabled,
+                      ]}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        playSoundPreview(sound.uri);
+                      }}
+                      activeOpacity={sound.uri ? 0.82 : 1}
+                      disabled={!sound.uri}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isSpanish
+                          ? `Preescuchar ${sound.label}`
+                          : `Preview ${sound.label}`
+                      }
+                    >
+                      <Ionicons
+                        name={
+                          !sound.uri
+                            ? 'volume-mute-outline'
+                            : previewingSoundUri === sound.uri
+                              ? 'stop-circle-outline'
+                              : 'play-circle-outline'
+                        }
+                        size={20}
+                        color={
+                          !sound.uri
+                            ? colors.textMuted
+                            : previewingSoundUri === sound.uri
+                              ? colors.primary
+                              : colors.textSecondary
+                        }
+                      />
+                    </TouchableOpacity>
+
+                    <Ionicons
+                      name={
+                        active
+                          ? 'checkmark-circle'
+                          : 'ellipse-outline'
+                      }
+                      size={20}
+                      color={
+                        active
+                          ? colors.primary
+                          : colors.textMuted
+                      }
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
+
+          <View style={styles.alertSectionHeader}>
+            <Text
+              style={[
+                styles.alertSectionTitle,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
+              {isSpanish ? 'Respuesta de alarma' : 'Alarm response'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.alertSummary,
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() => setVibrationPickerOpen((current) => !current)}
+            activeOpacity={0.86}
+          >
+            <View
+              style={[
+                styles.alertSummaryIcon,
+                {
+                  backgroundColor: colors.primary + '18',
+                  borderColor: colors.primary + '44',
+                },
+              ]}
+            >
+              <Ionicons
+                name="phone-portrait-outline"
+                size={22}
+                color={colors.primary}
+              />
+            </View>
+
+            <View style={styles.alertSummaryText}>
+              <Text
+                style={[
+                  styles.alertSummaryTitle,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? 'Seleccionar vibracion'
+                  : 'Select vibration'}
+              </Text>
+              <Text
+                style={[
+                  styles.alertSummarySubtitle,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {isSpanish
+                  ? selectedVibration.labelEs
+                  : selectedVibration.labelEn}
+              </Text>
+            </View>
+
+            <Ionicons
+              name={
+                vibrationPickerOpen
+                  ? 'chevron-up'
+                  : 'chevron-down'
+              }
+              size={22}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <Text
+            style={[
+              styles.selectedSoundText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {isSpanish
+              ? `Vibracion escogida: ${selectedVibration.labelEs}`
+              : `Selected vibration: ${selectedVibration.labelEn}`}
+          </Text>
+
+          {vibrationPickerOpen ? (
+            <View
+              style={[
+                styles.soundList,
+                {
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              {ALARM_VIBRATION_OPTIONS.map((option, index) => {
+                const active = selectedVibrationId === option.id;
+                const canPreview = option.pattern !== null;
+
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.soundRow,
+                      {
+                        backgroundColor: active
+                          ? colors.primary + '16'
+                          : colors.bgCard,
+                        borderBottomColor: colors.border,
+                        borderBottomWidth:
+                          index === ALARM_VIBRATION_OPTIONS.length - 1
+                            ? 0
+                            : StyleSheet.hairlineWidth,
+                      },
+                    ]}
+                    onPress={() => {
+                      if (option.id === 'none') {
+                        setVibrationEnabled(false);
+                        return;
+                      }
+
+                      setVibrationEnabled(true);
+                      setVibrationPattern(option.id);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <View
+                      style={[
+                        styles.soundIconWrap,
+                        {
+                          backgroundColor: active
+                            ? colors.primary + '22'
+                            : colors.bgElevated,
+                          borderColor: active
+                            ? colors.primary + '55'
+                            : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={option.icon as IoniconName}
+                        size={18}
+                        color={
+                          active
+                            ? colors.primary
+                            : colors.textSecondary
+                        }
+                      />
+                    </View>
+
+                    <View style={styles.soundTextWrap}>
+                      <Text
+                        style={[
+                          styles.soundText,
+                          {
+                            color: active
+                              ? colors.text
+                              : colors.textSecondary,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {isSpanish ? option.labelEs : option.labelEn}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.vibrationDescriptionText,
+                          {
+                            color: colors.textMuted,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {isSpanish
+                          ? option.descriptionEs
+                          : option.descriptionEn}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.soundPreviewButton,
+                        {
+                          backgroundColor:
+                            previewingVibrationId === option.id
+                              ? colors.primary + '20'
+                              : colors.bgElevated,
+                          borderColor:
+                            previewingVibrationId === option.id
+                              ? colors.primary + '66'
+                              : colors.border,
+                        },
+                        !canPreview && styles.soundPreviewButtonDisabled,
+                      ]}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        playVibrationPreview(option.id);
+                      }}
+                      activeOpacity={canPreview ? 0.82 : 1}
+                      disabled={!canPreview}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isSpanish
+                          ? `Probar ${option.labelEs}`
+                          : `Preview ${option.labelEn}`
+                      }
+                    >
+                      <Ionicons
+                        name={
+                          !canPreview
+                            ? 'remove-circle-outline'
+                            : previewingVibrationId === option.id
+                              ? 'stop-circle-outline'
+                              : 'play-circle-outline'
+                        }
+                        size={20}
+                        color={
+                          !canPreview
+                            ? colors.textMuted
+                            : previewingVibrationId === option.id
+                              ? colors.primary
+                              : colors.textSecondary
+                        }
+                      />
+                    </TouchableOpacity>
+
+                    <Ionicons
+                      name={
+                        active
+                          ? 'checkmark-circle'
+                          : 'ellipse-outline'
+                      }
+                      size={20}
+                      color={
+                        active
+                          ? colors.primary
+                          : colors.textMuted
+                      }
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
         </View>
 
         <AlarmChooseMission
@@ -1845,6 +2426,41 @@ export default function AlarmForm({
         confirmAction={{
           label: isSpanish ? 'Eliminar' : 'Delete',
           onPress: confirmDelete,
+        }}
+      />
+
+      <AppModal
+        visible={missionRequiredVisible}
+        type="warning"
+        title={
+          isSpanish
+            ? 'Configura una mision'
+            : 'Configure a mission'
+        }
+        message={
+          isSpanish
+            ? 'Tienes las misiones activadas. Selecciona al menos una mision o desactiva el checkbox para guardar una alarma normal.'
+            : 'Missions are enabled. Select at least one mission or disable the checkbox to save a normal alarm.'
+        }
+        closeOnBackdropPress
+        onClose={() => setMissionRequiredVisible(false)}
+        cancelAction={{
+          label: isSpanish
+            ? 'Desactivar misiones'
+            : 'Disable missions',
+          onPress: () => {
+            setMissionRequiredVisible(false);
+            toggleMissionEnabled(false);
+          },
+        }}
+        confirmAction={{
+          label: isSpanish
+            ? 'Seleccionar mision'
+            : 'Select mission',
+          onPress: () => {
+            setMissionRequiredVisible(false);
+            openMissionSelector();
+          },
         }}
       />
     </>
@@ -2025,55 +2641,116 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  soundWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  alertHeaderRow: {
+  alertSummary: {
+    minHeight: 64,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 10,
   },
 
-  alertHeaderText: {
+  alertSummaryIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  alertSummaryText: {
     flex: 1,
     gap: 2,
   },
 
-  alertLabel: {
-    fontSize: 13,
+  alertSummaryTitle: {
+    fontSize: 15,
     fontWeight: '900',
   },
 
-  alertHint: {
+  alertSummarySubtitle: {
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
   },
 
-  soundBtn: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  selectedSoundText: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+    marginTop: -4,
+    paddingHorizontal: 2,
   },
 
-  soundEmoji: {
-    fontSize: 12,
+  alertSectionHeader: {
+    marginTop: 2,
+  },
+
+  alertSectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+
+  soundList: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+
+  soundRow: {
+    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  soundIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  soundTextWrap: {
+    flex: 1,
+    gap: 2,
   },
 
   soundText: {
-    fontSize: 12,
-    fontWeight: '500',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
   },
 
-  vibrationToggle: {
+  vibrationDescriptionText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+  },
+
+  soundPreviewButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  soundPreviewButtonDisabled: {
+    opacity: 0.58,
+  },
+
+  settingToggle: {
     minHeight: 66,
     borderRadius: 14,
     borderWidth: 1,
@@ -2084,7 +2761,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  vibrationIconWrap: {
+  settingIconWrap: {
     width: 38,
     height: 38,
     borderRadius: 12,
@@ -2093,20 +2770,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  vibrationTextWrap: {
+  settingTextWrap: {
     flex: 1,
     gap: 2,
   },
 
-  vibrationTitle: {
+  settingTitle: {
     fontSize: 14,
     fontWeight: '900',
   },
 
-  vibrationDescription: {
+  settingDescription: {
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
+  },
+
+  switchTrack: {
+    width: 42,
+    height: 24,
+    borderRadius: 999,
+    padding: 3,
+    justifyContent: 'center',
+  },
+
+  switchThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
   },
 
   saveBtn: {

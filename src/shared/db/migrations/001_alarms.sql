@@ -13,6 +13,7 @@ CREATE TABLE public.alarms (
   random_missions integer DEFAULT 0,
   sound_uri text,
   vibration_enabled integer DEFAULT 1,
+  vibration_pattern text DEFAULT 'classic',
   synced integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),

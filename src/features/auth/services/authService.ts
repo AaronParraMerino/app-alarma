@@ -1,6 +1,9 @@
 // src/features/auth/services/authService.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../../shared/db/supabaseClient';
+import {
+  clearSupabaseSessionStorage,
+  supabase,
+} from '../../../shared/db/supabaseClient';
 import { User } from '../types/auth.types';
 
 let passwordRecoveryMode = false;
@@ -28,6 +31,10 @@ async function signOutSafely(options?: { scope?: 'global' | 'local' | 'others' }
   } catch (error) {
     if (!isInvalidRefreshTokenError(error)) {
       throw error;
+    }
+  } finally {
+    if (!options || options.scope !== 'others') {
+      clearSupabaseSessionStorage();
     }
   }
 }

@@ -8,7 +8,10 @@ import {
   stopSyncListener,
   syncAlarms,
 } from '../../../shared/services/storage/sync.service';
-import { supabase } from '../../../shared/db/supabaseClient';
+import {
+  clearSupabaseSessionStorage,
+  supabase,
+} from '../../../shared/db/supabaseClient';
 import { googleAuthService } from '../services/googleAuthService';
 import { syncPreferencesFromCloud } from '../../../shared/services/preferences/preferencesSync.service';
 
@@ -112,14 +115,12 @@ function isInvalidRefreshTokenError(error: unknown): boolean {
   return getAuthErrorMessage(error).toLowerCase().includes('invalid refresh token');
 }
 
+function clearSupabaseAuthStorage(): void {
+  clearSupabaseSessionStorage();
+}
+
 async function clearInvalidLocalSession(): Promise<void> {
-  try {
-    await supabase.auth.signOut({ scope: 'local' });
-  } catch (error) {
-    if (!isInvalidRefreshTokenError(error)) {
-      console.log('[Auth] No se pudo limpiar la sesion local:', getAuthErrorMessage(error));
-    }
-  }
+  clearSupabaseAuthStorage();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -140,7 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
 
         if (error) {
-          console.log('[Auth] Sesion local invalida, se limpia:', error.message);
+          if (!isInvalidRefreshTokenError(error)) {
+            console.log('[Auth] Sesion local invalida, se limpia:', error.message);
+          }
+
           await clearInvalidLocalSession();
 
           if (await authService.isGuestSessionSaved()) {

@@ -18,6 +18,12 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 
 export type RepeatDay = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Dom, 1=Lun ... 6=Sab
 
+export type AlarmVibrationPattern =
+  | 'classic'
+  | 'shortPulse'
+  | 'intense'
+  | 'steady';
+
 export interface AlarmMission {
   type: MissionType;
   difficulty: Difficulty;
@@ -39,6 +45,7 @@ export interface Alarm {
   randomMissions: boolean;   // RF12
   soundUri: string | null;
   vibrationEnabled: boolean;
+  vibrationPattern: AlarmVibrationPattern;
   createdAt: number;
   updatedAt: number;
 }

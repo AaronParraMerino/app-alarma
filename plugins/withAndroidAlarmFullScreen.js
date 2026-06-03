@@ -158,6 +158,7 @@ final class AlarmConstants {
   static final String EXTRA_LABEL = "label";
   static final String EXTRA_SOUND_URI = "soundUri";
   static final String EXTRA_VIBRATION_ENABLED = "vibrationEnabled";
+  static final String EXTRA_VIBRATION_PATTERN = "vibrationPattern";
   static final String EXTRA_SCHEME = "scheme";
   static final String EXTRA_TRIGGER_AT = "triggerAtMillis";
   static final String EXTRA_REPEAT_INTERVAL = "repeatIntervalMillis";
@@ -195,6 +196,7 @@ final class AlarmScheduler {
     String label,
     String soundUri,
     boolean vibrationEnabled,
+    String vibrationPattern,
     String scheme
   ) {
     long safeTriggerAtMillis = Math.max(triggerAtMillis, System.currentTimeMillis() + MIN_SCHEDULE_DELAY_MS);
@@ -208,6 +210,7 @@ final class AlarmScheduler {
       label,
       soundUri,
       vibrationEnabled,
+      vibrationPattern,
       scheme
     );
 
@@ -279,6 +282,7 @@ final class AlarmScheduler {
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_LABEL),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI),
       sourceIntent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true),
+      sourceIntent.getStringExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SCHEME)
     );
   }
@@ -353,6 +357,7 @@ final class AlarmScheduler {
     String label,
     String soundUri,
     boolean vibrationEnabled,
+    String vibrationPattern,
     String scheme
   ) {
     Intent intent = new Intent(context, AlarmReceiver.class);
@@ -364,6 +369,7 @@ final class AlarmScheduler {
     intent.putExtra(AlarmConstants.EXTRA_LABEL, label);
     intent.putExtra(AlarmConstants.EXTRA_SOUND_URI, soundUri);
     intent.putExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, vibrationEnabled);
+    intent.putExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN, vibrationPattern);
     intent.putExtra(AlarmConstants.EXTRA_SCHEME, scheme);
 
     return PendingIntent.getBroadcast(
@@ -602,13 +608,14 @@ public class AlarmRingingService extends Service {
     String label = intent.getStringExtra(AlarmConstants.EXTRA_LABEL);
     String soundUri = intent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI);
     boolean vibrationEnabled = intent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true);
+    String vibrationPattern = intent.getStringExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN);
     String scheme = intent.getStringExtra(AlarmConstants.EXTRA_SCHEME);
 
     currentAlarmId = alarmId;
     saveActiveAlarmId(alarmId);
     boolean shouldOpenAlarmScreen = shouldOpenAlarmScreen();
     wakeScreen();
-    Notification notification = buildNotification(alarmId, label, soundUri, vibrationEnabled, scheme);
+    Notification notification = buildNotification(alarmId, label, soundUri, vibrationEnabled, vibrationPattern, scheme);
     int notificationId = AlarmScheduler.notificationId(alarmId == null ? "active" : alarmId);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -618,7 +625,7 @@ public class AlarmRingingService extends Service {
     }
 
     startSound(soundUri);
-    startVibration(vibrationEnabled);
+    startVibration(vibrationEnabled, vibrationPattern);
     if (shouldOpenAlarmScreen) {
       openAlarmScreen(alarmId, label, soundUri, scheme);
     }
@@ -643,6 +650,7 @@ public class AlarmRingingService extends Service {
     String label,
     String soundUri,
     boolean vibrationEnabled,
+    String vibrationPattern,
     String scheme
   ) {
     Intent fullScreenIntent = AlarmScheduler.createFullScreenIntent(this, alarmId, label, soundUri, scheme);
@@ -664,7 +672,7 @@ public class AlarmRingingService extends Service {
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setOngoing(true)
       .setAutoCancel(false)
-      .setVibrate(vibrationEnabled ? new long[] { 0, 500, 350, 500, 350, 900 } : null)
+      .setVibrate(vibrationEnabled ? resolveVibrationPattern(vibrationPattern) : null)
       .setSound(null)
       .setContentIntent(fullScreenPendingIntent)
       .setFullScreenIntent(fullScreenPendingIntent, true)
@@ -933,7 +941,7 @@ public class AlarmRingingService extends Service {
     }
   }
 
-  private void startVibration(boolean vibrationEnabled) {
+  private void startVibration(boolean vibrationEnabled, String vibrationPattern) {
     stopVibration();
 
     if (!vibrationEnabled) {
@@ -946,7 +954,7 @@ public class AlarmRingingService extends Service {
         return;
       }
 
-      long[] pattern = new long[] { 0, 500, 350, 500, 350, 900 };
+      long[] pattern = resolveVibrationPattern(vibrationPattern);
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         vibrator.vibrate(
@@ -970,6 +978,28 @@ public class AlarmRingingService extends Service {
     }
 
     vibrator = null;
+  }
+
+  private long[] resolveVibrationPattern(String vibrationPattern) {
+    if (vibrationPattern == null) {
+      return new long[] { 0, 500, 350, 500, 350, 900 };
+    }
+
+    String normalized = vibrationPattern.trim();
+
+    if ("shortPulse".equals(normalized)) {
+      return new long[] { 0, 180, 130, 180, 130, 180, 600 };
+    }
+
+    if ("intense".equals(normalized)) {
+      return new long[] { 0, 800, 180, 800, 180, 1000 };
+    }
+
+    if ("steady".equals(normalized)) {
+      return new long[] { 0, 1200, 250, 1200, 450 };
+    }
+
+    return new long[] { 0, 500, 350, 500, 350, 900 };
   }
 
   private void abandonAlarmAudioFocus() {
@@ -1164,6 +1194,9 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
       boolean vibrationEnabled = !options.hasKey("vibrationEnabled")
         || options.isNull("vibrationEnabled")
         || options.getBoolean("vibrationEnabled");
+      String vibrationPattern = options.hasKey("vibrationPattern") && !options.isNull("vibrationPattern")
+        ? options.getString("vibrationPattern")
+        : "classic";
       String scheme = options.hasKey("scheme") && !options.isNull("scheme")
         ? options.getString("scheme")
         : "neurowake";
@@ -1178,6 +1211,7 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
         label,
         soundUri,
         vibrationEnabled,
+        vibrationPattern,
         scheme
       );
       promise.resolve(null);

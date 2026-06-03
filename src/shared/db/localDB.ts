@@ -24,6 +24,7 @@ export const initDB = () => {
       random_missions INTEGER DEFAULT 0,
       sound_uri       TEXT,
       vibration_enabled INTEGER DEFAULT 1,
+      vibration_pattern TEXT DEFAULT 'classic',
       synced          INTEGER DEFAULT 0,
       created_at      INTEGER DEFAULT (strftime('%s','now')),
       updated_at      INTEGER DEFAULT (strftime('%s','now'))
@@ -170,6 +171,7 @@ export const initDB = () => {
   ensureColumn('alarms', 'random_missions', 'INTEGER DEFAULT 0');
   ensureColumn('alarms', 'sound_uri', 'TEXT');
   ensureColumn('alarms', 'vibration_enabled', 'INTEGER DEFAULT 1');
+  ensureColumn('alarms', 'vibration_pattern', "TEXT DEFAULT 'classic'");
   ensureColumn('alarms', 'synced', 'INTEGER DEFAULT 0');
   ensureColumn('alarms', 'created_at', 'INTEGER');
   ensureColumn('alarms', 'updated_at', 'INTEGER');

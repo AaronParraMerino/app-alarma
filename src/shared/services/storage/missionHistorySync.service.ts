@@ -5,6 +5,29 @@ import {
 } from './MissionHistoryLocalService';
 
 export async function syncMissionHistory(userId: string): Promise<void> {
+  if (!userId) {
+    return;
+  }
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user?.id) {
+    console.log(
+      '[MissionHistorySync] Sin sesion Supabase valida; historial queda pendiente localmente.',
+    );
+    return;
+  }
+
+  if (session.user.id !== userId) {
+    console.log(
+      '[MissionHistorySync] Usuario local y sesion Supabase no coinciden; se omite sync.',
+    );
+    return;
+  }
+
   const pendingRows = MissionHistoryLocalService.getPendingByUser(userId);
 
   if (pendingRows.length === 0) {
@@ -17,10 +40,10 @@ export async function syncMissionHistory(userId: string): Promise<void> {
     .from('missions_history')
     .upsert(payload, {
       onConflict: 'sync_id',
-    });
+  });
 
   if (error) {
-    console.error('Error sincronizando historial de misiones:', error);
+    console.log('Error sincronizando historial de misiones:', error);
     return;
   }
 

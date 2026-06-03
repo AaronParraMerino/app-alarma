@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { Alarm } from '../../../features/alarm/types/alarm.types';
+import { normalizeAlarmVibrationPattern } from '../../../features/alarm/services/alarmVibration';
 import {
   clearPendingAlarmDeleteLocal,
   getAlarmsLocal,
@@ -79,6 +80,9 @@ export const syncAlarms = async (userId: string): Promise<void> => {
         const cloudHasVibration =
           (alarm as any).vibrationEnabled !== undefined ||
           (alarm as any).vibration_enabled !== undefined;
+        const cloudHasVibrationPattern =
+          (alarm as any).vibrationPattern !== undefined ||
+          (alarm as any).vibration_pattern !== undefined;
 
         insertAlarmLocal(
           {
@@ -87,6 +91,11 @@ export const syncAlarms = async (userId: string): Promise<void> => {
             vibrationEnabled: cloudHasVibration
               ? alarm.vibrationEnabled ?? Boolean((alarm as any).vibration_enabled)
               : localAlarm?.vibrationEnabled ?? true,
+            vibrationPattern: cloudHasVibrationPattern
+              ? normalizeAlarmVibrationPattern(
+                  alarm.vibrationPattern ?? (alarm as any).vibration_pattern,
+                )
+              : localAlarm?.vibrationPattern ?? 'classic',
           },
           { synced: true },
         );

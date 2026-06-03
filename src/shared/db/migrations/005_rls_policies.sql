@@ -48,6 +48,14 @@ FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own mission history" ON public.missions_history;
+CREATE POLICY "Users can update their own mission history"
+ON public.missions_history
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
 DROP POLICY IF EXISTS "Users can delete their own mission history" ON public.missions_history;
 CREATE POLICY "Users can delete their own mission history"
 ON public.missions_history

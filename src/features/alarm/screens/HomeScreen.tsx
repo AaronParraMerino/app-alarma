@@ -598,7 +598,27 @@ function EmptyState({
           },
         ]}
       >
-        <Text style={styles.emptyIcon}>⏰</Text>
+        <Ionicons
+          name="alarm-outline"
+          size={42}
+          color={colors.primary}
+        />
+
+        <View
+          style={[
+            styles.emptyIconBadge,
+            {
+              backgroundColor: colors.primary,
+              borderColor: colors.bgCard,
+            },
+          ]}
+        >
+          <Ionicons
+            name="add"
+            size={16}
+            color={colors.white}
+          />
+        </View>
       </View>
 
       <Text
@@ -636,6 +656,12 @@ function EmptyState({
         onPress={onAdd}
         activeOpacity={0.85}
       >
+        <Ionicons
+          name="add-circle-outline"
+          size={18}
+          color={colors.white}
+        />
+
         <Text
           style={[
             styles.emptyBtnText,
@@ -644,7 +670,7 @@ function EmptyState({
             },
           ]}
         >
-          {isSpanish ? '+ Crear alarma' : '+ Create alarm'}
+          {isSpanish ? 'Crear alarma' : 'Create alarm'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -1103,10 +1129,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
+    position: 'relative',
   },
 
-  emptyIcon: {
-    fontSize: 40,
+  emptyIconBadge: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyTitle: {
@@ -1127,6 +1162,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 
   emptyBtnText: {

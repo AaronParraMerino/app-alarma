@@ -1,5 +1,6 @@
 import db from '../../db/localDB';
 import { Alarm, AlarmMission, RepeatDay } from '../../../features/alarm/types/alarm.types';
+import { normalizeAlarmVibrationPattern } from '../../../features/alarm/services/alarmVibration';
 import { normalizeRepeatDays } from '../../../features/alarm/utils/repeatSchedule';
 
 interface InsertAlarmLocalOptions {
@@ -36,6 +37,7 @@ const mapRowToAlarm = (row: any): Alarm => {
     vibrationEnabled: row.vibration_enabled === undefined
       ? true
       : Number(row.vibration_enabled) === 1,
+    vibrationPattern: normalizeAlarmVibrationPattern(row.vibration_pattern),
     createdAt: normalizeTimestamp(Number(row.created_at)),
     updatedAt: normalizeTimestamp(Number(row.updated_at)),
   };
@@ -52,6 +54,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
       randomMissions: Boolean(alarm.randomMissions),
       soundUri: alarm.soundUri ?? null,
       vibrationEnabled: alarm.vibrationEnabled ?? true,
+      vibrationPattern: normalizeAlarmVibrationPattern(alarm.vibrationPattern),
       createdAt: alarm.createdAt ?? Date.now(),
       updatedAt: alarm.updatedAt ?? Date.now(),
     };
@@ -72,6 +75,9 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
     vibrationEnabled: alarm.vibration_enabled === undefined
       ? alarm.vibrationEnabled ?? true
       : Number(alarm.vibration_enabled) === 1,
+    vibrationPattern: normalizeAlarmVibrationPattern(
+      alarm.vibration_pattern ?? alarm.vibrationPattern,
+    ),
     createdAt: normalizeTimestamp(Number(alarm.created_at ?? Date.now())),
     updatedAt: normalizeTimestamp(Number(alarm.updated_at ?? Date.now())),
   };
@@ -94,8 +100,8 @@ export const insertAlarmLocal = (
   db.runSync(
     `INSERT OR REPLACE INTO alarms (
       id, time, label, active, repeat_days, missions, random_missions,
-      sound_uri, vibration_enabled, synced, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sound_uri, vibration_enabled, vibration_pattern, synced, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       alarm.id,
       time,
@@ -106,6 +112,7 @@ export const insertAlarmLocal = (
       alarm.randomMissions ? 1 : 0,
       alarm.soundUri,
       alarm.vibrationEnabled ? 1 : 0,
+      alarm.vibrationPattern,
       options.synced ? 1 : 0,
       alarm.createdAt,
       alarm.updatedAt,
