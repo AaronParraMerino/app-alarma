@@ -16,7 +16,7 @@ interface StepRingProps {
   trackColor: string;
 }
 
-// Muestra el avance del paso actual con imagen y porcentaje.
+// Muestra el avance del paso actual con imagen y porcentaje
 export function StepRing({
   progress,
   color,
@@ -30,7 +30,7 @@ export function StepRing({
   const percent = Math.round(clamped * 100);
 
   useEffect(() => {
-    // Suaviza los cambios de progreso del sensor.
+    // Suaviza los cambios de progreso del sensor
     Animated.timing(animProgress, {
       toValue: clamped,
       duration: 200,

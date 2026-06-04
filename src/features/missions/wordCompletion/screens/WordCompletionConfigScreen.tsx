@@ -76,6 +76,7 @@ function getDifficultyLabel(
     : 'Hard';
 }
 
+//Pantalla de configuración para elegir dificultad y cantidad de veces
 export function WordCompletionConfigScreen({
   navigation,
   route,

@@ -219,7 +219,6 @@ function ConfigMovementMissionRoute({ navigation, route }: ConfigMovementMission
           return;
         }
 
-        // Solo vuelve al selector. NO ejecuta la misión.
         navigation.navigate('MissionSelector');
       }}
     />

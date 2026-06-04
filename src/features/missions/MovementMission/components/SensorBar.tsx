@@ -8,7 +8,7 @@ interface SensorBarProps {
   trackColor: string;
 }
 
-// Barra animada que muestra la fuerza actual del sensor.
+// Barra animada que muestra la fuerza actual del sensor
 export function SensorBar({
   magnitude,
   maxMagnitude = 30,
@@ -18,7 +18,7 @@ export function SensorBar({
   const widthAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Convierte la magnitud en un porcentaje visual.
+    // Convierte la magnitud en un porcentaje visual
     const ratio = Math.min(magnitude / maxMagnitude, 1);
     Animated.spring(widthAnim, {
       toValue: ratio,

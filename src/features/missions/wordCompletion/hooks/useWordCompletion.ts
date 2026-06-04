@@ -16,7 +16,7 @@ const INITIAL_STATE: WordCompletionState = {
 };
 
 /**
- * Hook principal que maneja la logica del juego de completar palabras.
+ * Hook principal que maneja la logica del juego de completar palabras
  * Controla:
  * generación de retos
  * estado del usuario
@@ -50,7 +50,7 @@ export function useWordCompletion(
 
   /**
    * Maneja cambios en el input del usuario
-   * Normaliza a mayúsculas
+   * Normaliza a mayusculas
    * Resetea estado de error
    */
   const handleInputChange = useCallback((text: string) => {
