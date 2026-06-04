@@ -1,6 +1,6 @@
 // src/features/streak/screens/StreakScreen.tsx
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -22,7 +22,10 @@ import { useTranslation } from '../../../shared/i18n/useTranslation';
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
-import { getStreakSummary } from '../services/streak';
+import {
+  getStreakSummary,
+  getStreakSummaryLocal,
+} from '../services/streak';
 
 import {
   AlarmStreakEvent,
@@ -231,6 +234,7 @@ export default function StreakScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [progressMode, setProgressMode] = useState<ProgressMode>('week');
+  const hasLoadedSummaryRef = useRef(false);
 
   const loadSummary = useCallback(
     async (showRefresh = false) => {
@@ -242,11 +246,17 @@ export default function StreakScreen({ navigation, route }: Props) {
       if (showRefresh) {
         setRefreshing(true);
       } else {
-        setLoading(true);
+        setLoading(!hasLoadedSummaryRef.current);
       }
       try {
+        const localData = getStreakSummaryLocal(userId);
+        setSummary(localData);
+        hasLoadedSummaryRef.current = true;
+        setLoading(false);
+
         const data = await getStreakSummary(userId);
         setSummary(data);
+        hasLoadedSummaryRef.current = true;
       } catch (error) {
         console.log('[StreakScreen] Error cargando racha:', error);
       } finally {

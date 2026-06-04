@@ -3,7 +3,7 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
 
 import { Layout } from '../../../shared/theme/layout';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
@@ -59,8 +58,8 @@ export default function MissionHistoryScreen({
     resumen,
     porDificultad,
     porTipo,
-    setFiltro,
     refetch,
+    setFiltro,
   } = useMissionHistory(userId);
 
   const handleGoBack = () => {
@@ -69,12 +68,46 @@ export default function MissionHistoryScreen({
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      refetch();
-    }, [
-      refetch,
-    ]),
+  const renderHistoryItem = React.useCallback(
+    ({ item }: { item: (typeof registros)[number] }) => (
+      <MissionHistoryCard item={item} />
+    ),
+    [],
+  );
+
+  const listHeader = React.useMemo(
+    () => (
+      <>
+        <HistorySummaryCards resumen={resumen} />
+
+        <DifficultyStatsCard
+          stats={porDificultad}
+          total={resumen.total}
+        />
+
+        <MissionTypeStatsCard porTipo={porTipo} />
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {isSpanish
+            ? 'RECIENTES'
+            : 'RECENT'}
+        </Text>
+      </>
+    ),
+    [
+      colors.textSecondary,
+      isSpanish,
+      porDificultad,
+      porTipo,
+      resumen,
+    ],
   );
 
   return (
@@ -221,45 +254,20 @@ export default function MissionHistoryScreen({
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView
+          <FlatList
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scroll}
-          >
-            <HistorySummaryCards resumen={resumen} />
-
-            <DifficultyStatsCard
-              stats={porDificultad}
-              total={resumen.total}
-            />
-
-            <MissionTypeStatsCard porTipo={porTipo} />
-
-            <Text
-              style={[
-                styles.sectionLabel,
-                {
-                  color: colors.textSecondary,
-                },
-              ]}
-            >
-              {isSpanish
-                ? 'RECIENTES'
-                : 'RECENT'}
-            </Text>
-
-            {registros.length === 0 ? (
-              <EmptyHistoryState />
-            ) : (
-              registros.map((item) => (
-                <MissionHistoryCard
-                  key={String(item.id)}
-                  item={item}
-                />
-              ))
-            )}
-
-            <View style={styles.bottomSpace} />
-          </ScrollView>
+            data={registros}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderHistoryItem}
+            ListHeaderComponent={listHeader}
+            ListEmptyComponent={EmptyHistoryState}
+            ListFooterComponent={<View style={styles.bottomSpace} />}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            removeClippedSubviews
+          />
         )}
       </View>
     </SafeAreaView>

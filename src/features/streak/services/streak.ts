@@ -587,6 +587,26 @@ export async function getStreakSummary(
   };
 }
 
+export function getStreakSummaryLocal(
+  userId: string,
+): StreakSummary {
+  const events = getAlarmStreakEventsLocal(userId);
+  const todayKey = getTodayDateKey();
+  const todayStatus = getEffectiveDayStatus(events, todayKey);
+
+  return {
+    currentStreak: calculateCurrentStreak(events),
+    bestStreak: calculateBestStreak(events),
+    successfulAlarms: events.filter(
+      event => event.eventType === 'completed',
+    ).length,
+    protectionsAvailable: getProtectionsAvailable(events),
+    protectionsUsed: 0,
+    todayStatus,
+    events,
+  };
+}
+
 export async function recordCompletedAlarmStreak(input: {
   userId: string;
   alarmId?: string | null;

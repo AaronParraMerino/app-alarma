@@ -1,6 +1,7 @@
 // src/features/profile/hooks/useProfile.ts
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../shared/db/supabaseClient';
+import { MissionHistoryLocalService } from '../../../shared/services/storage/MissionHistoryLocalService';
 import { useAuth } from '../../auth/store/authStore';
 import { Profile } from '../types/profile.types';
 
@@ -71,20 +72,14 @@ export function useProfile(): UseProfileReturn {
 
     setLoading(true);
     setError(null);
+    setTotalMissionsResolved(MissionHistoryLocalService.countByUser(user.id));
 
     try {
-      const [profileResult, missionsResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle(),
-
-        supabase
-          .from('missions_history')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-      ]);
+      const profileResult = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
       if (profileResult.error) {
         console.log(
@@ -147,16 +142,29 @@ export function useProfile(): UseProfileReturn {
         setProfile(nextProfile);
       }
 
-      if (missionsResult.error) {
-        console.log(
-          '[Profile] Error contando misiones:',
-          missionsResult.error.message
-        );
+      void (async () => {
+        try {
+          const missionsResult = await supabase
+            .from('missions_history')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id);
 
-        setTotalMissionsResolved(0);
-      } else {
-        setTotalMissionsResolved(missionsResult.count ?? 0);
-      }
+          if (missionsResult.error) {
+            console.log(
+              '[Profile] Error contando misiones:',
+              missionsResult.error.message,
+            );
+            return;
+          }
+
+          setTotalMissionsResolved(missionsResult.count ?? 0);
+        } catch (missionsError) {
+          console.log(
+            '[Profile] Error inesperado contando misiones:',
+            missionsError,
+          );
+        }
+      })();
     } catch (profileError) {
       console.log('[Profile] Error inesperado cargando perfil:', profileError);
       setError('Toca este mensaje para intentar cargar tus datos otra vez.');

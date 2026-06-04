@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  InteractionManager,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,7 +28,10 @@ import { Modal } from '../../../shared/components/ui/Modal';
 import { deleteCurrentAccountData } from '../../../shared/services/profile/profile.service';
 
 import { useAuth } from '../../auth/store/authStore';
-import { getStreakSummary } from '../../streak/services/streak';
+import {
+  getStreakSummary,
+  getStreakSummaryLocal,
+} from '../../streak/services/streak';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileStackParamList } from '../navigation/ProfileNavigator';
 
@@ -281,6 +285,9 @@ export default function ProfileScreen({
     }
 
     try {
+      const localSummary = getStreakSummaryLocal(userId);
+      setCurrentStreak(localSummary.currentStreak);
+
       const summary = await getStreakSummary(userId);
       setCurrentStreak(summary.currentStreak);
     } catch (streakError) {
@@ -291,8 +298,12 @@ export default function ProfileScreen({
 
   useFocusEffect(
     useCallback(() => {
-      refetch();
-      void loadCurrentStreak();
+      const task = InteractionManager.runAfterInteractions(() => {
+        refetch();
+        void loadCurrentStreak();
+      });
+
+      return () => task.cancel();
     }, [refetch, loadCurrentStreak]),
   );
 

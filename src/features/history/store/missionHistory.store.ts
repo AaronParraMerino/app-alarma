@@ -144,19 +144,38 @@ export const useMissionHistoryStore = create<MissionHistoryState>((set, get) => 
       return;
     }
 
-    set({ loading: true, error: null });
+    const hadRecords = get().registros.length > 0;
+
+    set({
+      loading: !hadRecords,
+      error: null,
+    });
 
     try {
       const filtro = get().filtroActivo;
       const localRows =
-        MissionHistoryLocalService.getPendingByUserAndType(
+        MissionHistoryLocalService.getByUserAndType(
           userId,
           filtro === 'todas'
             ? undefined
             : filtro as MissionType,
         );
+      const localRecords = localRows.map(localRowToRecord);
+      const localDerived = calcularDerivados(localRecords);
 
-      await syncMissionHistory(userId);
+      set({
+        registros: localRecords,
+        loading: false,
+        error: null,
+        ...localDerived,
+      });
+
+      void syncMissionHistory(userId).catch((syncError) => {
+        console.log(
+          '[MissionHistory] Sync en segundo plano falló:',
+          syncError,
+        );
+      });
 
       let query = supabase
         .from('missions_history')
@@ -171,7 +190,17 @@ export const useMissionHistoryStore = create<MissionHistoryState>((set, get) => 
       const { data, error } = await query;
 
       if (error) {
-        const registros = localRows.map(localRowToRecord);
+        const pendingRows =
+          MissionHistoryLocalService.getPendingByUserAndType(
+            userId,
+            filtro === 'todas'
+              ? undefined
+              : filtro as MissionType,
+          );
+        const registros = mergeHistoryRecords(
+          localRecords,
+          pendingRows,
+        );
         const derivados = calcularDerivados(registros);
 
         set({
@@ -184,6 +213,24 @@ export const useMissionHistoryStore = create<MissionHistoryState>((set, get) => 
         });
         return;
       }
+
+      const localSyncIds = new Set(
+        localRows
+          .map((row) => row.sync_id)
+          .filter(Boolean),
+      );
+
+      (data ?? [])
+        .filter((record) => {
+          const syncId = (record as MissionHistoryRecord).sync_id;
+
+          return syncId && !localSyncIds.has(syncId);
+        })
+        .forEach((record) => {
+        MissionHistoryLocalService.upsertSynced(
+          record as MissionHistoryRecord,
+        );
+        });
 
       const pendingAfterSync =
         MissionHistoryLocalService.getPendingByUserAndType(

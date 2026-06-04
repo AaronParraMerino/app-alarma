@@ -124,6 +124,110 @@ export class MissionHistoryLocalService {
     );
   }
 
+  static getByUserAndType(
+    userId: string,
+    missionType?: MissionType,
+  ): MissionHistoryRow[] {
+    if (missionType) {
+      return db.getAllSync<MissionHistoryRow>(
+        `
+        SELECT *
+        FROM missions_history
+        WHERE user_id = ?
+          AND mission_type = ?
+        ORDER BY created_at DESC
+        `,
+        [
+          userId,
+          missionType,
+        ],
+      );
+    }
+
+    return db.getAllSync<MissionHistoryRow>(
+      `
+      SELECT *
+      FROM missions_history
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      `,
+      [userId],
+    );
+  }
+
+  static countByUser(userId: string): number {
+    const row = db.getFirstSync<{ total: number }>(
+      `
+      SELECT COUNT(*) AS total
+      FROM missions_history
+      WHERE user_id = ?
+      `,
+      [userId],
+    );
+
+    return Number(row?.total ?? 0);
+  }
+
+  static upsertSynced(record: {
+    sync_id?: string | null;
+    user_id: string;
+    mission_type: string;
+    difficulty?: string | null;
+    content?: unknown;
+    correct_answer?: string | null;
+    user_answer?: string | null;
+    success: boolean;
+    error_count?: number | null;
+    duration_seconds?: number | null;
+    created_at?: string | number | null;
+  }): void {
+    const syncId = record.sync_id;
+
+    if (!syncId) {
+      return;
+    }
+
+    const createdAt =
+      typeof record.created_at === 'number'
+        ? record.created_at
+        : record.created_at
+          ? Math.floor(new Date(record.created_at).getTime() / 1000)
+          : Math.floor(Date.now() / 1000);
+
+    db.runSync(
+      `
+      INSERT OR REPLACE INTO missions_history (
+        sync_id,
+        user_id,
+        mission_type,
+        difficulty,
+        content,
+        correct_answer,
+        user_answer,
+        success,
+        error_count,
+        duration_seconds,
+        created_at,
+        synced
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      `,
+      [
+        syncId,
+        record.user_id,
+        record.mission_type,
+        record.difficulty ?? null,
+        JSON.stringify(record.content ?? {}),
+        record.correct_answer ?? '',
+        record.user_answer ?? '',
+        record.success ? 1 : 0,
+        record.error_count ?? 0,
+        record.duration_seconds ?? null,
+        createdAt,
+      ],
+    );
+  }
+
   static markAsSynced(syncIds: string[]): void {
     for (const syncId of syncIds) {
       db.runSync(

@@ -6,8 +6,8 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -48,6 +48,18 @@ type HistorySection = {
   title: string;
   data: AlarmHistoryEvent[];
 };
+
+type HistoryListItem =
+  | {
+      id: string;
+      type: 'section';
+      title: string;
+    }
+  | {
+      id: string;
+      type: 'event';
+      event: AlarmHistoryEvent;
+    };
 
 function formatAlarmTime(hour: number, minute: number): string {
   return `${hour.toString().padStart(2, '0')}:${minute
@@ -236,6 +248,7 @@ export default function AlarmHistoryScreen({
       try {
         const localEvents = getAlarmHistoryLocal(userId);
         setHistory(localEvents);
+        setLoading(false);
 
         const cloudEvents = await getAlarmHistoryCloud(userId);
 
@@ -283,6 +296,23 @@ export default function AlarmHistoryScreen({
   const sections = useMemo(
     () => groupHistoryEvents(history),
     [history],
+  );
+
+  const listItems = useMemo<HistoryListItem[]>(
+    () =>
+      sections.flatMap(section => [
+        {
+          id: `section-${section.title}`,
+          type: 'section' as const,
+          title: section.title,
+        },
+        ...section.data.map(event => ({
+          id: event.id,
+          type: 'event' as const,
+          event,
+        })),
+      ]),
+    [sections],
   );
 
   const stats = useMemo(() => {
@@ -422,6 +452,27 @@ export default function AlarmHistoryScreen({
     );
   };
 
+  const renderListItem = ({ item }: { item: HistoryListItem }) => {
+    if (item.type === 'section') {
+      return (
+        <View style={styles.section}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {item.title}
+          </Text>
+        </View>
+      );
+    }
+
+    return renderHistoryItem(item.event);
+  };
+
   return (
     <SafeAreaView
       style={[
@@ -479,20 +530,13 @@ export default function AlarmHistoryScreen({
         <View style={styles.headerSpace} />
       </View>
 
-      <ScrollView
+      <FlatList
         contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            colors={[
-              colors.primary,
-            ]}
-            tintColor={colors.primary}
-            onRefresh={() => void loadHistory(true)}
-          />
-        }
-      >
+        data={loading ? [] : listItems}
+        keyExtractor={item => item.id}
+        renderItem={renderListItem}
+        ListHeaderComponent={
+          <>
         <View
           style={[
             styles.summaryCard,
@@ -613,7 +657,7 @@ export default function AlarmHistoryScreen({
           </View>
         ) : null}
 
-        {!loading && history.length === 0 ? (
+            {!loading && history.length === 0 ? (
           <View
             style={[
               styles.emptyCard,
@@ -652,32 +696,27 @@ export default function AlarmHistoryScreen({
               aparecerán aquí.
             </Text>
           </View>
-        ) : null}
+            ) : null}
+          </>
+        }
 
-        {!loading
-          ? sections.map(section => (
-              <View
-                key={section.title}
-                style={styles.section}
-              >
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    {
-                      color: colors.textMuted,
-                    },
-                  ]}
-                >
-                  {section.title}
-                </Text>
-
-                {section.data.map(renderHistoryItem)}
-              </View>
-            ))
-          : null}
-
-        <View style={styles.bottomSpace} />
-      </ScrollView>
+        ListFooterComponent={<View style={styles.bottomSpace} />}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            colors={[
+              colors.primary,
+            ]}
+            tintColor={colors.primary}
+            onRefresh={() => void loadHistory(true)}
+          />
+        }
+      />
     </SafeAreaView>
   );
 }
