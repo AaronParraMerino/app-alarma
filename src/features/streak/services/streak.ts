@@ -10,10 +10,6 @@ import {
   StreakSummary,
 } from '../types/streak.types';
 
-const ONE_DAY_MS = 86_400_000;
-const PROTECTION_UNLOCK_STREAK = 30;
-const MAX_PROTECTIONS = 3;
-
 function getDateKey(date: Date): string {
   return [
     date.getFullYear(),
@@ -240,6 +236,14 @@ export function markAlarmStreakEventAsSyncedLocal(id: string): void {
 export async function insertAlarmStreakEventCloud(
   event: AlarmStreakEvent,
 ): Promise<void> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.user?.id || session.user.id !== event.userId) {
+    throw new Error('No hay sesion Supabase valida para sincronizar racha.');
+  }
+
   const { error } = await supabase
     .from('alarm_streak_events')
     .upsert([
@@ -283,6 +287,25 @@ export async function getAlarmStreakEventsCloud(
   }
 
   return (data ?? []).map(mapRowToAlarmStreakEvent);
+}
+
+async function syncUnsyncedAlarmStreakEvents(
+  userId: string,
+): Promise<void> {
+  const unsyncedEvents = getUnsyncedAlarmStreakEventsLocal(userId);
+
+  for (const event of unsyncedEvents) {
+    try {
+      await insertAlarmStreakEventCloud(event);
+      markAlarmStreakEventAsSyncedLocal(event.id);
+    } catch (error) {
+      console.log(
+        '[Streak] Evento de racha pendiente de sincronizar:',
+        error,
+      );
+      return;
+    }
+  }
 }
 
 async function saveAlarmStreakEvent(
@@ -336,25 +359,39 @@ function getDayStatusMap(
   events: AlarmStreakEvent[],
 ): Map<string, StreakEventType> {
   const byDay = new Map<string, StreakEventType>();
+  const priority: Record<StreakEventType, number> = {
+    frozen: 1,
+    missed: 2,
+    completed: 3,
+  };
 
   events.forEach(event => {
+    const eventType = getEffectiveEventType(event);
     const current = byDay.get(event.eventDate);
 
-    if (current === 'completed') {
-      return;
-    }
-
     if (
-      current === 'frozen' &&
-      event.eventType === 'missed'
+      current &&
+      priority[current] >= priority[eventType]
     ) {
       return;
     }
 
-    byDay.set(event.eventDate, event.eventType);
+    byDay.set(event.eventDate, eventType);
   });
 
   return byDay;
+}
+
+function getEffectiveEventType(event: AlarmStreakEvent): StreakEventType {
+  if (
+    event.eventType === 'missed' &&
+    !event.alarmId &&
+    !event.alarmTime
+  ) {
+    return 'frozen';
+  }
+
+  return event.eventType;
 }
 
 function getEffectiveDayStatus(
@@ -372,13 +409,12 @@ function calculateCurrentStreak(
   }
 
   const byDay = getDayStatusMap(events);
-  const allDates = Array.from(byDay.keys()).sort();
-
-  if (allDates.length === 0) {
-    return 0;
-  }
-
-  let cursorDateKey = allDates[allDates.length - 1];
+  const todayKey = getTodayDateKey();
+  const todayStatus = byDay.get(todayKey);
+  let cursorDateKey =
+    todayStatus === 'completed' || todayStatus === 'frozen'
+      ? todayKey
+      : getYesterdayDateKey();
   let streak = 0;
   let foundCompletedDay = false;
 
@@ -420,39 +456,41 @@ function calculateBestStreak(
 
   let best = 0;
   let current = 0;
+  let previousDateKey: string | null = null;
 
   allDates.forEach(dateKey => {
     const status = byDay.get(dateKey);
 
+    if (
+      previousDateKey &&
+      addDaysToDateKey(previousDateKey, 1) !== dateKey
+    ) {
+      current = 0;
+    }
+
     if (status === 'completed') {
       current += 1;
       best = Math.max(best, current);
+      previousDateKey = dateKey;
       return;
     }
 
     if (status === 'frozen') {
+      previousDateKey = dateKey;
       return;
     }
 
     if (status === 'missed') {
       current = 0;
+      previousDateKey = dateKey;
     }
   });
 
   return best;
 }
 
-function getProtectionsAvailable(events: AlarmStreakEvent[]): number {
-  const lastProtectionEvent = events
-    .filter(
-      event =>
-        event.usedProtection ||
-        event.protectionsAfter > 0 ||
-        event.protectionsBefore > 0,
-    )
-    .sort((a, b) => b.createdAt - a.createdAt)[0];
-
-  return lastProtectionEvent?.protectionsAfter ?? 0;
+function getProtectionsAvailable(_events: AlarmStreakEvent[]): number {
+  return 0;
 }
 
 async function reconcileMissingStreakDays(
@@ -463,22 +501,16 @@ async function reconcileMissingStreakDays(
     return events;
   }
 
-  const sortedEvents = [...events].sort((a, b) => {
-    if (a.eventDate === b.eventDate) {
-      return b.createdAt - a.createdAt;
-    }
+  const byDay = getDayStatusMap(events);
+  const eventDates = Array.from(byDay.keys()).sort();
 
-    return b.eventDate.localeCompare(a.eventDate);
-  });
-
-  const latestEvent = sortedEvents[0];
-
-  if (!latestEvent) {
+  if (eventDates.length === 0) {
     return events;
   }
 
   const yesterdayKey = getYesterdayDateKey();
-  let cursorDateKey = addDaysToDateKey(latestEvent.eventDate, 1);
+  const firstDateKey = eventDates[0];
+  let cursorDateKey = addDaysToDateKey(firstDateKey, 1);
 
   if (!isSameOrBeforeDateKey(cursorDateKey, yesterdayKey)) {
     return events;
@@ -487,8 +519,10 @@ async function reconcileMissingStreakDays(
   const generatedEvents: AlarmStreakEvent[] = [];
 
   while (isSameOrBeforeDateKey(cursorDateKey, yesterdayKey)) {
-    const alreadyHasEvent = events.some(
-      event => event.eventDate === cursorDateKey,
+    const alreadyHasEvent =
+      byDay.has(cursorDateKey) ||
+      generatedEvents.some(
+        event => event.eventDate === cursorDateKey,
     );
 
     if (!alreadyHasEvent) {
@@ -522,6 +556,8 @@ export async function getStreakSummary(
   let events = localEvents;
 
   try {
+    await syncUnsyncedAlarmStreakEvents(userId);
+
     const cloudEvents = await getAlarmStreakEventsCloud(userId);
 
     cloudEvents.forEach(event => {
@@ -536,7 +572,7 @@ export async function getStreakSummary(
   events = await reconcileMissingStreakDays(userId, events);
 
   const todayKey = getTodayDateKey();
-  const todayEvent = events.find(event => event.eventDate === todayKey);
+  const todayStatus = getEffectiveDayStatus(events, todayKey);
 
   return {
     currentStreak: calculateCurrentStreak(events),
@@ -545,8 +581,8 @@ export async function getStreakSummary(
       event => event.eventType === 'completed',
     ).length,
     protectionsAvailable: getProtectionsAvailable(events),
-    protectionsUsed: events.filter(event => event.usedProtection).length,
-    todayStatus: todayEvent?.eventType ?? null,
+    protectionsUsed: 0,
+    todayStatus,
     events,
   };
 }
@@ -564,39 +600,14 @@ export async function recordCompletedAlarmStreak(input: {
     return;
   }
 
-  const currentProtections = summary.protectionsAvailable;
-
-  const previewEvent = buildAlarmStreakEvent({
-    userId: input.userId,
-    alarmId: input.alarmId ?? null,
-    alarmTime: input.alarmTime ?? null,
-    eventType: 'completed',
-    eventDate: todayKey,
-    protectionsBefore: currentProtections,
-    protectionsAfter: currentProtections,
-  });
-
-  const previewEvents = [
-    previewEvent,
-    ...summary.events,
-  ];
-
-  const nextStreak = calculateCurrentStreak(previewEvents);
-
-  const shouldUnlockProtections =
-    nextStreak > 0 &&
-    nextStreak % PROTECTION_UNLOCK_STREAK === 0;
-
   await recordAlarmStreakEvent({
     userId: input.userId,
     alarmId: input.alarmId ?? null,
     alarmTime: input.alarmTime ?? null,
     eventType: 'completed',
     eventDate: todayKey,
-    protectionsBefore: currentProtections,
-    protectionsAfter: shouldUnlockProtections
-      ? MAX_PROTECTIONS
-      : currentProtections,
+    protectionsBefore: 0,
+    protectionsAfter: 0,
   });
 }
 
@@ -608,10 +619,6 @@ export async function recordMissedOrFrozenAlarm(input: {
   const summary = await getStreakSummary(input.userId);
   const todayKey = getTodayDateKey();
   const todayStatus = getEffectiveDayStatus(summary.events, todayKey);
-
-  if (todayStatus === 'completed') {
-    return todayStatus;
-  }
 
   if (todayStatus === 'missed') {
     return todayStatus;

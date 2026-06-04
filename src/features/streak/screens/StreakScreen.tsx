@@ -92,29 +92,53 @@ function formatShortDate(date: Date, isSpanish: boolean): string {
     .replace('.', '');
 }
 
+function getEffectiveEventType(event: AlarmStreakEvent): StreakEventType {
+  if (
+    event.eventType === 'missed' &&
+    !event.alarmId &&
+    !event.alarmTime
+  ) {
+    return 'frozen';
+  }
+
+  return event.eventType;
+}
+
 function getEventStatusLabel(event: AlarmStreakEvent, isSpanish: boolean): string {
-  if (event.eventType === 'completed') {
+  const eventType = getEffectiveEventType(event);
+
+  if (eventType === 'completed') {
     return isSpanish ? 'Alarma completada' : 'Alarm completed';
   }
-  if (event.eventType === 'frozen') {
+  if (eventType === 'frozen') {
     return isSpanish ? 'Racha congelada' : 'Streak frozen';
   }
   return isSpanish ? 'Alarma incompleta' : 'Alarm missed';
 }
 
 function getEventIconName(event: AlarmStreakEvent): React.ComponentProps<typeof Ionicons>['name'] {
-  if (event.eventType === 'completed') return 'checkmark-circle-outline';
-  if (event.eventType === 'frozen') return 'snow-outline';
+  const eventType = getEffectiveEventType(event);
+
+  if (eventType === 'completed') return 'checkmark-circle-outline';
+  if (eventType === 'frozen') return 'snow-outline';
   return 'close-circle-outline';
 }
 
 function buildDayStatusMap(events: AlarmStreakEvent[]): Map<string, StreakEventType> {
   const map = new Map<string, StreakEventType>();
+  const priority: Record<StreakEventType, number> = {
+    frozen: 1,
+    missed: 2,
+    completed: 3,
+  };
+
   events.forEach(event => {
+    const eventType = getEffectiveEventType(event);
     const current = map.get(event.eventDate);
-    if (current === 'completed') return;
-    if (current === 'frozen' && event.eventType === 'missed') return;
-    map.set(event.eventDate, event.eventType);
+
+    if (current && priority[current] >= priority[eventType]) return;
+
+    map.set(event.eventDate, eventType);
   });
   return map;
 }
@@ -254,8 +278,6 @@ export default function StreakScreen({ navigation, route }: Props) {
   const currentStreak = summary?.currentStreak ?? 0;
   const bestStreak = summary?.bestStreak ?? 0;
   const successfulAlarms = summary?.successfulAlarms ?? 0;
-  const protectionsAvailable = summary?.protectionsAvailable ?? 0;
-  const protectionsUsed = summary?.protectionsUsed ?? 0;
 
   const daysToBest = Math.max(bestStreak - currentStreak, 0);
 
@@ -531,6 +553,75 @@ export default function StreakScreen({ navigation, route }: Props) {
               </View>
             </View>
 
+            <View
+              style={[
+                styles.rulesCard,
+                { backgroundColor: colors.bgCard, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.rulesHeader}>
+                <View style={[styles.rulesHeaderIcon, { backgroundColor: colors.primary + '18' }]}>
+                  <Ionicons name="information-circle-outline" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.rulesHeaderText}>
+                  <Text style={[styles.rulesTitle, { color: colors.text }]}>
+                    {isSpanish ? 'Como funciona tu racha' : 'How your streak works'}
+                  </Text>
+                  <Text style={[styles.rulesSubtitle, { color: colors.textSecondary }]}>
+                    {isSpanish
+                      ? 'Solo cuenta cuando una alarma se apaga desde la ejecucion real.'
+                      : 'It only counts when an alarm is dismissed from the real alarm flow.'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.rulesList}>
+                <View style={styles.ruleRow}>
+                  <View style={[styles.ruleIconWrap, { backgroundColor: colors.warning + '22', borderColor: colors.warning }]}>
+                    <Ionicons name="flame" size={18} color={colors.warning} />
+                  </View>
+                  <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+                    {isSpanish
+                      ? 'Si completas al menos una alarma del dia, ese dia suma a tu racha.'
+                      : 'Completing at least one alarm that day adds it to your streak.'}
+                  </Text>
+                </View>
+
+                <View style={styles.ruleRow}>
+                  <View style={[styles.ruleIconWrap, { backgroundColor: FROZEN_COLOR + '24', borderColor: FROZEN_COLOR }]}>
+                    <Ionicons name="snow-outline" size={18} color={FROZEN_COLOR} />
+                  </View>
+                  <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+                    {isSpanish
+                      ? 'Si no hay alarma completada ni incompleta, el dia queda congelado y mantiene la racha.'
+                      : 'If there is no completed or missed alarm, the day freezes and keeps the streak.'}
+                  </Text>
+                </View>
+
+                <View style={styles.ruleRow}>
+                  <View style={[styles.ruleIconWrap, { backgroundColor: colors.danger + '18', borderColor: colors.danger }]}>
+                    <Ionicons name="close-outline" size={18} color={colors.danger} />
+                  </View>
+                  <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+                    {isSpanish
+                      ? 'Tras 15 errores aparece No pude resolver. Si el dia termina solo con alarmas incompletas, la racha empieza en 0.'
+                      : 'After 15 mistakes, I could not solve it appears. If the day ends only with missed alarms, the streak resets to 0.'}
+                  </Text>
+                </View>
+
+                <View style={styles.ruleRow}>
+                  <View style={[styles.ruleIconWrap, { backgroundColor: colors.bgElevated, borderColor: colors.border }]}>
+                    <Ionicons name="school-outline" size={18} color={colors.textMuted} />
+                  </View>
+                  <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+                    {isSpanish
+                      ? 'Practicar misiones no suma ni rompe la racha; solo sirve para aprender.'
+                      : 'Practice missions do not add to or break the streak; they are only for learning.'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               {isSpanish ? 'Actividad reciente' : 'Recent activity'}
             </Text>
@@ -550,8 +641,9 @@ export default function StreakScreen({ navigation, route }: Props) {
             ) : (
               <View style={[styles.activityCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                 {recentEvents.map((event, index) => {
-                  const isCompleted = event.eventType === 'completed';
-                  const isFrozen = event.eventType === 'frozen';
+                  const eventType = getEffectiveEventType(event);
+                  const isCompleted = eventType === 'completed';
+                  const isFrozen = eventType === 'frozen';
                   const eventColor = isCompleted ? colors.success : isFrozen ? FROZEN_COLOR : colors.danger;
 
                   return (
@@ -586,32 +678,20 @@ export default function StreakScreen({ navigation, route }: Props) {
 
               <View style={styles.bottomMotivationText}>
                 <Text style={[styles.bottomMotivationTitle, { color: colors.text }]}>
-                  {protectionsAvailable > 0
-                    ? isSpanish ? `Te quedan ${protectionsAvailable} protecciones` : `${protectionsAvailable} protections left`
-                    : daysToBest > 0
-                      ? isSpanish ? '¡Sigue así!' : 'Keep going!'
-                      : isSpanish ? '¡Vas muy bien!' : 'You are doing great!'}
+                  {daysToBest > 0
+                    ? isSpanish ? '¡Sigue así!' : 'Keep going!'
+                    : isSpanish ? '¡Vas muy bien!' : 'You are doing great!'}
                 </Text>
 
                 <Text style={[styles.bottomMotivationDescription, { color: colors.textSecondary }]}>
-                  {protectionsAvailable > 0
+                  {daysToBest > 0
                     ? isSpanish
-                      ? 'Si fallas una alarma, una protección puede congelar tu racha.'
-                      : 'If you miss an alarm, one protection can freeze your streak.'
-                    : daysToBest > 0
-                      ? isSpanish
-                        ? `Te faltan ${daysToBest} días para superar tu mejor racha de ${bestStreak} días.`
-                        : `${daysToBest} days left to beat your best streak of ${bestStreak} days.`
-                      : isSpanish
-                        ? 'Completa tus alarmas para seguir fortaleciendo tus hábitos.'
-                        : 'Complete your alarms to keep building stronger habits.'}
+                      ? `Te faltan ${daysToBest} días para superar tu mejor racha de ${bestStreak} días.`
+                      : `${daysToBest} days left to beat your best streak of ${bestStreak} days.`
+                    : isSpanish
+                      ? 'Completa tus alarmas para seguir fortaleciendo tus hábitos.'
+                      : 'Complete your alarms to keep building stronger habits.'}
                 </Text>
-
-                {protectionsUsed > 0 ? (
-                  <Text style={[styles.protectionUsedText, { color: FROZEN_COLOR }]}>
-                    {isSpanish ? `Protecciones usadas: ${protectionsUsed}` : `Protections used: ${protectionsUsed}`}
-                  </Text>
-                ) : null}
               </View>
 
               <View style={styles.trophyWrap}>
@@ -666,6 +746,16 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 30, fontWeight: '900', letterSpacing: -0.8 },
   statSuffix: { fontSize: 13, fontWeight: '800' },
   verticalDivider: { width: 1, height: 84 },
+  rulesCard: { borderWidth: 1, borderRadius: 20, padding: 14, marginBottom: 22 },
+  rulesHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  rulesHeaderIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  rulesHeaderText: { flex: 1 },
+  rulesTitle: { fontSize: 16, fontWeight: '900', marginBottom: 3 },
+  rulesSubtitle: { fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  rulesList: { gap: 10 },
+  ruleRow: { flexDirection: 'row', alignItems: 'center' },
+  ruleIconWrap: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  ruleText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '600' },
   progressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   sectionTitle: { fontSize: 18, fontWeight: '900', marginBottom: 12 },
   segmented: { flexDirection: 'row', borderWidth: 1, borderRadius: 999, overflow: 'hidden', alignItems: 'center' },
@@ -707,7 +797,6 @@ const styles = StyleSheet.create({
   bottomMotivationText: { flex: 1 },
   bottomMotivationTitle: { fontSize: 18, fontWeight: '900', marginBottom: 6 },
   bottomMotivationDescription: { fontSize: 13, lineHeight: 19 },
-  protectionUsedText: { fontSize: 12, fontWeight: '800', marginTop: 6 },
   trophyWrap: { width: 38, alignItems: 'center' },
   bottomSpace: { height: 40 },
 });

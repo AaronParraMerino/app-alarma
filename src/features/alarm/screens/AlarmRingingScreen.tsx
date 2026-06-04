@@ -545,23 +545,44 @@ export default function AlarmRingingScreen({
         style={[
           styles.giveUpButton,
           {
-            backgroundColor: colors.bgCard,
-            borderColor: colors.danger + '66',
+            backgroundColor: colors.danger,
+            borderColor: colors.danger + 'AA',
           },
         ]}
         onPress={giveUpAlarm}
         activeOpacity={0.88}
       >
-        <Text
-          style={[
-            styles.giveUpButtonText,
-            {
-              color: colors.danger,
-            },
-          ]}
-        >
-          {isGivingUp ? 'Cerrando...' : 'No pude resolver'}
-        </Text>
+        <Ionicons
+          name="warning-outline"
+          size={17}
+          color={colors.white}
+        />
+
+        <View style={styles.giveUpTextWrap}>
+          <Text
+            style={[
+              styles.giveUpButtonText,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isGivingUp
+              ? isSpanish ? 'Cerrando...' : 'Closing...'
+              : isSpanish ? 'No pude resolver' : 'I could not solve it'}
+          </Text>
+
+          <Text
+            style={[
+              styles.giveUpButtonHint,
+              {
+                color: colors.white,
+              },
+            ]}
+          >
+            {isSpanish ? 'Reinicia tu racha' : 'Resets your streak'}
+          </Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -1072,18 +1093,37 @@ const styles = StyleSheet.create({
   giveUpButton: {
     position: 'absolute',
     right: 16,
-    bottom: 22,
+    top: 72,
     borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     zIndex: 999,
     elevation: 8,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+  },
+
+  giveUpTextWrap: {
+    gap: 1,
   },
 
   giveUpButtonText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
+  },
+
+  giveUpButtonHint: {
+    fontSize: 10,
+    fontWeight: '700',
+    opacity: 0.85,
   },
 
 });
