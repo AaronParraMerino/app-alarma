@@ -12,7 +12,7 @@ interface Props {
   accentBg: string;
   isSpanish: boolean;
 }
-// Componente que renderiza una pila/lista de palabras con estado visual
+// Componente que renderiza una lista de palabras con estado visual
 export function WordStack({
   challenges,
   currentIndex,

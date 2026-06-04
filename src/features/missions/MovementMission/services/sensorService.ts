@@ -12,7 +12,7 @@ export interface SensorReading {
   reason?: string;
 }
 
-// Revisa que sensores existen en el dispositivo.
+// Revisa que sensores existen en el dispositivo
 export async function checkSensorCapabilities(): Promise<SensorCapabilities> {
   const [accel, gyro, pedo] = await Promise.all([
     Accelerometer.isAvailableAsync().catch(() => false),
@@ -27,7 +27,7 @@ export async function checkSensorCapabilities(): Promise<SensorCapabilities> {
   };
 }
 
-// Pide permisos necesarios y permite fallback si pedometer no esta listo.
+// Pide permisos necesarios y permite fallback si pedometer no esta listo
 export async function requestSensorPermissions(): Promise<boolean> {
   try {
     const pedometerAvailable = await Pedometer.isAvailableAsync().catch(() => false);
@@ -43,7 +43,7 @@ export async function requestSensorPermissions(): Promise<boolean> {
   }
 }
 
-// Conecta cada tipo de movimiento con su detector.
+// Conecta cada tipo de movimiento con su detector
 export function subscribeToMovement(
   type: MovementType,
   onDetected: (reading: SensorReading) => void,
@@ -70,7 +70,7 @@ export function subscribeToMovement(
   return () => {};
 }
 
-// Detecta una sacudida real con acelerometro.
+// Detecta una sacudida real con acelerometro
 function subscribeToShake(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
@@ -137,7 +137,7 @@ function subscribeToShake(
   return () => sub.remove();
 }
 
-// Entrada principal de caminar.
+// Entrada principal de caminar
 function subscribeToWalk(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
@@ -145,7 +145,7 @@ function subscribeToWalk(
   return subscribeToWalkByAccelerometer(threshold, onDetected);
 }
 
-// Valida caminar usando el contador real de pasos cuando esta disponible.
+// Valida caminar usando el contador real de pasos cuando esta disponible
 function subscribeToWalkByPedometer(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
@@ -216,7 +216,7 @@ function subscribeToWalkByPedometer(
   };
 }
 
-// Valida caminar por tiempo acumulado de movimiento real.
+// Valida caminar por tiempo acumulado de movimiento real
 function subscribeToWalkByAccelerometer(
   threshold: number,
   onDetected: (reading: SensorReading) => void,
@@ -405,7 +405,7 @@ function subscribeToTilt(
   return () => sub.remove();
 }
 
-// Detecta giro real usando el eje dominante del giroscopio.
+// Detecta giro real usando el eje dominante del giroscopio
 function subscribeToRotate(
   threshold: number,
   onDetected: (reading: SensorReading) => void,

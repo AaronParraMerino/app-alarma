@@ -155,7 +155,7 @@ export function useMovementMission(
     };
   }, [clearStepErrorTimer, cleanup]);
 
-  // Cierra la mision y arma el resultado final.
+  // Cierra la mision y arma el resultado final
   const finishMission = useCallback((success: boolean) => {
     cleanup();
 
@@ -371,10 +371,6 @@ export function useMovementMission(
         elapsedMs: Date.now() - startTimeRef.current,
       }));
 
-      /*
-        Esta regla no  aplica a walk
-        Walk ya falla desde sensorService con reading.failed cuando pasan 3s sin caminar
-      */
       if (
         !isWalkStep &&
         elapsed >= 5 &&
@@ -387,8 +383,7 @@ export function useMovementMission(
       }
 
       /*
-        Esta regla no aplica a walk
-        Walk ya no tiene tiempo total máximo; usa tiempo acumulado caminando
+        Walk no tiene tiempo total máximo, usa tiempo acumulado caminando
       */
       if (!isWalkStep && elapsed >= step.durationSeconds) {
         const finalRatio = totalSamplesRef.current > 0
