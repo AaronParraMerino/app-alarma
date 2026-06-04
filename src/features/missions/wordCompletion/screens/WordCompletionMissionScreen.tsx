@@ -7,6 +7,8 @@ import { PracticeExitButton } from '../../../../shared/components/missions/Pract
 
 type Props = NativeStackScreenProps<MissionsStackParamList, 'WordCompletionMissionScreen'>;
 
+
+/* Ejecuta una misión de completar palabras*/
 export default function WordCompletionMissionScreen({ navigation, route }: Props) {
   const { difficulty, quantity, alarmLabel } = route.params;
 
