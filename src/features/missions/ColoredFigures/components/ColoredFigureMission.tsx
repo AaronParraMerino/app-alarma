@@ -72,8 +72,8 @@ function getDifficultyLabel(
 
   if (difficulty === 'medium') {
     return isSpanish
-      ? 'normal'
-      : 'normal';
+      ? 'medio'
+      : 'medium';
   }
 
   return isSpanish
@@ -93,8 +93,8 @@ function getDifficultyBadgeLabel(
 
   if (difficulty === 'medium') {
     return isSpanish
-      ? 'NORMAL'
-      : 'NORMAL';
+      ? 'MEDIO'
+      : 'MEDIUM';
   }
 
   return isSpanish

@@ -103,7 +103,7 @@ function getSoundResourceName(soundUri: string | null): string | null {
 }
 
 function isAlarmVibrationEnabled(alarm: Pick<Alarm, 'vibrationEnabled'>): boolean {
-  return alarm.vibrationEnabled !== false;
+  return alarm.vibrationEnabled === true;
 }
 
 function getAlarmVibrationPatternId(

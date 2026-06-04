@@ -97,8 +97,8 @@ function getDifficultyLabel(
 
   if (difficulty === 'medium') {
     return isSpanish
-      ? 'Normal'
-      : 'Normal';
+      ? 'Medio'
+      : 'Medium';
   }
 
   return isSpanish

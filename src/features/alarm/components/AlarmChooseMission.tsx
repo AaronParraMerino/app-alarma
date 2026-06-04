@@ -130,7 +130,7 @@ function getDifficultyLabel(
     return isSpanish ? 'Difícil' : 'Hard';
   }
 
-  return isSpanish ? 'Normal' : 'Normal';
+  return isSpanish ? 'Medio' : 'Medium';
 }
 
 function getSubtitle(

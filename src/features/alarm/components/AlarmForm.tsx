@@ -640,7 +640,7 @@ export default function AlarmForm({
     useState<boolean>(
       initialDraft?.vibrationEnabled ??
         initialData?.vibrationEnabled ??
-        true,
+        false,
     );
 
   const [vibrationPattern, setVibrationPattern] =

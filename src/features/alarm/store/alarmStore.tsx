@@ -12,6 +12,7 @@ import {
   clearPendingAlarmDeleteLocal,
   deleteAlarmLocal,
   enqueueAlarmDeleteLocal,
+  getAllAlarmsLocal,
   getAlarmsLocal,
   insertAlarmLocal,
 } from '../../../shared/services/storage/localDB.service';
@@ -45,14 +46,21 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
   const userId = isAuthenticated && !isGuest ? user?.id : undefined;
 
   const reloadLocalAlarms = useCallback(() => {
-    const localAlarms = getAlarmsLocal();
+    const localAlarms = getAlarmsLocal(userId ?? null);
+    const visibleAlarmIds = new Set(localAlarms.map(alarm => alarm.id));
+
+    getAllAlarmsLocal()
+      .filter(alarm => !visibleAlarmIds.has(alarm.id))
+      .forEach(alarm => {
+        void cancelAlarmNotificationsByAlarmId(alarm.id);
+      });
 
     setAlarms(localAlarms);
 
     localAlarms.forEach(alarm => {
       void scheduleAlarmNotifications(alarm);
     });
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     initDB();
@@ -74,7 +82,9 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
 
       setAlarms(prev => [...prev, newAlarm]);
 
-      insertAlarmLocal(newAlarm);
+      insertAlarmLocal(newAlarm, {
+        userId: userId ?? null,
+      });
 
       if (userId) {
         void incrementTotalAlarmsCreated(userId).catch(error => {
@@ -97,7 +107,7 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
       setAlarms(prev => {
         const oldAlarm =
           prev.find(a => a.id === id) ??
-          getAlarmsLocal().find(a => a.id === id);
+          getAlarmsLocal(userId ?? null).find(a => a.id === id);
 
         if (!oldAlarm) return prev;
 
@@ -111,7 +121,9 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
           ? prev.map(a => (a.id === id ? updated : a))
           : [...prev, updated];
 
-        insertAlarmLocal(updated);
+        insertAlarmLocal(updated, {
+          userId: userId ?? null,
+        });
 
         if (userId) {
           void recordAlarmHistory(updated, userId, 'updated');
@@ -138,7 +150,7 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
       setAlarms(prev => {
         const alarmToDelete =
           prev.find(a => a.id === id) ??
-          getAlarmsLocal().find(a => a.id === id);
+          getAlarmsLocal(userId ?? null).find(a => a.id === id);
 
         if (alarmToDelete && userId) {
           void recordAlarmHistory(alarmToDelete, userId, 'deleted');
@@ -180,7 +192,9 @@ export function AlarmProvider({ children }: { children: ReactNode }) {
         const updated = next.find(a => a.id === id);
 
         if (updated) {
-          insertAlarmLocal(updated);
+          insertAlarmLocal(updated, {
+            userId: userId ?? null,
+          });
         }
 
         if (updated && userId) {

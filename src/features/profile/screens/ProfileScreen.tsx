@@ -301,13 +301,31 @@ export default function ProfileScreen({
   }
 
   const email = currentUser.email ?? '';
-
-  const displayName =
-    profile?.username ??
+  const emailLocalPart = email.split('@')[0] ?? '';
+  const profileUsername = profile?.username?.trim();
+  const authUsername = (
     currentUser.username ??
     currentUser.full_name ??
     currentUser.name ??
-    email.split('@')[0] ??
+    ''
+  ).trim();
+  const hasProfileUsername =
+    Boolean(profileUsername) &&
+    (
+      profileUsername !== emailLocalPart ||
+      !authUsername ||
+      authUsername === emailLocalPart
+    );
+
+  const displayName =
+    (hasProfileUsername ? profileUsername : null) ??
+    (
+      authUsername && authUsername !== emailLocalPart
+        ? authUsername
+        : null
+    ) ??
+    profileUsername ??
+    emailLocalPart ??
     (isSpanish ? 'Usuario' : 'User');
 
   const handleLogout = () => {

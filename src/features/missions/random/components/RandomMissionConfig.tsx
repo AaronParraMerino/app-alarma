@@ -161,8 +161,8 @@ export function RandomMissionConfig({
         </Text>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
           {isSpanish
-            ? 'Al sonar la alarma se elegiran misiones disponibles al azar con la dificultad y cantidad que configures aqui.'
-            : 'When the alarm rings, available missions will be chosen randomly with the difficulty and quantity you configure here.'}
+            ? 'Al sonar la alarma se elegiran misiones disponibles al azar. Cada una usara una configuracion valida segun su tipo.'
+            : 'When the alarm rings, available missions will be chosen randomly. Each one will use a valid configuration for its type.'}
         </Text>
 
         <View style={styles.missionList}>
@@ -310,6 +310,11 @@ export function RandomMissionConfig({
 
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
           {isSpanish ? 'Retos por mision' : 'Challenges per mission'}
+        </Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
+          {isSpanish
+            ? 'Aplica a misiones con rondas. Detectar objetos y cultura general eligen objetos, categorias y meta automaticamente.'
+            : 'Applies to missions with rounds. Object detection and trivia choose objects, categories, and goals automatically.'}
         </Text>
         <View style={styles.quantityRow}>
           <View

@@ -36,6 +36,7 @@ export interface AlarmMission {
 
 export interface Alarm {
   id: string;
+  userId?: string | null;
   hour: number;        // 0-23
   minute: number;      // 0-59
   label: string;

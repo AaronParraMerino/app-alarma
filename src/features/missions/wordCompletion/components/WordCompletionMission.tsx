@@ -70,7 +70,7 @@ function getDifficultyLabel(
   }
 
   if (difficulty === 'medium') {
-    return isSpanish ? 'normal' : 'normal';
+    return isSpanish ? 'medio' : 'medium';
   }
 
   return isSpanish ? 'dificil' : 'hard';
@@ -85,7 +85,7 @@ function getDifficultyPillLabel(
   }
 
   if (difficulty === 'medium') {
-    return isSpanish ? 'NORMAL' : 'NORMAL';
+    return isSpanish ? 'MEDIO' : 'MEDIUM';
   }
 
   return isSpanish ? 'DIFICIL' : 'HARD';

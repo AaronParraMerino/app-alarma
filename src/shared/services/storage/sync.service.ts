@@ -62,7 +62,7 @@ export const syncAlarms = async (userId: string): Promise<void> => {
       }
     }
 
-    const unsynced = getUnsyncedAlarms() as Alarm[];
+    const unsynced = getUnsyncedAlarms(userId) as Alarm[];
     if (unsynced.length > 0) {
       console.log(`[Sync] Subiendo ${unsynced.length} alarmas pendientes...`);
       for (const alarm of unsynced) {
@@ -74,7 +74,7 @@ export const syncAlarms = async (userId: string): Promise<void> => {
     const cloudData = (await getAlarmsCloud(userId)) as Alarm[];
     if (cloudData.length > 0) {
       console.log(`[Sync] Descargando ${cloudData.length} alarmas de la nube...`);
-      const localAlarms = getAlarmsLocal();
+      const localAlarms = getAlarmsLocal(userId);
       for (const alarm of cloudData) {
         const localAlarm = localAlarms.find(item => item.id === alarm.id);
         const cloudHasVibration =
@@ -87,17 +87,24 @@ export const syncAlarms = async (userId: string): Promise<void> => {
         insertAlarmLocal(
           {
             ...alarm,
-            enabled: !!alarm.enabled,
+            userId,
+            enabled:
+              alarm.enabled !== undefined
+                ? !!alarm.enabled
+                : Number((alarm as any).active) === 1,
             vibrationEnabled: cloudHasVibration
               ? alarm.vibrationEnabled ?? Boolean((alarm as any).vibration_enabled)
-              : localAlarm?.vibrationEnabled ?? true,
+              : localAlarm?.vibrationEnabled ?? false,
             vibrationPattern: cloudHasVibrationPattern
               ? normalizeAlarmVibrationPattern(
                   alarm.vibrationPattern ?? (alarm as any).vibration_pattern,
                 )
               : localAlarm?.vibrationPattern ?? 'classic',
           },
-          { synced: true },
+          {
+            synced: true,
+            userId,
+          },
         );
       }
     }

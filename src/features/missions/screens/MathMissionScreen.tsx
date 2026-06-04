@@ -51,8 +51,8 @@ const LEVEL_CONFIG: Record<Level, LevelConfig> = {
     answer: 376,
   },
   normal: {
-    badge: 'Nivel normal',
-    label: 'Normal',
+    badge: 'Nivel medio',
+    label: 'Medio',
     accent: Colors.primary,
     badgeBg: '#1c1255',
     cardBg: 'rgba(167,139,250,0.09)',

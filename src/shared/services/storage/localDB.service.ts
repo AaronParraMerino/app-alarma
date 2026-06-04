@@ -5,6 +5,7 @@ import { normalizeRepeatDays } from '../../../features/alarm/utils/repeatSchedul
 
 interface InsertAlarmLocalOptions {
   synced?: boolean;
+  userId?: string | null;
 }
 
 const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
@@ -26,6 +27,7 @@ const mapRowToAlarm = (row: any): Alarm => {
   const [hh = '0', mm = '0'] = String(row.time ?? '0:0').split(':');
   return {
     id: String(row.id),
+    userId: row.user_id ? String(row.user_id) : null,
     hour: Number.parseInt(hh, 10) || 0,
     minute: Number.parseInt(mm, 10) || 0,
     label: String(row.label ?? ''),
@@ -35,7 +37,7 @@ const mapRowToAlarm = (row: any): Alarm => {
     randomMissions: Number(row.random_missions) === 1,
     soundUri: row.sound_uri ?? null,
     vibrationEnabled: row.vibration_enabled === undefined
-      ? true
+      ? false
       : Number(row.vibration_enabled) === 1,
     vibrationPattern: normalizeAlarmVibrationPattern(row.vibration_pattern),
     createdAt: normalizeTimestamp(Number(row.created_at)),
@@ -47,13 +49,14 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
   if (typeof alarm.hour === 'number' && typeof alarm.minute === 'number') {
     return {
       ...alarm,
+      userId: alarm.userId ?? null,
       label: alarm.label ?? '',
       enabled: Boolean(alarm.enabled),
       repeatDays: normalizeRepeatDays(alarm.repeatDays ?? []),
       missions: alarm.missions ?? [],
       randomMissions: Boolean(alarm.randomMissions),
       soundUri: alarm.soundUri ?? null,
-      vibrationEnabled: alarm.vibrationEnabled ?? true,
+      vibrationEnabled: alarm.vibrationEnabled ?? false,
       vibrationPattern: normalizeAlarmVibrationPattern(alarm.vibrationPattern),
       createdAt: alarm.createdAt ?? Date.now(),
       updatedAt: alarm.updatedAt ?? Date.now(),
@@ -63,6 +66,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
   const [hh = '0', mm = '0'] = String(alarm.time ?? '0:0').split(':');
   return {
     id: String(alarm.id),
+    userId: alarm.user_id ?? alarm.userId ?? null,
     hour: Number.parseInt(hh, 10) || 0,
     minute: Number.parseInt(mm, 10) || 0,
     label: String(alarm.label ?? ''),
@@ -73,7 +77,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
       Number(alarm.random_missions) === 1 || Boolean(alarm.randomMissions),
     soundUri: alarm.sound_uri ?? alarm.soundUri ?? null,
     vibrationEnabled: alarm.vibration_enabled === undefined
-      ? alarm.vibrationEnabled ?? true
+      ? alarm.vibrationEnabled ?? false
       : Number(alarm.vibration_enabled) === 1,
     vibrationPattern: normalizeAlarmVibrationPattern(
       alarm.vibration_pattern ?? alarm.vibrationPattern,
@@ -83,8 +87,21 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
   };
 };
 
-export const getAlarmsLocal = (): Alarm[] => {
+export const getAllAlarmsLocal = (): Alarm[] => {
   const rows = db.getAllSync(`SELECT * FROM alarms ORDER BY time ASC`);
+  return rows.map(mapRowToAlarm);
+};
+
+export const getAlarmsLocal = (userId?: string | null): Alarm[] => {
+  const rows = userId
+    ? db.getAllSync(
+        `SELECT * FROM alarms WHERE user_id = ? ORDER BY time ASC`,
+        [userId],
+      )
+    : db.getAllSync(
+        `SELECT * FROM alarms WHERE user_id IS NULL ORDER BY time ASC`,
+      );
+
   return rows.map(mapRowToAlarm);
 };
 
@@ -93,17 +110,19 @@ export const insertAlarmLocal = (
   options: InsertAlarmLocalOptions = {},
 ): void => {
   const alarm = normalizeAlarmInput(input);
+  const userId = options.userId ?? alarm.userId ?? null;
   const time = `${alarm.hour.toString().padStart(2, '0')}:${alarm.minute
     .toString()
     .padStart(2, '0')}`;
 
   db.runSync(
     `INSERT OR REPLACE INTO alarms (
-      id, time, label, active, repeat_days, missions, random_missions,
+      id, user_id, time, label, active, repeat_days, missions, random_missions,
       sound_uri, vibration_enabled, vibration_pattern, synced, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       alarm.id,
+      userId,
       time,
       alarm.label,
       alarm.enabled ? 1 : 0,
@@ -159,8 +178,17 @@ export const clearPendingAlarmDeleteLocal = (alarmId: string, userId: string): v
   );
 };
 
-export const getUnsyncedAlarms = (): Alarm[] => {
-  const rows = db.getAllSync(`SELECT * FROM alarms WHERE synced = 0`);
+export const getUnsyncedAlarms = (userId: string): Alarm[] => {
+  const rows = db.getAllSync(
+    `
+    SELECT *
+    FROM alarms
+    WHERE synced = 0
+      AND user_id = ?
+    `,
+    [userId],
+  );
+
   return rows.map(mapRowToAlarm);
 };
 

@@ -29,6 +29,36 @@ type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'EditProfile'>;
 };
 
+function getPreferredProfileName(
+  profileUsername?: string | null,
+  authUsername?: string | null,
+  email?: string | null,
+): string {
+  const cleanProfileUsername = profileUsername?.trim();
+  const cleanAuthUsername = authUsername?.trim();
+  const emailLocalPart = String(email ?? '').split('@')[0] ?? '';
+
+  if (
+    cleanProfileUsername &&
+    (
+      cleanProfileUsername !== emailLocalPart ||
+      !cleanAuthUsername ||
+      cleanAuthUsername === emailLocalPart
+    )
+  ) {
+    return cleanProfileUsername;
+  }
+
+  if (
+    cleanAuthUsername &&
+    cleanAuthUsername !== emailLocalPart
+  ) {
+    return cleanAuthUsername;
+  }
+
+  return cleanProfileUsername ?? cleanAuthUsername ?? emailLocalPart;
+}
+
 export default function EditProfileScreen({ navigation }: Props) {
   const { colors, statusBarStyle } = useAppTheme();
   const { language } = useTranslation();
@@ -37,7 +67,11 @@ export default function EditProfileScreen({ navigation }: Props) {
   const { profile, refetch } = useProfile();
 
   const [username, setUsername] = useState(
-    profile?.username ?? user?.username ?? '',
+    getPreferredProfileName(
+      profile?.username,
+      user?.username,
+      user?.email,
+    ),
   );
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [saving, setSaving] = useState(false);
@@ -45,11 +79,19 @@ export default function EditProfileScreen({ navigation }: Props) {
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
 
   useEffect(() => {
-    if (profile) {
-      setUsername(profile.username ?? '');
-      setBio(profile.bio ?? '');
-    }
-  }, [profile]);
+    setUsername(
+      getPreferredProfileName(
+        profile?.username,
+        user?.username,
+        user?.email,
+      ),
+    );
+    setBio(profile?.bio ?? '');
+  }, [
+    profile,
+    user?.email,
+    user?.username,
+  ]);
 
   const handleSave = async () => {
     if (!user?.id) {

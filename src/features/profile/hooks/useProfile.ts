@@ -12,6 +12,48 @@ interface UseProfileReturn {
   refetch: () => void;
 }
 
+function getEmailLocalPart(email?: string | null): string {
+  return String(email ?? '').split('@')[0] ?? '';
+}
+
+function getBestUsername(user: {
+  email?: string | null;
+  username?: string | null;
+}): string {
+  const username = user.username?.trim();
+
+  if (username) {
+    return username;
+  }
+
+  const localPart = getEmailLocalPart(user.email);
+
+  return localPart || 'Usuario';
+}
+
+function shouldRepairUsername(
+  profileUsername: string | null | undefined,
+  authUsername: string,
+  email?: string | null,
+): boolean {
+  const current = profileUsername?.trim();
+  const cleanAuthUsername = authUsername.trim();
+  const emailLocalPart = getEmailLocalPart(email);
+
+  if (!cleanAuthUsername) {
+    return false;
+  }
+
+  if (!current) {
+    return true;
+  }
+
+  return (
+    current === emailLocalPart &&
+    cleanAuthUsername !== emailLocalPart
+  );
+}
+
 export function useProfile(): UseProfileReturn {
   const { user, isAuthenticated } = useAuth();
 
@@ -36,7 +78,7 @@ export function useProfile(): UseProfileReturn {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single(),
+          .maybeSingle(),
 
         supabase
           .from('missions_history')
@@ -52,7 +94,57 @@ export function useProfile(): UseProfileReturn {
 
         setError('Toca este mensaje para intentar cargar tus datos otra vez.');
       } else {
-        setProfile(profileResult.data as Profile);
+        const bestUsername = getBestUsername(user);
+        let nextProfile = profileResult.data as Profile | null;
+
+        if (!nextProfile) {
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              username: bestUsername,
+              updated_at: new Date().toISOString(),
+            })
+            .select('*')
+            .single();
+
+          if (createError) {
+            console.log(
+              '[Profile] Error creando perfil faltante:',
+              createError.message,
+            );
+            setError('Toca este mensaje para intentar cargar tus datos otra vez.');
+          } else {
+            nextProfile = createdProfile as Profile;
+          }
+        } else if (
+          shouldRepairUsername(
+            nextProfile.username,
+            bestUsername,
+            user.email,
+          )
+        ) {
+          const { data: repairedProfile, error: repairError } = await supabase
+            .from('profiles')
+            .update({
+              username: bestUsername,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id)
+            .select('*')
+            .single();
+
+          if (repairError) {
+            console.log(
+              '[Profile] Error reparando nombre de perfil:',
+              repairError.message,
+            );
+          } else {
+            nextProfile = repairedProfile as Profile;
+          }
+        }
+
+        setProfile(nextProfile);
       }
 
       if (missionsResult.error) {
@@ -71,7 +163,12 @@ export function useProfile(): UseProfileReturn {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user?.id]);
+  }, [
+    isAuthenticated,
+    user?.email,
+    user?.id,
+    user?.username,
+  ]);
 
   useEffect(() => {
     fetchProfile();

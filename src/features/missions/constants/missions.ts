@@ -35,6 +35,6 @@ export const DAY_LABELS_SHORT = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
 export const DIFFICULTY_LABELS = {
   easy: 'Facil',
-  normal: 'Normal',
+  normal: 'Medio',
   hard: 'Dificil',
 };
