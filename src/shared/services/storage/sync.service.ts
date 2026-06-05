@@ -83,6 +83,9 @@ export const syncAlarms = async (userId: string): Promise<void> => {
         const cloudHasVibrationPattern =
           (alarm as any).vibrationPattern !== undefined ||
           (alarm as any).vibration_pattern !== undefined;
+        const cloudHasMinVolume =
+          (alarm as any).minVolumePercent !== undefined ||
+          (alarm as any).min_volume_percent !== undefined;
 
         insertAlarmLocal(
           {
@@ -100,6 +103,21 @@ export const syncAlarms = async (userId: string): Promise<void> => {
                   alarm.vibrationPattern ?? (alarm as any).vibration_pattern,
                 )
               : localAlarm?.vibrationPattern ?? 'classic',
+            minVolumePercent: cloudHasMinVolume
+              ? Math.max(
+                  0,
+                  Math.min(
+                    100,
+                    Math.round(
+                      Number(
+                        alarm.minVolumePercent ??
+                          (alarm as any).min_volume_percent ??
+                          100,
+                      ),
+                    ),
+                  ),
+                )
+              : localAlarm?.minVolumePercent ?? 100,
           },
           {
             synced: true,

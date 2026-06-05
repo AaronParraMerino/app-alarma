@@ -3,7 +3,10 @@ import type * as ExpoNotifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
 import { Alarm, AlarmVibrationPattern, RepeatDay } from '../types/alarm.types';
-import { DEFAULT_ALARM_SOUND_URI } from './alarmService';
+import {
+  DEFAULT_ALARM_SOUND_URI,
+  normalizeAlarmSoundUri,
+} from './alarmService';
 import {
   DEFAULT_ALARM_VIBRATION_PATTERN,
   getAlarmVibrationPattern,
@@ -37,6 +40,7 @@ type NativeAlarmScheduleOptions = {
   repeatIntervalMillis: number;
   label: string;
   soundUri: string | null;
+  minVolumePercent: number;
   vibrationEnabled: boolean;
   vibrationPattern: AlarmVibrationPattern;
   scheme: string;
@@ -93,13 +97,16 @@ function getAlarmAudioAttributes(Notifications: typeof ExpoNotifications) {
 function normalizeSoundUri(soundUri: string | null): string | null {
   if (!soundUri) return null;
   if (soundUri.includes('://')) return DEFAULT_ALARM_SOUND_URI;
-  return soundUri;
+  return normalizeAlarmSoundUri(soundUri);
 }
 
 function getSoundResourceName(soundUri: string | null): string | null {
   const normalizedSoundUri = normalizeSoundUri(soundUri);
   if (!normalizedSoundUri) return null;
-  return normalizedSoundUri.replace(/\.[^/.]+$/, '');
+  return normalizedSoundUri
+    .replace(/\.[^/.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_');
 }
 
 function isAlarmVibrationEnabled(alarm: Pick<Alarm, 'vibrationEnabled'>): boolean {
@@ -110,6 +117,22 @@ function getAlarmVibrationPatternId(
   alarm: Pick<Alarm, 'vibrationPattern'>,
 ): AlarmVibrationPattern {
   return normalizeAlarmVibrationPattern(alarm.vibrationPattern);
+}
+
+function normalizeMinVolumePercent(value: unknown): number {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 100;
+  }
+
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(numericValue),
+    ),
+  );
 }
 
 function getAlarmChannelId(
@@ -464,6 +487,7 @@ async function scheduleNativeAlarmTrigger(
     repeatIntervalMillis,
     label: alarm.label || 'Alarma',
     soundUri: normalizeSoundUri(alarm.soundUri),
+    minVolumePercent: normalizeMinVolumePercent(alarm.minVolumePercent),
     vibrationEnabled: isAlarmVibrationEnabled(alarm),
     vibrationPattern: getAlarmVibrationPatternId(alarm),
     scheme: getAppScheme(),

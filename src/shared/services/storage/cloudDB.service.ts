@@ -11,6 +11,13 @@ export const insertAlarmCloud = async (alarm: any): Promise<void> => {
     missions:        JSON.stringify(alarm.missions ?? []),
     random_missions: alarm.randomMissions ? 1 : 0,
     sound_uri:       alarm.soundUri ?? null,
+    min_volume_percent: Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(Number(alarm.minVolumePercent ?? 100)),
+      ),
+    ),
     vibration_enabled: alarm.vibrationEnabled === true ? 1 : 0,
     vibration_pattern: alarm.vibrationPattern ?? 'classic',
   };
@@ -26,9 +33,13 @@ export const insertAlarmCloud = async (alarm: any): Promise<void> => {
   if (
     String(error.message ?? '')
       .toLowerCase()
-      .includes('vibration_pattern')
+      .includes('vibration_pattern') ||
+    String(error.message ?? '')
+      .toLowerCase()
+      .includes('min_volume_percent')
   ) {
     const {
+      min_volume_percent: _minVolumePercent,
       vibration_pattern: _vibrationPattern,
       ...fallbackPayload
     } = payload;

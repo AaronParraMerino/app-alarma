@@ -27,18 +27,39 @@ const ObjectRecognitionContext = createContext<ObjectRecognitionContextType>({
   setConfig: () => {},
 });
 
+function ObjectRecognitionModelPreloader({
+  detector,
+}: {
+  detector: ObjectDetectionType<any>;
+}) {
+  React.useEffect(() => {
+    if (detector.error) {
+      console.log(
+        '[ObjectRecognition] Modelo local:',
+        detector.error,
+      );
+    }
+  }, [
+    detector.error,
+  ]);
+
+  return null;
+}
+
 export function ObjectRecognitionProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const [config, setConfig] = useState<ObjectRecognitionConfig>(DEFAULT_CONFIG);
+  // Mantiene el modelo montado desde el inicio de la app para acelerar la mision.
   const detector = useObjectDetection({
     model: YOLO26X,
   });
 
   return (
     <ObjectRecognitionContext.Provider value={{ config, detector, setConfig }}>
+      <ObjectRecognitionModelPreloader detector={detector} />
       {children}
     </ObjectRecognitionContext.Provider>
   );

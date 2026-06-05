@@ -162,8 +162,11 @@ function formatRepeat(
     .join(' · ');
 }
 
-function formatSound(soundUri: string | null): string {
-  return getAlarmSoundLabel(soundUri);
+function formatSound(
+  soundUri: string | null,
+  isSpanish: boolean,
+): string {
+  return getAlarmSoundLabel(soundUri, isSpanish);
 }
 
 function minutesUntilNextAlarm(
@@ -382,7 +385,7 @@ const AlarmCard = React.memo(
                   },
                 ]}
               >
-                {formatSound(alarm.soundUri)}
+                {formatSound(alarm.soundUri, isSpanish)}
               </Text>
             </View>
 

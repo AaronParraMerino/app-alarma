@@ -24,6 +24,7 @@ export const initDB = () => {
       missions        TEXT DEFAULT '[]',
       random_missions INTEGER DEFAULT 0,
       sound_uri       TEXT,
+      min_volume_percent INTEGER DEFAULT 100,
       vibration_enabled INTEGER DEFAULT 0,
       vibration_pattern TEXT DEFAULT 'classic',
       synced          INTEGER DEFAULT 0,
@@ -172,6 +173,7 @@ export const initDB = () => {
   ensureColumn('alarms', 'missions', "TEXT DEFAULT '[]'");
   ensureColumn('alarms', 'random_missions', 'INTEGER DEFAULT 0');
   ensureColumn('alarms', 'sound_uri', 'TEXT');
+  ensureColumn('alarms', 'min_volume_percent', 'INTEGER DEFAULT 100');
   ensureColumn('alarms', 'vibration_enabled', 'INTEGER DEFAULT 0');
   ensureColumn('alarms', 'vibration_pattern', "TEXT DEFAULT 'classic'");
   ensureColumn('alarms', 'synced', 'INTEGER DEFAULT 0');

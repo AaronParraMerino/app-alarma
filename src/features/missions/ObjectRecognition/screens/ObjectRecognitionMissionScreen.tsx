@@ -34,6 +34,7 @@ import { MissionErrorCounter } from '../../../../shared/components/missions/Miss
 import { useAuth } from '../../../auth/hooks/useAuth';
 import { MissionHistoryLocalService } from '../../../../shared/services/storage/MissionHistoryLocalService';
 import { syncMissionHistory } from '../../../../shared/services/storage/missionHistorySync.service';
+import { PracticeExitButton } from '../../../../shared/components/missions/PracticeExitButton';
 
 import { MissionsStackParamList } from '../../navigation/MissionsNavigator';
 import { ObjectBankService } from '../services/objectBank.service';
@@ -374,6 +375,19 @@ export function ObjectRecognitionMissionContent({
     permission,
     requestPermission,
   ] = useCameraPermissions();
+
+  React.useEffect(() => {
+    if (
+      permission &&
+      !permission.granted &&
+      permission.canAskAgain
+    ) {
+      void requestPermission();
+    }
+  }, [
+    permission,
+    requestPermission,
+  ]);
 
   const {
     config,
@@ -1006,6 +1020,24 @@ export function ObjectRecognitionMissionContent({
           backgroundColor={colors.bg}
           barStyle={statusBarStyle}
         />
+      </SafeAreaView>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safe,
+          {
+            backgroundColor: colors.bg,
+          },
+        ]}
+      >
+        <StatusBar
+          backgroundColor={colors.bg}
+          barStyle={statusBarStyle}
+        />
 
         <View style={styles.permissionContent}>
           <Ionicons
@@ -1118,6 +1150,16 @@ export function ObjectRecognitionMissionContent({
         )
       : null;
 
+  const detectorProgress = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        (detector.downloadProgress ?? 0) * 100,
+      ),
+    ),
+  );
+
   const noteText =
     roundExhausted
       ? activeDifficulty === 'hard'
@@ -1143,18 +1185,18 @@ export function ObjectRecognitionMissionContent({
         ? isSpanish
           ? 'Analizando la foto...'
           : 'Analyzing the photo...'
-        : detector.error
-          ? isSpanish
-            ? 'No se pudo cargar el modelo local de reconocimiento.'
-            : 'The local recognition model could not be loaded.'
-          : !detector.isReady
+        : !detector.isReady
+          ? detectorProgress > 0
             ? isSpanish
-              ? `Preparando IA local ${Math.round(
-                  detector.downloadProgress * 100,
-                )}%`
-              : `Preparing local AI ${Math.round(
-                  detector.downloadProgress * 100,
-                )}%`
+              ? `Preparando IA local ${detectorProgress}%`
+              : `Preparing local AI ${detectorProgress}%`
+            : isSpanish
+              ? 'Preparando IA local...'
+              : 'Preparing local AI...'
+          : detector.error
+            ? isSpanish
+              ? 'No se pudo cargar el modelo local de reconocimiento.'
+              : 'The local recognition model could not be loaded.'
             : downgradeFailureCount > 0 &&
               activeDifficulty !== 'easy'
               ? isSpanish
@@ -1474,6 +1516,9 @@ export function ObjectRecognitionMissionContent({
         <View
           style={[
             styles.cameraCard,
+            {
+              height: width < 380 ? 300 : 330,
+            },
             {
               borderColor:
                 difficultyStyle.accentColor +
@@ -1917,18 +1962,34 @@ export default function ObjectRecognitionMissionScreen({
   navigation,
   route,
 }: Props) {
+  const isPractice =
+    Boolean(route.params?.practice);
+
   return (
-    <ObjectRecognitionMissionContent
-      difficulty={route.params?.difficulty}
-      targetObjectIds={
-        route.params?.targetObjectIds
-      }
-      alarmLabel={route.params?.alarmLabel}
-      onBack={() => navigation.goBack()}
-      onComplete={() =>
-        navigation.navigate('MissionSelector')
-      }
-    />
+    <View style={{ flex: 1 }}>
+      <ObjectRecognitionMissionContent
+        difficulty={route.params?.difficulty}
+        targetObjectIds={
+          route.params?.targetObjectIds
+        }
+        alarmLabel={route.params?.alarmLabel}
+        onComplete={() => {
+          if (isPractice) {
+            navigation.goBack();
+            return;
+          }
+
+          navigation.navigate('MissionSelector');
+        }}
+      />
+
+      {isPractice ? (
+        <PracticeExitButton
+          onPress={() => navigation.goBack()}
+          style={styles.practiceExitButton}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -1951,8 +2012,9 @@ const styles = StyleSheet.create({
     maxWidth: Layout.maxWideContentWidth,
     alignSelf: 'center',
     paddingHorizontal: Layout.screenPadding,
-    paddingVertical: 32,
-    gap: 18,
+    paddingTop: 58,
+    paddingBottom: 24,
+    gap: 14,
   },
 
   topRow: {
@@ -1997,13 +2059,15 @@ const styles = StyleSheet.create({
   },
 
   cameraCard: {
-    flex: 1,
     borderRadius: Layout.cardRadius,
     borderWidth: 1,
     borderColor: Colors.primary + '55',
     backgroundColor: Colors.black,
     overflow: 'hidden',
-    minHeight: 340,
+  },
+
+  practiceExitButton: {
+    top: 56,
   },
 
   camera: {

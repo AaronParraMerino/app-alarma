@@ -35,6 +35,7 @@ import { registerAlarmMissionConfigSession } from '../services/alarmMissionConfi
 import {
   ALARM_SOUND_OPTIONS,
   DEFAULT_ALARM_SOUND_URI,
+  normalizeAlarmSoundUri,
 } from '../services/alarmService';
 import { getAlarmSoundAsset } from '../services/alarmSoundAssets';
 import {
@@ -150,6 +151,13 @@ const MINUTE_VALUES = Array.from(
 );
 
 const MAX_MISSIONS = 5;
+const DEFAULT_MIN_VOLUME_PERCENT = 100;
+const MIN_VOLUME_OPTIONS = [
+  50,
+  70,
+  90,
+  100,
+] as const;
 
 const DAY_LABELS_SHORT_EN = [
   'Sun',
@@ -170,6 +178,7 @@ type AlarmFormDraft = {
   randomMissions: boolean;
   configuredMissions: AlarmMission[];
   soundUri: string | null;
+  minVolumePercent: number;
   vibrationEnabled: boolean;
   vibrationPattern: AlarmVibrationPattern;
 };
@@ -284,23 +293,43 @@ function getSoundIconName(soundId: string): IoniconName {
       return 'volume-mute-outline';
     case 'classic':
     case 'alarm_no3':
+    case 'bedside_clock':
+    case 'wind_up_bell':
+    case 'soft_clock':
       return 'alarm-outline';
-    case 'cyber':
+    case 'bright_beeps':
+    case 'digital_buzzer':
+    case 'phone_wake':
+      return 'volume-high-outline';
+    case 'energetic':
       return 'flash-outline';
-    case 'biohazard':
-    case 'meltdown':
+    case 'urgent_clock':
       return 'warning-outline';
-    case 'alien':
+    case 'focus_alarm':
       return 'radio-outline';
-    case 'facility_siren':
-    case 'imminent':
-    case 'tornado':
+    case 'deep_wake':
       return 'megaphone-outline';
-    case 'thunder':
-      return 'thunderstorm-outline';
+    case 'morning_joy':
+      return 'sunny-outline';
     default:
       return 'musical-notes-outline';
   }
+}
+
+function normalizeMinVolumePercent(value: unknown): number {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_MIN_VOLUME_PERCENT;
+  }
+
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(numericValue),
+    ),
+  );
 }
 
 type TimeWheelProps = {
@@ -628,12 +657,22 @@ export default function AlarmForm({
 
   const [soundUri, setSoundUri] =
     useState<string | null>(
-      initialDraft?.soundUri ??
-        (
-          initialData
-            ? initialData.soundUri ?? null
-            : DEFAULT_ALARM_SOUND_URI
-        ),
+      initialDraft
+        ? normalizeAlarmSoundUri(initialDraft.soundUri)
+        : (
+            initialData
+              ? normalizeAlarmSoundUri(initialData.soundUri ?? null)
+              : DEFAULT_ALARM_SOUND_URI
+          ),
+    );
+
+  const [minVolumePercent, setMinVolumePercent] =
+    useState<number>(
+      normalizeMinVolumePercent(
+        initialDraft?.minVolumePercent ??
+          initialData?.minVolumePercent ??
+          DEFAULT_MIN_VOLUME_PERCENT,
+      ),
     );
 
   const [vibrationEnabled, setVibrationEnabled] =
@@ -656,6 +695,10 @@ export default function AlarmForm({
     ALARM_SOUND_OPTIONS.find(
       (sound) => sound.uri === soundUri,
     ) ?? ALARM_SOUND_OPTIONS[0];
+
+  const selectedSoundLabel = isSpanish
+    ? selectedSound.labelEs
+    : selectedSound.labelEn;
 
   const selectedVibrationId: AlarmVibrationOptionId =
     vibrationEnabled ? vibrationPattern : 'none';
@@ -686,6 +729,7 @@ export default function AlarmForm({
     randomMissions,
     configuredMissions,
     soundUri,
+    minVolumePercent,
     vibrationEnabled,
     vibrationPattern,
   });
@@ -707,6 +751,7 @@ export default function AlarmForm({
       randomMissions,
       configuredMissions,
       soundUri,
+      minVolumePercent,
       vibrationEnabled,
       vibrationPattern,
     };
@@ -725,6 +770,7 @@ export default function AlarmForm({
     randomMissions,
     repeatDays,
     soundUri,
+    minVolumePercent,
     vibrationEnabled,
     vibrationPattern,
   ]);
@@ -1487,6 +1533,7 @@ export default function AlarmForm({
         : [],
       randomMissions: false,
       soundUri,
+      minVolumePercent,
       vibrationEnabled,
       vibrationPattern,
     });
@@ -1840,6 +1887,16 @@ export default function AlarmForm({
           </View>
         </View>
 
+        <AlarmChooseMission
+          missions={configuredMissions}
+          missionEnabled={missionEnabled}
+          randomMissions={randomMissions}
+          onToggleMissionEnabled={toggleMissionEnabled}
+          onOpenSelect={openMissionSelector}
+          onEditMission={editMission}
+          onClearMission={clearMission}
+        />
+
         <View
           style={[
             styles.card,
@@ -1908,10 +1965,7 @@ export default function AlarmForm({
                   },
                 ]}
               >
-                {selectedSound?.label ??
-                  (isSpanish
-                    ? 'Sonido personalizado'
-                    : 'Custom sound')}
+                {selectedSoundLabel}
               </Text>
             </View>
 
@@ -1935,8 +1989,8 @@ export default function AlarmForm({
             ]}
           >
             {isSpanish
-              ? `Sonido escogido: ${selectedSound?.label ?? 'Personalizado'}`
-              : `Selected sound: ${selectedSound?.label ?? 'Custom'}`}
+              ? `Sonido escogido: ${selectedSoundLabel}`
+              : `Selected sound: ${selectedSoundLabel}`}
           </Text>
 
           {soundPickerOpen ? (
@@ -1950,6 +2004,9 @@ export default function AlarmForm({
             >
               {ALARM_SOUND_OPTIONS.map((sound, index) => {
                 const active = soundUri === sound.uri;
+                const soundLabel = isSpanish
+                  ? sound.labelEs
+                  : sound.labelEn;
 
                 return (
                   <TouchableOpacity
@@ -2007,7 +2064,7 @@ export default function AlarmForm({
                       ]}
                       numberOfLines={1}
                     >
-                      {sound.label}
+                      {soundLabel}
                     </Text>
 
                     <TouchableOpacity
@@ -2034,8 +2091,8 @@ export default function AlarmForm({
                       accessibilityRole="button"
                       accessibilityLabel={
                         isSpanish
-                          ? `Preescuchar ${sound.label}`
-                          : `Preview ${sound.label}`
+                          ? `Preescuchar ${soundLabel}`
+                          : `Preview ${soundLabel}`
                       }
                     >
                       <Ionicons
@@ -2075,6 +2132,121 @@ export default function AlarmForm({
               })}
             </View>
           ) : null}
+
+          <View
+            style={[
+              styles.volumeLimitCard,
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                opacity: soundUri ? 1 : 0.58,
+              },
+            ]}
+          >
+            <View style={styles.volumeLimitHeader}>
+              <View
+                style={[
+                  styles.soundIconWrap,
+                  {
+                    backgroundColor: colors.primary + '18',
+                    borderColor: colors.primary + '44',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="volume-high-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+
+              <View style={styles.soundTextWrap}>
+                <Text
+                  style={[
+                    styles.soundText,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  {isSpanish
+                    ? 'Volumen minimo'
+                    : 'Minimum volume'}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.vibrationDescriptionText,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {isSpanish
+                    ? 'Durante la alarma no podra bajar de este limite.'
+                    : 'During the alarm it cannot go below this limit.'}
+                </Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.volumeLimitValue,
+                  {
+                    color: colors.primary,
+                  },
+                ]}
+              >
+                {soundUri ? `${minVolumePercent}%` : '--'}
+              </Text>
+            </View>
+
+            <View style={styles.volumeOptionsRow}>
+              {MIN_VOLUME_OPTIONS.map((option) => {
+                const active = minVolumePercent === option;
+
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.volumeOption,
+                      {
+                        backgroundColor: active
+                          ? colors.primary
+                          : colors.bgElevated,
+                        borderColor: active
+                          ? colors.primary
+                          : colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      if (!soundUri) return;
+                      setMinVolumePercent(option);
+                    }}
+                    activeOpacity={soundUri ? 0.82 : 1}
+                    disabled={!soundUri}
+                  >
+                    <Text
+                      style={[
+                        styles.volumeOptionText,
+                        {
+                          color: active
+                            ? '#FFFFFF'
+                            : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {option === 100
+                        ? isSpanish
+                          ? 'Max'
+                          : 'Max'
+                        : `${option}%`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
 
           <View style={styles.alertSectionHeader}>
             <Text
@@ -2328,15 +2500,6 @@ export default function AlarmForm({
           ) : null}
         </View>
 
-        <AlarmChooseMission
-          missions={configuredMissions}
-          missionEnabled={missionEnabled}
-          randomMissions={randomMissions}
-          onToggleMissionEnabled={toggleMissionEnabled}
-          onOpenSelect={openMissionSelector}
-          onEditMission={editMission}
-          onClearMission={clearMission}
-        />
       </ScrollView>
 
       <View
@@ -2748,6 +2911,45 @@ const styles = StyleSheet.create({
 
   soundPreviewButtonDisabled: {
     opacity: 0.58,
+  },
+
+  volumeLimitCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    gap: 12,
+  },
+
+  volumeLimitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  volumeLimitValue: {
+    minWidth: 48,
+    textAlign: 'right',
+    fontSize: 17,
+    fontWeight: '900',
+  },
+
+  volumeOptionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  volumeOption: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  volumeOptionText: {
+    fontSize: 12,
+    fontWeight: '900',
   },
 
   settingToggle: {

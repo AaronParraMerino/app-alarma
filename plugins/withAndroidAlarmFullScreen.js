@@ -157,6 +157,7 @@ final class AlarmConstants {
   static final String EXTRA_SCHEDULE_ID = "scheduleId";
   static final String EXTRA_LABEL = "label";
   static final String EXTRA_SOUND_URI = "soundUri";
+  static final String EXTRA_MIN_VOLUME_PERCENT = "minVolumePercent";
   static final String EXTRA_VIBRATION_ENABLED = "vibrationEnabled";
   static final String EXTRA_VIBRATION_PATTERN = "vibrationPattern";
   static final String EXTRA_SCHEME = "scheme";
@@ -195,6 +196,7 @@ final class AlarmScheduler {
     long repeatIntervalMillis,
     String label,
     String soundUri,
+    int minVolumePercent,
     boolean vibrationEnabled,
     String vibrationPattern,
     String scheme
@@ -209,6 +211,7 @@ final class AlarmScheduler {
       repeatIntervalMillis,
       label,
       soundUri,
+      minVolumePercent,
       vibrationEnabled,
       vibrationPattern,
       scheme
@@ -281,6 +284,7 @@ final class AlarmScheduler {
       repeatIntervalMillis,
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_LABEL),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI),
+      sourceIntent.getIntExtra(AlarmConstants.EXTRA_MIN_VOLUME_PERCENT, 100),
       sourceIntent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN),
       sourceIntent.getStringExtra(AlarmConstants.EXTRA_SCHEME)
@@ -356,6 +360,7 @@ final class AlarmScheduler {
     long repeatIntervalMillis,
     String label,
     String soundUri,
+    int minVolumePercent,
     boolean vibrationEnabled,
     String vibrationPattern,
     String scheme
@@ -368,6 +373,7 @@ final class AlarmScheduler {
     intent.putExtra(AlarmConstants.EXTRA_REPEAT_INTERVAL, repeatIntervalMillis);
     intent.putExtra(AlarmConstants.EXTRA_LABEL, label);
     intent.putExtra(AlarmConstants.EXTRA_SOUND_URI, soundUri);
+    intent.putExtra(AlarmConstants.EXTRA_MIN_VOLUME_PERCENT, minVolumePercent);
     intent.putExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, vibrationEnabled);
     intent.putExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN, vibrationPattern);
     intent.putExtra(AlarmConstants.EXTRA_SCHEME, scheme);
@@ -561,6 +567,7 @@ public class AlarmRingingService extends Service {
   private Runnable volumeGuardRunnable;
   private Vibrator vibrator;
   private int previousAlarmVolume = -1;
+  private int minAlarmVolumePercent = 100;
   private boolean shouldRestoreAlarmVolume = false;
   private String currentAlarmId;
   private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener =
@@ -607,6 +614,9 @@ public class AlarmRingingService extends Service {
     String alarmId = intent.getStringExtra(AlarmConstants.EXTRA_ALARM_ID);
     String label = intent.getStringExtra(AlarmConstants.EXTRA_LABEL);
     String soundUri = intent.getStringExtra(AlarmConstants.EXTRA_SOUND_URI);
+    minAlarmVolumePercent = normalizeMinVolumePercent(
+      intent.getIntExtra(AlarmConstants.EXTRA_MIN_VOLUME_PERCENT, 100)
+    );
     boolean vibrationEnabled = intent.getBooleanExtra(AlarmConstants.EXTRA_VIBRATION_ENABLED, true);
     String vibrationPattern = intent.getStringExtra(AlarmConstants.EXTRA_VIBRATION_PATTERN);
     String scheme = intent.getStringExtra(AlarmConstants.EXTRA_SCHEME);
@@ -844,7 +854,7 @@ public class AlarmRingingService extends Service {
         shouldRestoreAlarmVolume = true;
       }
 
-      forceAlarmVolumeMax();
+      setInitialAlarmVolume();
 
       if (volumeGuardHandler == null) {
         volumeGuardHandler = new Handler(Looper.getMainLooper());
@@ -861,7 +871,7 @@ public class AlarmRingingService extends Service {
             return;
           }
 
-          forceAlarmVolumeMax();
+          enforceMinimumAlarmVolume();
 
           if (volumeGuardHandler != null) {
             volumeGuardHandler.postDelayed(this, VOLUME_GUARD_INTERVAL_MS);
@@ -897,20 +907,51 @@ public class AlarmRingingService extends Service {
     shouldRestoreAlarmVolume = false;
   }
 
-  private void forceAlarmVolumeMax() {
+  private int normalizeMinVolumePercent(int value) {
+    return Math.max(0, Math.min(100, value));
+  }
+
+  private int getMinimumAlarmVolume() {
+    if (audioManager == null) {
+      return 0;
+    }
+
+    int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+    if (maxVolume <= 0) {
+      return 0;
+    }
+
+    return (int) Math.ceil(maxVolume * (minAlarmVolumePercent / 100.0));
+  }
+
+  private void setInitialAlarmVolume() {
     try {
       if (audioManager == null) {
         return;
       }
 
-      int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-      if (maxVolume <= 0) {
+      int initialVolume = getMinimumAlarmVolume();
+      if (initialVolume > 0) {
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, initialVolume, 0);
+      }
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void enforceMinimumAlarmVolume() {
+    try {
+      if (audioManager == null) {
+        return;
+      }
+
+      int minimumVolume = getMinimumAlarmVolume();
+      if (minimumVolume <= 0) {
         return;
       }
 
       int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM);
-      if (currentVolume < maxVolume) {
-        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
+      if (currentVolume < minimumVolume) {
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, minimumVolume, 0);
       }
     } catch (Exception ignored) {
     }
@@ -1197,6 +1238,9 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
       String vibrationPattern = options.hasKey("vibrationPattern") && !options.isNull("vibrationPattern")
         ? options.getString("vibrationPattern")
         : "classic";
+      int minVolumePercent = options.hasKey("minVolumePercent") && !options.isNull("minVolumePercent")
+        ? Math.max(0, Math.min(100, (int) Math.round(options.getDouble("minVolumePercent"))))
+        : 100;
       String scheme = options.hasKey("scheme") && !options.isNull("scheme")
         ? options.getString("scheme")
         : "neurowake";
@@ -1210,6 +1254,7 @@ public class NeuroWakeAlarmSchedulerModule extends ReactContextBaseJavaModule {
         repeatIntervalMillis,
         label,
         soundUri,
+        minVolumePercent,
         vibrationEnabled,
         vibrationPattern,
         scheme

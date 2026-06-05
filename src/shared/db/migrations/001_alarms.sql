@@ -12,6 +12,7 @@ CREATE TABLE public.alarms (
   missions text DEFAULT '[]'::text,
   random_missions integer DEFAULT 0,
   sound_uri text,
+  min_volume_percent integer DEFAULT 100 CHECK (min_volume_percent >= 0 AND min_volume_percent <= 100),
   vibration_enabled integer DEFAULT 1,
   vibration_pattern text DEFAULT 'classic',
   synced integer DEFAULT 0,

@@ -45,6 +45,7 @@ export interface Alarm {
   missions: AlarmMission[];
   randomMissions: boolean;   // RF12
   soundUri: string | null;
+  minVolumePercent: number;
   vibrationEnabled: boolean;
   vibrationPattern: AlarmVibrationPattern;
   createdAt: number;

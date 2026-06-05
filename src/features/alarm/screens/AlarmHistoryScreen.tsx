@@ -501,14 +501,14 @@ export default function AlarmHistoryScreen({
           <Ionicons
             name="chevron-back"
             size={22}
-            color={colors.primary}
+            color={colors.text}
           />
 
           <Text
             style={[
               styles.backText,
               {
-                color: colors.primary,
+                color: colors.text,
               },
             ]}
           >

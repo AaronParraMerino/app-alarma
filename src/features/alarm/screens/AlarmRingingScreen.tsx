@@ -524,7 +524,13 @@ export default function AlarmRingingScreen({
         if (!mounted) return;
 
         player.loop = true;
-        player.volume = 1;
+        player.volume = Math.max(
+          0,
+          Math.min(
+            1,
+            (alarm.minVolumePercent ?? 100) / 100,
+          ),
+        );
         player.play();
       } catch (error) {
         console.log('[AlarmRinging] No se pudo reproducir el sonido:', error);
@@ -546,6 +552,7 @@ export default function AlarmRingingScreen({
   }, [
     alarm,
     alarmSoundAsset,
+    alarm?.minVolumePercent,
     player,
     shouldUseJsAudio,
   ]);

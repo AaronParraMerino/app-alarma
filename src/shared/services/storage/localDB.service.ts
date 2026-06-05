@@ -23,6 +23,12 @@ const normalizeTimestamp = (raw: number | null | undefined): number => {
   return raw;
 };
 
+const normalizeMinVolumePercent = (raw: unknown): number => {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 100;
+  return Math.max(0, Math.min(100, Math.round(value)));
+};
+
 const mapRowToAlarm = (row: any): Alarm => {
   const [hh = '0', mm = '0'] = String(row.time ?? '0:0').split(':');
   return {
@@ -36,6 +42,7 @@ const mapRowToAlarm = (row: any): Alarm => {
     missions: parseJson<AlarmMission[]>(row.missions, []),
     randomMissions: Number(row.random_missions) === 1,
     soundUri: row.sound_uri ?? null,
+    minVolumePercent: normalizeMinVolumePercent(row.min_volume_percent),
     vibrationEnabled: row.vibration_enabled === undefined
       ? false
       : Number(row.vibration_enabled) === 1,
@@ -56,6 +63,7 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
       missions: alarm.missions ?? [],
       randomMissions: Boolean(alarm.randomMissions),
       soundUri: alarm.soundUri ?? null,
+      minVolumePercent: normalizeMinVolumePercent(alarm.minVolumePercent),
       vibrationEnabled: alarm.vibrationEnabled ?? false,
       vibrationPattern: normalizeAlarmVibrationPattern(alarm.vibrationPattern),
       createdAt: alarm.createdAt ?? Date.now(),
@@ -76,6 +84,9 @@ const normalizeAlarmInput = (alarm: any): Alarm => {
     randomMissions:
       Number(alarm.random_missions) === 1 || Boolean(alarm.randomMissions),
     soundUri: alarm.sound_uri ?? alarm.soundUri ?? null,
+    minVolumePercent: normalizeMinVolumePercent(
+      alarm.min_volume_percent ?? alarm.minVolumePercent,
+    ),
     vibrationEnabled: alarm.vibration_enabled === undefined
       ? alarm.vibrationEnabled ?? false
       : Number(alarm.vibration_enabled) === 1,
@@ -118,8 +129,8 @@ export const insertAlarmLocal = (
   db.runSync(
     `INSERT OR REPLACE INTO alarms (
       id, user_id, time, label, active, repeat_days, missions, random_missions,
-      sound_uri, vibration_enabled, vibration_pattern, synced, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sound_uri, min_volume_percent, vibration_enabled, vibration_pattern, synced, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       alarm.id,
       userId,
@@ -130,6 +141,7 @@ export const insertAlarmLocal = (
       JSON.stringify(alarm.missions),
       alarm.randomMissions ? 1 : 0,
       alarm.soundUri,
+      normalizeMinVolumePercent(alarm.minVolumePercent),
       alarm.vibrationEnabled ? 1 : 0,
       alarm.vibrationPattern,
       options.synced ? 1 : 0,
