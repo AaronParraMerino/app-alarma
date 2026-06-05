@@ -1562,9 +1562,7 @@ export default function AlarmForm({
         initialMissionCount={getInitialRandomMissionCount()}
         maxMissionCount={getRandomMissionConfigLimit()}
         onBack={closeMissionConfig}
-        saveLabel={
-          isSpanish ? 'Guardar misión' : 'Save mission'
-        }
+        saveLabel={isSpanish ? 'Confirmar' : 'Confirm'}
         onSave={saveRandomMissionConfig}
       />
     );
@@ -3055,3 +3053,4 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+

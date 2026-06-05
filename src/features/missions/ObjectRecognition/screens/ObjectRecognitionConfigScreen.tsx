@@ -387,10 +387,10 @@ export function ObjectRecognitionConfigScreen({
       ? isSpanish
         ? (route.params as any)?.practice
           ? 'Probar'
-          : 'Guardar'
+          : 'Confirmar'
         : (route.params as any)?.practice
           ? 'Try'
-          : 'Save'
+          : 'Confirm'
       : isSpanish
         ? `Selecciona mínimo ${minimumSelection}`
         : `Select at least ${minimumSelection}`;

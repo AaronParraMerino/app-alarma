@@ -616,13 +616,7 @@ export function MathMissionConfigScreen({
               },
             ]}
           >
-            {isSpanish
-              ? quantity === 1
-                ? ' vez'
-                : ' veces'
-              : quantity === 1
-                ? ' time'
-                : ' times'}
+            {isSpanish ? ' veces' : ' times'}
           </Text>
         </View>
 
@@ -651,10 +645,10 @@ export function MathMissionConfigScreen({
             {isSpanish
               ? route.params?.practice
                 ? 'Probar'
-                : 'Guardar'
+                : 'Confirmar'
               : route.params?.practice
                 ? 'Try'
-                : 'Save'}
+                : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

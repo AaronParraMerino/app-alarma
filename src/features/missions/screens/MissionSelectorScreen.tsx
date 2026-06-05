@@ -51,8 +51,8 @@ function difficultyLabel(difficulty: Difficulty, isSpanish: boolean) {
 
 function formatQuantity(quantity: number, isSpanish: boolean) {
   return isSpanish
-    ? `${quantity} vez${quantity === 1 ? '' : 'es'}`
-    : `${quantity} time${quantity === 1 ? '' : 's'}`;
+    ? `${quantity} veces`
+    : `${quantity} times`;
 }
 
 function MissionPracticeCard({

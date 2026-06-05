@@ -1241,8 +1241,8 @@ export function TriviaConfigScreen({
                 ? 'Probar'
                 : 'Try'
               : isSpanish
-                ? 'Guardar'
-                : 'Save'}
+                ? 'Confirmar'
+                : 'Confirm'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: Typography.sectionTitle.fontWeight,
     lineHeight: 18,
     textAlign: 'center',
   },
@@ -1551,6 +1551,6 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });
