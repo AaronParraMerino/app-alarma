@@ -7,6 +7,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -174,14 +175,18 @@ function ActionRow({
   const rowColor = color ?? colors.text;
 
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.actionRow,
+        pressed && !disabled && styles.actionRowPressed,
         disabled && styles.actionRowDisabled,
       ]}
       onPress={onPress}
-      activeOpacity={0.65}
       disabled={disabled}
+      android_ripple={{
+        color: rowColor + '18',
+      }}
+      hitSlop={4}
     >
       <View
         style={[
@@ -231,7 +236,7 @@ function ActionRow({
           color={colors.textMuted}
         />
       ) : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -299,7 +304,7 @@ export default function ProfileScreen({
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(() => {
-        refetch();
+        refetch({ silent: true });
         void loadCurrentStreak();
       });
 
@@ -379,8 +384,10 @@ export default function ProfileScreen({
       return;
     }
 
-    navigation.navigate('MissionHistory', {
-      userId,
+    requestAnimationFrame(() => {
+      navigation.navigate('MissionHistory', {
+        userId,
+      });
     });
   };
 
@@ -389,8 +396,10 @@ export default function ProfileScreen({
       return;
     }
 
-    navigation.navigate('AlarmHistory', {
-      userId,
+    requestAnimationFrame(() => {
+      navigation.navigate('AlarmHistory', {
+        userId,
+      });
     });
   };
 
@@ -399,8 +408,10 @@ export default function ProfileScreen({
       return;
     }
 
-    navigation.navigate('Streak', {
-      userId,
+    requestAnimationFrame(() => {
+      navigation.navigate('Streak', {
+        userId,
+      });
     });
   };
 
@@ -668,7 +679,11 @@ export default function ProfileScreen({
                 : 'Change name and bio'
             }
             color={colors.primary}
-            onPress={() => navigation.navigate('EditProfile')}
+            onPress={() => {
+              requestAnimationFrame(() => {
+                navigation.navigate('EditProfile');
+              });
+            }}
           />
 
           <View
@@ -689,7 +704,11 @@ export default function ProfileScreen({
                 : 'Update or recover access'
             }
             color={colors.primary}
-            onPress={() => navigation.navigate('ChangePassword')}
+            onPress={() => {
+              requestAnimationFrame(() => {
+                navigation.navigate('ChangePassword');
+              });
+            }}
           />
         </View>
 
@@ -978,6 +997,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 13,
+  },
+
+  actionRowPressed: {
+    opacity: 0.72,
+    transform: [
+      {
+        scale: 0.99,
+      },
+    ],
   },
 
   actionRowDisabled: {

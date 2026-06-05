@@ -10,8 +10,22 @@ interface UseProfileReturn {
   loading: boolean;
   error: string | null;
   totalMissionsResolved: number;
-  refetch: () => void;
+  refetch: (options?: FetchProfileOptions) => void;
 }
+
+type FetchProfileOptions = {
+  force?: boolean;
+  silent?: boolean;
+};
+
+type ProfileCacheEntry = {
+  profile: Profile | null;
+  totalMissionsResolved: number;
+  updatedAt: number;
+};
+
+const PROFILE_CACHE_MS = 30_000;
+const profileCache = new Map<string, ProfileCacheEntry>();
 
 function getEmailLocalPart(email?: string | null): string {
   return String(email ?? '').split('@')[0] ?? '';
@@ -63,14 +77,32 @@ export function useProfile(): UseProfileReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (options: FetchProfileOptions = {}) => {
     if (!isAuthenticated || !user?.id) {
       setProfile(null);
       setTotalMissionsResolved(0);
       return;
     }
 
-    setLoading(true);
+    const cachedProfile = profileCache.get(user.id);
+    const cacheIsFresh =
+      cachedProfile &&
+      Date.now() - cachedProfile.updatedAt < PROFILE_CACHE_MS;
+
+    if (cachedProfile) {
+      setProfile(cachedProfile.profile);
+      setTotalMissionsResolved(cachedProfile.totalMissionsResolved);
+    }
+
+    if (cacheIsFresh && !options.force) {
+      setError(null);
+      return;
+    }
+
+    if (!options.silent && !cachedProfile) {
+      setLoading(true);
+    }
+
     setError(null);
     setTotalMissionsResolved(MissionHistoryLocalService.countByUser(user.id));
 
@@ -140,6 +172,13 @@ export function useProfile(): UseProfileReturn {
         }
 
         setProfile(nextProfile);
+
+        profileCache.set(user.id, {
+          profile: nextProfile,
+          totalMissionsResolved:
+            MissionHistoryLocalService.countByUser(user.id),
+          updatedAt: Date.now(),
+        });
       }
 
       void (async () => {
@@ -157,7 +196,13 @@ export function useProfile(): UseProfileReturn {
             return;
           }
 
-          setTotalMissionsResolved(missionsResult.count ?? 0);
+          const nextTotal = missionsResult.count ?? 0;
+          setTotalMissionsResolved(nextTotal);
+          profileCache.set(user.id, {
+            profile: profileCache.get(user.id)?.profile ?? null,
+            totalMissionsResolved: nextTotal,
+            updatedAt: Date.now(),
+          });
         } catch (missionsError) {
           console.log(
             '[Profile] Error inesperado contando misiones:',
@@ -169,7 +214,9 @@ export function useProfile(): UseProfileReturn {
       console.log('[Profile] Error inesperado cargando perfil:', profileError);
       setError('Toca este mensaje para intentar cargar tus datos otra vez.');
     } finally {
-      setLoading(false);
+      if (!options.silent) {
+        setLoading(false);
+      }
     }
   }, [
     isAuthenticated,
